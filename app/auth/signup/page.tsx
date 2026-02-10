@@ -1,0 +1,211 @@
+'use client';
+
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { createClient } from '@/lib/supabase/client';
+import Link from 'next/link';
+import Image from 'next/image';
+
+export default function SignUpPage() {
+  const router = useRouter();
+  const supabase = createClient();
+  
+  const [formData, setFormData] = useState({
+    email: '',
+    password: '',
+    confirmPassword: '',
+    firstName: '',
+    lastName: '',
+    phone: '',
+    fullName: '',
+  });
+  
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    setLoading(true);
+
+    // Validation
+    if (formData.password !== formData.confirmPassword) {
+      setError('Passwords do not match');
+      setLoading(false);
+      return;
+    }
+
+    if (formData.password.length < 8) {
+      setError('Password must be at least 8 characters');
+      setLoading(false);
+      return;
+    }
+
+    try {
+      // Sign up with Supabase Auth
+      // The database trigger will automatically create the user profile
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: formData.email,
+        password: formData.password,
+        options: {
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
+          data: {
+            full_name: `${formData.firstName} ${formData.lastName}`,
+            phone: formData.phone,
+            school: 'Stonehill College', // Default school; more options can be added later
+          },
+        },
+      });
+
+      if (authError) throw authError;
+
+      if (authData.user) {
+        // Profile is automatically created by database trigger
+        setSuccess(true);
+      }
+    } catch (err: any) {
+      setError(err.message || 'An error occurred during sign up');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (success) {
+    return (
+      <div className="auth-container">
+        <div className="auth-card">
+          <div className="auth-logo">
+            <Image
+              src="/brand/notime-storage-logo.png"
+              alt="NoTime Storage"
+              width={60}
+              height={60}
+            />
+          </div>
+          
+          <div className="auth-success">
+            <h1>Check your email</h1>
+            <p>We've sent you a confirmation link to <strong>{formData.email}</strong></p>
+            <p>Click the link in the email to verify your account.</p>
+            <Link href="/auth/login" className="button-primary">
+              Go to Login
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="auth-container">
+      <div className="auth-card">
+        <div className="auth-logo">
+          <Image
+            src="/brand/notime-storage-logo.png"
+            alt="NoTime Storage"
+            width={60}
+            height={60}
+          />
+        </div>
+        
+        <div className="auth-header">
+          <h1>Create your account</h1>
+          <p>Start storing your belongings with NoTime Storage</p>
+        </div>
+
+        <form onSubmit={handleSubmit} className="auth-form">
+          {error && (
+            <div className="auth-error">
+              {error}
+            </div>
+          )}
+
+          <div className="form-row">
+            <div className="form-group">
+              <label htmlFor="firstName">First Name</label>
+              <input
+                type="text"
+                id="firstName"
+                value={formData.firstName}
+                onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
+                required
+              />
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="lastName">Last Name</label>
+              <input
+                type="text"
+                id="lastName"
+                value={formData.lastName}
+                onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+                required
+              />
+            </div>
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="email">Email</label>
+            <input
+              type="email"
+              id="email"
+              value={formData.email}
+              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+              required
+            />
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="phone">Phone Number</label>
+            <input
+              type="tel"
+              id="phone"
+              value={formData.phone}
+              onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+              placeholder="(555) 123-4567"
+              required
+            />
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="password">Password</label>
+            <input
+              type="password"
+              id="password"
+              value={formData.password}
+              onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+              minLength={8}
+              required
+            />
+            <small>Must be at least 8 characters</small>
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="confirmPassword">Confirm Password</label>
+            <input
+              type="password"
+              id="confirmPassword"
+              value={formData.confirmPassword}
+              onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
+              minLength={8}
+              required
+            />
+          </div>
+
+          <button 
+            type="submit" 
+            className="button-primary" 
+            disabled={loading}
+          >
+            {loading ? 'Creating account...' : 'Create Account'}
+          </button>
+
+          <div className="auth-footer">
+            Already have an account? <Link href="/auth/login">Log in</Link>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
