@@ -1,11 +1,11 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
 
-export default function ConfigurePage() {
+function ConfigurePageContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const plan = searchParams.get('plan') || '1box';
@@ -223,5 +223,13 @@ export default function ConfigurePage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function ConfigurePage() {
+  return (
+    <Suspense fallback={<div className="auth-container" />}>
+      <ConfigurePageContent />
+    </Suspense>
   );
 }

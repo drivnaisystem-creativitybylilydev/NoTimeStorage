@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Search, ChevronDown, ChevronUp, Eye, Banknote, XCircle } from 'lucide-react';
@@ -38,7 +38,7 @@ function formatTimeSlot(s: string) {
   return s;
 }
 
-export function BookingsTable({ initialBookings, total, currentPage, filters, sortBy, sortOrder }: BookingsTableProps) {
+function BookingsTableContent({ initialBookings, total, currentPage, filters, sortBy, sortOrder }: BookingsTableProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const appModal = useAppModal();
@@ -463,5 +463,13 @@ export function BookingsTable({ initialBookings, total, currentPage, filters, so
 
       {selectedBooking && <BookingDetailModal booking={selectedBooking} onClose={() => setSelectedBooking(null)} />}
     </div>
+  );
+}
+
+export function BookingsTable(props: BookingsTableProps) {
+  return (
+    <Suspense fallback={<div style={{ padding: '32px', textAlign: 'center', color: 'var(--color-coffee)' }}>Loading...</div>}>
+      <BookingsTableContent {...props} />
+    </Suspense>
   );
 }

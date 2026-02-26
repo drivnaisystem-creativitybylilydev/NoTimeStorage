@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -24,7 +24,7 @@ const UNIT_PRICE_CENTS: Record<string, number> = {
   large: 1500,
 };
 
-export default function PaymentPage() {
+function PaymentPageContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const [userId, setUserId] = useState<string | null>(null);
@@ -282,5 +282,13 @@ export default function PaymentPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function PaymentPage() {
+  return (
+    <Suspense fallback={<div className="auth-container" />}>
+      <PaymentPageContent />
+    </Suspense>
   );
 }

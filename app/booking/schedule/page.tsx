@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useEffect, useRef } from 'react';
+import { useState, useMemo, useEffect, useRef, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -10,7 +10,7 @@ import { getDefaultTimeSlots } from '@/lib/booking/time-slots';
 // Configuration: Minimum storage duration in months
 const MINIMUM_STORAGE_MONTHS = 3;
 
-export default function SchedulePage() {
+function SchedulePageContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   
@@ -894,5 +894,13 @@ export default function SchedulePage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function SchedulePage() {
+  return (
+    <Suspense fallback={<div className="auth-container" />}>
+      <SchedulePageContent />
+    </Suspense>
   );
 }
