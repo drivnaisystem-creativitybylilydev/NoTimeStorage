@@ -35,6 +35,7 @@ function SchedulePageContent() {
   const [dorm, setDorm] = useState('');
   const [elevatorAccess, setElevatorAccess] = useState<'yes' | 'no' | ''>('');
   const [stairsAccess, setStairsAccess] = useState<'yes' | 'no' | ''>('');
+  const [roomNumber, setRoomNumber] = useState('');
   const [specialInstructions, setSpecialInstructions] = useState('');
   const [dateError, setDateError] = useState('');
   const [availableSlots, setAvailableSlots] = useState<{ value: string; label: string }[]>([]);
@@ -181,7 +182,7 @@ function SchedulePageContent() {
 
   const monthData = useMemo(() => getMonthData(currentMonth.getFullYear(), currentMonth.getMonth()), [currentMonth]);
 
-  const isFormValid = moveOutDate && moveInDate && moveOutTime && school && dorm && elevatorAccess && stairsAccess;
+  const isFormValid = moveOutDate && moveInDate && moveOutTime && school && dorm && elevatorAccess && stairsAccess && roomNumber.trim();
 
   const handleContinue = () => {
     if (!isFormValid) return;
@@ -200,6 +201,7 @@ function SchedulePageContent() {
       dorm,
       elevator: elevatorAccess,
       stairs: stairsAccess,
+      room: roomNumber,
       instructions: specialInstructions,
     });
     router.push(`/booking/payment?${params.toString()}`);
@@ -708,122 +710,73 @@ function SchedulePageContent() {
           )}
         </div>
 
-        {/* Elevator Access */}
-        <div className="form-group" style={{ marginBottom: '24px' }}>
-          <label style={{ display: 'block', marginBottom: '12px', fontWeight: '600', color: 'var(--color-coffee)', fontSize: '0.875rem' }}>
-            Elevator Available? *
-          </label>
-          <div style={{ display: 'flex', gap: '12px' }}>
-            <label style={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              justifyContent: 'center',
-              gap: '8px',
-              padding: '10px 20px', 
-              border: `2px solid ${elevatorAccess === 'yes' ? 'var(--color-coffee)' : 'var(--color-latte)'}`, 
-              borderRadius: '8px', 
-              cursor: 'pointer', 
-              flex: 1, 
-              backgroundColor: elevatorAccess === 'yes' ? 'var(--color-latte-soft)' : 'white',
-              transition: 'all 0.2s ease',
-              fontSize: '0.875rem',
-              fontWeight: '500'
-            }}>
-              <input
-                type="radio"
-                name="elevator"
-                value="yes"
-                checked={elevatorAccess === 'yes'}
-                onChange={(e) => setElevatorAccess('yes')}
-                style={{ margin: 0, cursor: 'pointer' }}
-              />
-              Yes
+        {/* Elevator + Stairs — compact side by side */}
+        <div style={{ display: 'flex', gap: '24px', marginBottom: '24px' }}>
+          <div style={{ flex: 1 }}>
+            <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: 'var(--color-coffee)', fontSize: '0.875rem' }}>
+              Elevator Available? *
             </label>
-            <label style={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              justifyContent: 'center',
-              gap: '8px',
-              padding: '10px 20px', 
-              border: `2px solid ${elevatorAccess === 'no' ? 'var(--color-coffee)' : 'var(--color-latte)'}`, 
-              borderRadius: '8px', 
-              cursor: 'pointer', 
-              flex: 1, 
-              backgroundColor: elevatorAccess === 'no' ? 'var(--color-latte-soft)' : 'white',
-              transition: 'all 0.2s ease',
-              fontSize: '0.875rem',
-              fontWeight: '500'
-            }}>
-              <input
-                type="radio"
-                name="elevator"
-                value="no"
-                checked={elevatorAccess === 'no'}
-                onChange={(e) => setElevatorAccess('no')}
-                style={{ margin: 0, cursor: 'pointer' }}
-              />
-              No
+            <div style={{ display: 'flex', gap: '8px' }}>
+              {(['yes', 'no'] as const).map((val) => (
+                <label key={val} style={{
+                  display: 'flex', alignItems: 'center', gap: '5px',
+                  padding: '6px 14px',
+                  border: `2px solid ${elevatorAccess === val ? 'var(--color-coffee)' : 'var(--color-latte)'}`,
+                  borderRadius: '6px', cursor: 'pointer',
+                  backgroundColor: elevatorAccess === val ? 'var(--color-latte-soft)' : 'white',
+                  transition: 'all 0.2s ease', fontSize: '0.8rem', fontWeight: '500',
+                }}>
+                  <input type="radio" name="elevator" value={val} checked={elevatorAccess === val}
+                    onChange={() => setElevatorAccess(val)} style={{ margin: 0, cursor: 'pointer' }} />
+                  {val.charAt(0).toUpperCase() + val.slice(1)}
+                </label>
+              ))}
+            </div>
+          </div>
+
+          <div style={{ flex: 1 }}>
+            <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: 'var(--color-coffee)', fontSize: '0.875rem' }}>
+              Stairs Required? *
             </label>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              {(['yes', 'no'] as const).map((val) => (
+                <label key={val} style={{
+                  display: 'flex', alignItems: 'center', gap: '5px',
+                  padding: '6px 14px',
+                  border: `2px solid ${stairsAccess === val ? 'var(--color-coffee)' : 'var(--color-latte)'}`,
+                  borderRadius: '6px', cursor: 'pointer',
+                  backgroundColor: stairsAccess === val ? 'var(--color-latte-soft)' : 'white',
+                  transition: 'all 0.2s ease', fontSize: '0.8rem', fontWeight: '500',
+                }}>
+                  <input type="radio" name="stairs" value={val} checked={stairsAccess === val}
+                    onChange={() => setStairsAccess(val)} style={{ margin: 0, cursor: 'pointer' }} />
+                  {val.charAt(0).toUpperCase() + val.slice(1)}
+                </label>
+              ))}
+            </div>
           </div>
         </div>
 
-        {/* Stairs Access */}
+        {/* Room Number */}
         <div className="form-group" style={{ marginBottom: '24px' }}>
-          <label style={{ display: 'block', marginBottom: '12px', fontWeight: '600', color: 'var(--color-coffee)', fontSize: '0.875rem' }}>
-            Stairs Required? *
+          <label htmlFor="room-number" style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: 'var(--color-coffee)', fontSize: '0.875rem' }}>
+            Room Number *
           </label>
-          <div style={{ display: 'flex', gap: '12px' }}>
-            <label style={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              justifyContent: 'center',
-              gap: '8px',
-              padding: '10px 20px', 
-              border: `2px solid ${stairsAccess === 'yes' ? 'var(--color-coffee)' : 'var(--color-latte)'}`, 
-              borderRadius: '8px', 
-              cursor: 'pointer', 
-              flex: 1, 
-              backgroundColor: stairsAccess === 'yes' ? 'var(--color-latte-soft)' : 'white',
-              transition: 'all 0.2s ease',
-              fontSize: '0.875rem',
-              fontWeight: '500'
-            }}>
-              <input
-                type="radio"
-                name="stairs"
-                value="yes"
-                checked={stairsAccess === 'yes'}
-                onChange={(e) => setStairsAccess('yes')}
-                style={{ margin: 0, cursor: 'pointer' }}
-              />
-              Yes
-            </label>
-            <label style={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              justifyContent: 'center',
-              gap: '8px',
-              padding: '10px 20px', 
-              border: `2px solid ${stairsAccess === 'no' ? 'var(--color-coffee)' : 'var(--color-latte)'}`, 
-              borderRadius: '8px', 
-              cursor: 'pointer', 
-              flex: 1, 
-              backgroundColor: stairsAccess === 'no' ? 'var(--color-latte-soft)' : 'white',
-              transition: 'all 0.2s ease',
-              fontSize: '0.875rem',
-              fontWeight: '500'
-            }}>
-              <input
-                type="radio"
-                name="stairs"
-                value="no"
-                checked={stairsAccess === 'no'}
-                onChange={(e) => setStairsAccess('no')}
-                style={{ margin: 0, cursor: 'pointer' }}
-              />
-              No
-            </label>
-          </div>
+          <input
+            id="room-number"
+            type="text"
+            value={roomNumber}
+            onChange={(e) => setRoomNumber(e.target.value)}
+            placeholder="e.g. 204, Suite 3B"
+            required
+            style={{
+              width: '100%', padding: '10px 14px',
+              border: `2px solid ${roomNumber ? 'var(--color-coffee)' : 'var(--color-latte)'}`,
+              borderRadius: '8px', fontSize: '0.9rem',
+              boxSizing: 'border-box', fontFamily: 'inherit',
+              color: 'var(--color-coffee)',
+            }}
+          />
         </div>
 
         {/* Special Instructions */}

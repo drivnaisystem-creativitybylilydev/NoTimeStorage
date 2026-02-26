@@ -44,7 +44,9 @@ function PaymentPageContent() {
   const dorm = searchParams.get('dorm') || '';
   const elevator = searchParams.get('elevator') || '';
   const stairs = searchParams.get('stairs') || '';
+  const room = searchParams.get('room') || '';
   const instructions = searchParams.get('instructions') || '';
+  const specialInstructions = [room ? `Room: ${room}` : '', instructions].filter(Boolean).join('\n');
 
   // Calculate pricing
   const getBoxPrice = (qty: number) => {
@@ -111,7 +113,7 @@ function PaymentPageContent() {
       dorm,
       elevator_available: elevator === 'yes',
       stairs_required: stairs === 'yes',
-      special_instructions: instructions || undefined,
+      special_instructions: specialInstructions || undefined,
       school: searchParams.get('school') || 'Stonehill College',
       monthly_total_cents: monthlyTotalCents,
       items,
@@ -135,7 +137,7 @@ function PaymentPageContent() {
     console.log('[payment] createBooking result:', result.success ? 'success' : 'error', result);
     setSaving(false);
     if (result.success) {
-      router.push(`/dashboard?booking=${result.bookingId}`);
+      router.push(`/booking/confirmed?moveOutDate=${moveOutDate}&school=${encodeURIComponent(searchParams.get('school') || '')}&boxes=${boxes}&monthlyTotal=${monthlyTotal}`);
       return;
     }
     setSaveError(result.error);
