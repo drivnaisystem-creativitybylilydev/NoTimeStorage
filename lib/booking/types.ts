@@ -51,4 +51,8 @@ export interface Booking {
 
 export interface BookingWithItems extends Booking {
   items?: { item_type: string; quantity: number; unit_price_cents: number }[];
+  total_monthly_rate?: number | string | null;
+  total_price?: number | string | null;
+  box_quantity?: number | null;
+  payment_status?: string | null;
 }
