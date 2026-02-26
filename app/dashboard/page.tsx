@@ -64,7 +64,7 @@ export default async function DashboardPage() {
 
   // Fetch user's bookings with line items (user_id = public.users.id)
   const profileId = profile?.id ?? user.id;
-  const { data: bookings = [] } = await supabase
+  const { data: rawBookings } = await supabase
     .from('bookings')
     .select(`
       id,
@@ -87,6 +87,7 @@ export default async function DashboardPage() {
     .eq('user_id', profileId)
     .order('created_at', { ascending: false })
     .returns<BookingRow[]>();
+  const bookings: BookingRow[] = rawBookings ?? [];
 
   return (
     <div>

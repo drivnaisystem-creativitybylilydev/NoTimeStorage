@@ -3,9 +3,16 @@ import { redirect, notFound } from 'next/navigation';
 import { EditBookingForm } from './EditBookingForm';
 
 type BookingItemRow = { item_type: string; quantity: number };
+type AdditionalItems = {
+  smallWithBox: number;
+  smallWithoutBox: number;
+  mediumWithBox: number;
+  mediumWithoutBox: number;
+  large: number;
+};
 
-function parseBookingItemsToForm(items: BookingItemRow[] | null): { boxQuantity: number; additionalItems: Record<string, number> } {
-  const additionalItems: Record<string, number> = {
+function parseBookingItemsToForm(items: BookingItemRow[] | null): { boxQuantity: number; additionalItems: AdditionalItems } {
+  const additionalItems: AdditionalItems = {
     smallWithBox: 0,
     smallWithoutBox: 0,
     mediumWithBox: 0,

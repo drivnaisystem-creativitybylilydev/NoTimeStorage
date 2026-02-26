@@ -64,10 +64,10 @@ export async function getDashboardStats(): Promise<DashboardStats> {
   }, 0);
 
   return {
-    totalBookings,
-    activeBookings,
+    totalBookings: totalBookings ?? 0,
+    activeBookings: activeBookings ?? 0,
     revenueThisMonth,
-    unpaidBookings,
+    unpaidBookings: unpaidBookings ?? 0,
   };
 }
 
