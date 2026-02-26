@@ -2,7 +2,7 @@
  * Booking backend types — shared between server action and integrations.
  */
 
-export type BookingStatus = 'draft' | 'pending_payment' | 'confirmed' | 'cancelled';
+export type BookingStatus = 'draft' | 'pending' | 'pending_payment' | 'confirmed' | 'cancelled';
 
 export type BookingItemType =
   | 'box'

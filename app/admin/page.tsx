@@ -30,8 +30,8 @@ export default function AdminLoginPage() {
       if (signInError) throw signInError;
 
       if (data.user) {
-        // On success, go to protected admin overview.
-        router.push('/admin/dashboard');
+        // On success, go to admin bookings (combined overview + table).
+        router.push('/admin/bookings');
         router.refresh();
       }
     } catch (err: any) {

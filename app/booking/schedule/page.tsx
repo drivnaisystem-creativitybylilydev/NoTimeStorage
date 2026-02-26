@@ -1,9 +1,11 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
+import { getAvailableTimeSlots } from '@/lib/booking/availability';
+import { getDefaultTimeSlots } from '@/lib/booking/time-slots';
 
 // Configuration: Minimum storage duration in months
 const MINIMUM_STORAGE_MONTHS = 3;
@@ -33,45 +35,93 @@ export default function SchedulePage() {
   const [stairsAccess, setStairsAccess] = useState<'yes' | 'no' | ''>('');
   const [specialInstructions, setSpecialInstructions] = useState('');
   const [dateError, setDateError] = useState('');
+  const [availableSlots, setAvailableSlots] = useState<{ value: string; label: string }[]>([]);
+  const [slotsLoading, setSlotsLoading] = useState(false);
+  const [school, setSchool] = useState('');
+  const [dormOpen, setDormOpen] = useState(false);
+  const dormDropdownRef = useRef<HTMLDivElement>(null);
 
-  // Stonehill College Dorms
-  const dorms = [
-    'Boland Hall',
-    'Corning Hall',
-    'Cushing-Martin Hall',
-    'Duffy Hall',
-    'Gate House',
-    'Holy Cross Hall',
-    'Joseph Martin Institute',
-    'New Hall',
-    'O\'Hara Hall',
-    'Pilgrim Heights',
-    'Shields Science Center',
-    'Southeast & Southwest Quadrangles',
-    'Stucker House',
-    'The Knoll',
-    'Townhouses',
-    'Off-Campus Housing'
-  ];
-
-  // Generate time slots (8 AM - 5 PM, 20-min intervals)
-  const generateTimeSlots = () => {
-    const slots = [];
-    for (let hour = 8; hour < 17; hour++) {
-      for (let min = 0; min < 60; min += 20) {
-        const timeString = `${hour.toString().padStart(2, '0')}:${min.toString().padStart(2, '0')}`;
-        const displayTime = new Date(`2000-01-01T${timeString}`).toLocaleTimeString('en-US', {
-          hour: 'numeric',
-          minute: '2-digit',
-          hour12: true
-        });
-        slots.push({ value: timeString, label: displayTime });
-      }
-    }
-    return slots;
+  // School → dorms map
+  const SCHOOL_DORMS: Record<string, string[]> = {
+    'Stonehill College': [
+      'Boland Hall',
+      'Corning Hall',
+      'Cushing-Martin Hall',
+      'Duffy Hall',
+      'Gate House',
+      'Holy Cross Hall',
+      'Joseph Martin Institute',
+      'New Hall',
+      "O'Hara Hall",
+      'Pilgrim Heights',
+      'Shields Science Center',
+      'Southeast & Southwest Quadrangles',
+      'Stucker House',
+      'The Knoll',
+      'Townhouses',
+      'Off-Campus Housing',
+    ],
+    'University of New Haven': [
+      'Bergami Hall',
+      'Bethel Hall',
+      'Bixler Hall',
+      'Gerber Hall',
+      'Westside Hall',
+      'Celentano Hall',
+      'Dunham Hall',
+      'Sheffield Hall',
+      'Winchester Hall',
+      'The Atwood',
+      'Campbell Houses',
+      'Forest Hills Apartments',
+      'Park View',
+      'Ruden Street Apartments',
+      'Savin Court Townhouses',
+      'Off-Campus Housing',
+    ],
   };
 
-  const timeSlots = generateTimeSlots();
+  const schools = Object.keys(SCHOOL_DORMS);
+  const dorms = school ? SCHOOL_DORMS[school] ?? [] : [];
+
+  const allTimeSlots = useMemo(() => getDefaultTimeSlots(), []);
+
+  // Fetch available time slots when date + dorm are set (20-min rule for different dorms, 5-min/same time for same dorm)
+  useEffect(() => {
+    if (!moveOutDate || !dorm) {
+      setAvailableSlots([]);
+      return;
+    }
+    const dateStr = moveOutDate.toISOString().split('T')[0];
+    setSlotsLoading(true);
+    getAvailableTimeSlots(dateStr, dorm)
+      .then((slots) => {
+        setAvailableSlots(slots);
+        setMoveOutTime((current) => {
+          const stillAvailable = slots.some((s) => s.value === current);
+          return stillAvailable ? current : '';
+        });
+      })
+      .finally(() => setSlotsLoading(false));
+  }, [moveOutDate, dorm]);
+
+  // Close dorm dropdown when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (dormDropdownRef.current && !dormDropdownRef.current.contains(event.target as Node)) {
+        setDormOpen(false);
+      }
+    }
+    if (dormOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [dormOpen]);
+
+  const availableSet = useMemo(
+    () => new Set(availableSlots.map((s) => s.value)),
+    [availableSlots]
+  );
 
   // Calendar helpers
   const getMinimumMoveInDate = (moveOut: Date) => {
@@ -152,12 +202,11 @@ export default function SchedulePage() {
 
   const monthData = useMemo(() => getMonthData(currentMonth.getFullYear(), currentMonth.getMonth()), [currentMonth]);
 
-  const isFormValid = moveOutDate && moveInDate && moveOutTime && dorm && elevatorAccess && stairsAccess;
+  const isFormValid = moveOutDate && moveInDate && moveOutTime && school && dorm && elevatorAccess && stairsAccess;
 
   const handleContinue = () => {
     if (!isFormValid) return;
 
-    // For now, redirect to a confirmation/payment placeholder
     const params = new URLSearchParams({
       boxes: boxes.toString(),
       ...Object.fromEntries(
@@ -168,6 +217,7 @@ export default function SchedulePage() {
       moveOutDate: moveOutDate!.toISOString().split('T')[0],
       moveInDate: moveInDate!.toISOString().split('T')[0],
       moveOutTime,
+      school,
       dorm,
       elevator: elevatorAccess,
       stairs: stairsAccess,
@@ -436,61 +486,247 @@ export default function SchedulePage() {
           </div>
         </div>
 
-        {/* Move-Out Time */}
+        {/* School Selection */}
         <div className="form-group" style={{ marginBottom: '24px' }}>
-          <label htmlFor="moveOutTime" style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: 'var(--color-coffee)' }}>
-            Preferred Time Slot *
+          <label htmlFor="school-select" style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: 'var(--color-coffee)' }}>
+            Your College / University *
           </label>
           <select
-            id="moveOutTime"
-            value={moveOutTime}
-            onChange={(e) => setMoveOutTime(e.target.value)}
+            id="school-select"
+            value={school}
+            onChange={(e) => {
+              setSchool(e.target.value);
+              setDorm('');
+            }}
             style={{
               width: '100%',
-              padding: '14px',
-              border: '2px solid var(--color-latte)',
+              padding: '0.875rem 1rem',
+              border: `2px solid ${school ? 'var(--color-coffee)' : 'var(--color-latte)'}`,
               borderRadius: '8px',
-              fontSize: '1rem',
-              boxSizing: 'border-box',
-              backgroundColor: 'white'
+              fontSize: '0.9375rem',
+              fontFamily: 'inherit',
+              color: school ? 'var(--color-coffee-dark)' : 'var(--color-gray-500)',
+              background: 'white',
+              cursor: 'pointer',
+              appearance: 'none',
+              backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%234B2E25' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E")`,
+              backgroundRepeat: 'no-repeat',
+              backgroundPosition: 'right 14px center',
+              paddingRight: '40px',
             }}
-            required
           >
-            <option value="">Select a time slot</option>
-            {timeSlots.map(slot => (
-              <option key={slot.value} value={slot.value}>{slot.label}</option>
+            <option value="">Select your school</option>
+            {schools.map((s) => (
+              <option key={s} value={s}>{s}</option>
             ))}
           </select>
-          <small style={{ fontSize: '0.75rem', color: 'var(--color-gray-600)', marginTop: '4px', display: 'block' }}>
-            Pickup takes approximately 5 minutes
-          </small>
         </div>
 
-        {/* Dorm Selection */}
-        <div className="form-group" style={{ marginBottom: '24px' }}>
-          <label htmlFor="dorm" style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: 'var(--color-coffee)' }}>
+        {/* Dorm Selection – branded dropdown (before time so we can show only available slots) */}
+        <div className="form-group" style={{ marginBottom: '24px' }} ref={dormDropdownRef}>
+          <label id="dorm-label" style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: 'var(--color-coffee)' }}>
             Residence Hall / Location *
           </label>
-          <select
-            id="dorm"
-            value={dorm}
-            onChange={(e) => setDorm(e.target.value)}
-            style={{
-              width: '100%',
-              padding: '14px',
-              border: '2px solid var(--color-latte)',
-              borderRadius: '8px',
-              fontSize: '1rem',
-              boxSizing: 'border-box',
-              backgroundColor: 'white'
-            }}
-            required
-          >
-            <option value="">Select your dorm or residence</option>
-            {dorms.map(dormName => (
-              <option key={dormName} value={dormName}>{dormName}</option>
-            ))}
-          </select>
+          <div style={{ position: 'relative' }}>
+            <button
+              type="button"
+              id="dorm"
+              aria-haspopup="listbox"
+              aria-expanded={dormOpen}
+              aria-labelledby="dorm-label"
+              aria-required
+              disabled={!school}
+              onClick={() => school && setDormOpen((o) => !o)}
+              style={{
+                width: '100%',
+                padding: '14px 40px 14px 14px',
+                border: `2px solid ${dorm ? 'var(--color-coffee)' : 'var(--color-latte)'}`,
+                borderRadius: '8px',
+                fontSize: '1rem',
+                textAlign: 'left',
+                boxSizing: 'border-box',
+                backgroundColor: !school ? 'var(--color-gray-50)' : 'var(--color-white)',
+                color: dorm ? 'var(--color-coffee-dark)' : 'var(--color-gray-500)',
+                fontWeight: 500,
+                cursor: !school ? 'not-allowed' : 'pointer',
+                appearance: 'none',
+                position: 'relative',
+                transition: 'border-color 0.2s ease, background-color 0.2s ease',
+                opacity: !school ? 0.6 : 1,
+              }}
+              onFocus={() => school && setDormOpen(true)}
+              onBlur={() => {}}
+            >
+              {dorm || (school ? 'Select your dorm or residence' : 'Select your school first')}
+            </button>
+            <span
+              style={{
+                position: 'absolute',
+                right: '14px',
+                top: '50%',
+                transform: dormOpen ? 'translateY(-50%) rotate(180deg)' : 'translateY(-50%)',
+                transition: 'transform 0.2s ease',
+                color: 'var(--color-coffee)',
+                pointerEvents: 'none',
+              }}
+              aria-hidden
+            >
+              ▼
+            </span>
+            {dormOpen && (
+              <ul
+                role="listbox"
+                aria-labelledby="dorm-label"
+                style={{
+                  position: 'absolute',
+                  left: 0,
+                  right: 0,
+                  top: '100%',
+                  margin: 0,
+                  marginTop: '4px',
+                  padding: '8px 0',
+                  listStyle: 'none',
+                  backgroundColor: 'var(--color-white)',
+                  border: '2px solid var(--color-latte)',
+                  borderRadius: '8px',
+                  boxShadow: '0 8px 24px rgba(75, 46, 37, 0.12)',
+                  maxHeight: '280px',
+                  overflowY: 'auto',
+                  zIndex: 50,
+                }}
+              >
+                <li
+                  role="option"
+                  aria-selected={!dorm}
+                  onClick={() => {
+                    setDorm('');
+                    setDormOpen(false);
+                  }}
+                  style={{
+                    padding: '12px 14px',
+                    fontSize: '0.9375rem',
+                    color: 'var(--color-gray-500)',
+                    cursor: 'pointer',
+                    backgroundColor: !dorm ? 'var(--color-latte-soft)' : 'transparent',
+                    transition: 'background-color 0.15s ease',
+                  }}
+                  onMouseEnter={(e) => {
+                    if (dorm) e.currentTarget.style.backgroundColor = 'var(--color-latte-soft)';
+                  }}
+                  onMouseLeave={(e) => {
+                    if (dorm) e.currentTarget.style.backgroundColor = 'transparent';
+                  }}
+                >
+                  Select your dorm or residence
+                </li>
+                {dorms.map((dormName) => (
+                  <li
+                    key={dormName}
+                    role="option"
+                    aria-selected={dorm === dormName}
+                    onClick={() => {
+                      setDorm(dormName);
+                      setDormOpen(false);
+                    }}
+                    style={{
+                      padding: '12px 14px',
+                      fontSize: '0.9375rem',
+                      color: 'var(--color-coffee-dark)',
+                      fontWeight: dorm === dormName ? 600 : 500,
+                      cursor: 'pointer',
+                      backgroundColor: dorm === dormName ? 'var(--color-latte-soft)' : 'transparent',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '10px',
+                      transition: 'background-color 0.15s ease',
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.backgroundColor = 'var(--color-latte-soft)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = dorm === dormName ? 'var(--color-latte-soft)' : 'transparent';
+                    }}
+                  >
+                    {dorm === dormName && (
+                      <span style={{ color: 'var(--color-coffee)', fontWeight: 700 }}>✓</span>
+                    )}
+                    {dormName}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </div>
+
+        {/* Move-Out Time: Calendly-style time blocks (available = clickable, unavailable = grayed out) */}
+        <div className="form-group" style={{ marginBottom: '24px' }}>
+          <label id="moveOutTime-label" style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: 'var(--color-coffee)' }}>
+            Preferred Time Slot *
+          </label>
+          {(!moveOutDate || !dorm) && (
+            <p style={{ fontSize: '0.9375rem', color: 'var(--color-gray-600)', marginBottom: '12px' }}>
+              Select your move-out date and residence above to see available times.
+            </p>
+          )}
+          {moveOutDate && dorm && slotsLoading && (
+            <p style={{ fontSize: '0.9375rem', color: 'var(--color-gray-600)', marginBottom: '12px' }}>
+              Loading available times…
+            </p>
+          )}
+          {moveOutDate && dorm && !slotsLoading && (
+            <>
+              <div
+                role="group"
+                aria-labelledby="moveOutTime-label"
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))',
+                  gap: '10px',
+                }}
+              >
+                {allTimeSlots.map((slot) => {
+                  const available = availableSet.has(slot.value);
+                  const selected = moveOutTime === slot.value;
+                  return (
+                    <button
+                      key={slot.value}
+                      type="button"
+                      disabled={!available}
+                      onClick={() => available && setMoveOutTime(slot.value)}
+                      style={{
+                        padding: '12px 14px',
+                        borderRadius: '8px',
+                        border: `2px solid ${selected ? 'var(--color-coffee)' : available ? 'var(--color-latte)' : 'var(--color-gray-200)'}`,
+                        background: selected ? 'var(--color-coffee)' : available ? 'white' : 'var(--color-gray-100)',
+                        color: selected ? 'var(--color-latte-soft)' : available ? 'var(--color-coffee)' : 'var(--color-gray-400)',
+                        fontSize: '0.875rem',
+                        fontWeight: 600,
+                        cursor: available ? 'pointer' : 'not-allowed',
+                        transition: 'border-color 0.15s ease, background 0.15s ease, color 0.15s ease',
+                      }}
+                      onMouseEnter={(e) => {
+                        if (available && !selected) {
+                          e.currentTarget.style.background = 'var(--color-latte-soft)';
+                          e.currentTarget.style.borderColor = 'var(--color-coffee)';
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        if (available && !selected) {
+                          e.currentTarget.style.background = 'white';
+                          e.currentTarget.style.borderColor = 'var(--color-latte)';
+                        }
+                      }}
+                    >
+                      {slot.label}
+                    </button>
+                  );
+                })}
+              </div>
+              <small style={{ fontSize: '0.75rem', color: 'var(--color-gray-600)', marginTop: '10px', display: 'block' }}>
+                Choose an available time. Gray slots are already taken. 20 min between different dorms; same dorm can share or use 5 min apart.
+              </small>
+            </>
+          )}
         </div>
 
         {/* Elevator Access */}

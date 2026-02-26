@@ -10,22 +10,37 @@ export default function Home() {
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
-  // Check authentication status
+  // Check authentication status (never block the page: timeout + show content)
   useEffect(() => {
     const supabase = createClient();
-    
-    // Get initial session
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      setUser(user);
+    let cancelled = false;
+
+    const timeout = setTimeout(() => {
+      if (cancelled) return;
       setLoading(false);
-    });
+    }, 2500);
 
-    // Listen for auth changes
+    supabase.auth.getUser()
+      .then(({ data: { user } }) => {
+        if (!cancelled) {
+          setUser(user);
+          setLoading(false);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setLoading(false);
+      })
+      .finally(() => clearTimeout(timeout));
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
+      if (!cancelled) setUser(session?.user ?? null);
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      cancelled = true;
+      clearTimeout(timeout);
+      subscription.unsubscribe();
+    };
   }, []);
   // FAQ accordion state
   const [openFaq, setOpenFaq] = useState<number | null>(null);
@@ -133,18 +148,16 @@ export default function Home() {
             <a href="#how-it-works">How It Works</a>
             <a href="#pricing">Pricing</a>
             <a href="#faq">FAQ</a>
-            {!loading && (
-              user ? (
-                <>
-                  <Link href="/booking/configure" className="header-cta">Book Storage</Link>
-                  <Link href="/dashboard" className="header-login">Dashboard</Link>
-                </>
-              ) : (
-                <>
-                  <Link href="/auth/signup" className="header-cta">Get Started</Link>
-                  <Link href="/auth/login" className="header-login">Login</Link>
-                </>
-              )
+            {(loading || !user) ? (
+              <>
+                <Link href="/auth/signup" className="header-cta">Get Started</Link>
+                <Link href="/auth/login" className="header-login">Login</Link>
+              </>
+            ) : (
+              <>
+                <Link href="/booking/configure" className="header-cta">Book Storage</Link>
+                <Link href="/dashboard" className="header-login">Dashboard</Link>
+              </>
             )}
           </nav>
           <a href="https://www.instagram.com/notimestorage/" target="_blank" rel="noopener noreferrer" className="header-social" aria-label="Follow us on Instagram">
@@ -179,16 +192,14 @@ export default function Home() {
             className="hero-buttons"
             variants={fadeInUp}
           >
-            {!loading && (
-              user ? (
-                <Link href="/booking/configure">
-                  <button className="button-primary">Book Your Storage</button>
-                </Link>
-              ) : (
-                <Link href="/auth/signup">
-                  <button className="button-primary">Get Started</button>
-                </Link>
-              )
+            {(loading || !user) ? (
+              <Link href="/auth/signup">
+                <button className="button-primary">Get Started</button>
+              </Link>
+            ) : (
+              <Link href="/booking/configure">
+                <button className="button-primary">Book Your Storage</button>
+              </Link>
             )}
             <a href="#how-it-works">
               <button className="button-secondary">Learn More</button>
@@ -220,29 +231,100 @@ export default function Home() {
             </div>
           </div>
           
-          {/* Campus Placeholder Logos - Scrolling */}
+          {/* Campus Partner Logos - Scrolling */}
           <div className="campus-logos-scroll-container">
             <div className="campus-logos-scroll">
-              <div className="campus-placeholder-tile"></div>
-              <div className="campus-placeholder-tile"></div>
-              <div className="campus-placeholder-tile"></div>
-              <div className="campus-placeholder-tile"></div>
-              <div className="campus-placeholder-tile"></div>
-              <div className="campus-placeholder-tile"></div>
-              <div className="campus-placeholder-tile"></div>
-              <div className="campus-placeholder-tile"></div>
-              {/* Duplicate for seamless loop */}
-              <div className="campus-placeholder-tile"></div>
-              <div className="campus-placeholder-tile"></div>
-              <div className="campus-placeholder-tile"></div>
-              <div className="campus-placeholder-tile"></div>
-              <div className="campus-placeholder-tile"></div>
-              <div className="campus-placeholder-tile"></div>
-              <div className="campus-placeholder-tile"></div>
-              <div className="campus-placeholder-tile"></div>
+              {/* Set 1 */}
+              {/* Set 1 */}
+              <div className="campus-school-tile campus-school-tile--stonehill">
+                <Image src="/brand/school-logos/Stonehill.png" alt="Stonehill College" width={190} height={190} className="campus-school-logo" />
+                <div className="campus-school-text">
+                  <div className="campus-school-name">Stonehill College</div>
+                  <div className="campus-school-location">Easton, MA</div>
+                </div>
+              </div>
+              <div className="campus-school-tile campus-school-tile--unh">
+                <Image src="/brand/school-logos/UNH.png" alt="University of New Haven" width={190} height={190} className="campus-school-logo" />
+                <div className="campus-school-text">
+                  <div className="campus-school-name">University of New Haven</div>
+                  <div className="campus-school-location">West Haven, CT</div>
+                </div>
+              </div>
+              <div className="campus-school-tile campus-school-tile--coming">
+                <div className="campus-school-monogram">+</div>
+                <div className="campus-school-text">
+                  <div className="campus-school-name">Your Campus</div>
+                  <div className="campus-school-location">Coming soon</div>
+                </div>
+              </div>
+              {/* Set 2 */}
+              <div className="campus-school-tile campus-school-tile--stonehill">
+                <Image src="/brand/school-logos/Stonehill.png" alt="Stonehill College" width={190} height={190} className="campus-school-logo" />
+                <div className="campus-school-text">
+                  <div className="campus-school-name">Stonehill College</div>
+                  <div className="campus-school-location">Easton, MA</div>
+                </div>
+              </div>
+              <div className="campus-school-tile campus-school-tile--unh">
+                <Image src="/brand/school-logos/UNH.png" alt="University of New Haven" width={190} height={190} className="campus-school-logo" />
+                <div className="campus-school-text">
+                  <div className="campus-school-name">University of New Haven</div>
+                  <div className="campus-school-location">West Haven, CT</div>
+                </div>
+              </div>
+              <div className="campus-school-tile campus-school-tile--coming">
+                <div className="campus-school-monogram">+</div>
+                <div className="campus-school-text">
+                  <div className="campus-school-name">Your Campus</div>
+                  <div className="campus-school-location">Coming soon</div>
+                </div>
+              </div>
+              {/* Duplicate set for seamless loop */}
+              <div className="campus-school-tile campus-school-tile--stonehill">
+                <Image src="/brand/school-logos/Stonehill.png" alt="Stonehill College" width={190} height={190} className="campus-school-logo" />
+                <div className="campus-school-text">
+                  <div className="campus-school-name">Stonehill College</div>
+                  <div className="campus-school-location">Easton, MA</div>
+                </div>
+              </div>
+              <div className="campus-school-tile campus-school-tile--unh">
+                <Image src="/brand/school-logos/UNH.png" alt="University of New Haven" width={190} height={190} className="campus-school-logo" />
+                <div className="campus-school-text">
+                  <div className="campus-school-name">University of New Haven</div>
+                  <div className="campus-school-location">West Haven, CT</div>
+                </div>
+              </div>
+              <div className="campus-school-tile campus-school-tile--coming">
+                <div className="campus-school-monogram">+</div>
+                <div className="campus-school-text">
+                  <div className="campus-school-name">Your Campus</div>
+                  <div className="campus-school-location">Coming soon</div>
+                </div>
+              </div>
+              <div className="campus-school-tile campus-school-tile--stonehill">
+                <Image src="/brand/school-logos/Stonehill.png" alt="Stonehill College" width={190} height={190} className="campus-school-logo" />
+                <div className="campus-school-text">
+                  <div className="campus-school-name">Stonehill College</div>
+                  <div className="campus-school-location">Easton, MA</div>
+                </div>
+              </div>
+              <div className="campus-school-tile campus-school-tile--unh">
+                <Image src="/brand/school-logos/UNH.png" alt="University of New Haven" width={190} height={190} className="campus-school-logo" />
+                <div className="campus-school-text">
+                  <div className="campus-school-name">University of New Haven</div>
+                  <div className="campus-school-location">West Haven, CT</div>
+                </div>
+              </div>
+              <div className="campus-school-tile campus-school-tile--coming">
+                <div className="campus-school-monogram">+</div>
+                <div className="campus-school-text">
+                  <div className="campus-school-name">Your Campus</div>
+                  <div className="campus-school-location">Coming soon</div>
+                </div>
+              </div>
             </div>
           </div>
-          <p className="trust-note">Partner logos coming soon</p>
+          <p className="trust-note">Serving students at partner campuses</p>
         </div>
       </section>
 
@@ -395,7 +477,7 @@ export default function Home() {
       </section>
 
       {/* How It Works Section */}
-      <section className="how-it-works">
+      <section id="how-it-works" className="how-it-works">
         <div className="how-it-works-container">
           <motion.h2 
             className="how-it-works-title"
@@ -424,7 +506,7 @@ export default function Home() {
               viewport={{ once: true, margin: "-100px" }}
               transition={{ duration: 0.7, delay: 0.2, ease: [0.25, 0.1, 0.25, 1] }}
             >
-              <div className="step-image-placeholder">📅</div>
+              <Image src="/brand/schedule-pickup.png" alt="Schedule Pickup" width={240} height={240} className="step-image-placeholder" />
               <div className="step-number">1</div>
               <h3 className="step-title">Schedule Pickup</h3>
               <p className="step-description">Book a convenient time for us to collect your items. We come to you with all necessary packing materials.</p>
@@ -447,7 +529,7 @@ export default function Home() {
               viewport={{ once: true, margin: "-100px" }}
               transition={{ duration: 0.7, delay: 0.4, ease: [0.25, 0.1, 0.25, 1] }}
             >
-              <div className="step-image-placeholder">🏢</div>
+              <Image src="/brand/secure-storage.png" alt="Secure Storage" width={240} height={240} className="step-image-placeholder" />
               <div className="step-number">2</div>
               <h3 className="step-title">Secure Storage</h3>
               <p className="step-description">Your belongings are safely stored in our climate-controlled facility with 24/7 security and monitoring.</p>
@@ -470,7 +552,7 @@ export default function Home() {
               viewport={{ once: true, margin: "-100px" }}
               transition={{ duration: 0.7, delay: 0.6, ease: [0.25, 0.1, 0.25, 1] }}
             >
-              <div className="step-image-placeholder">🚚</div>
+              <Image src="/brand/easy-redelivery.png" alt="Easy Redelivery" width={240} height={240} className="step-image-placeholder" />
               <div className="step-number">3</div>
               <h3 className="step-title">Easy Redelivery</h3>
               <p className="step-description">Request your items back anytime. We deliver them directly to your door when you need them.</p>
@@ -810,72 +892,82 @@ export default function Home() {
             Save time, avoid hassle, keep your belongings safe.
           </motion.p>
           
-          <motion.div 
-            className="comparison-table"
+          <motion.div
+            className="cv2-table"
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "-100px" }}
             transition={{ duration: 0.7, delay: 0.2, ease: [0.25, 0.1, 0.25, 1] }}
           >
-            <div className="comparison-header">
-              <div className="comparison-cell"></div>
-              <div className="comparison-cell comparison-highlight">
-                <div className="comparison-header-content">
-                  <Image
-                    src="/brand/notime-storage-logo.png?v=2"
-                    alt="NoTime Storage"
-                    width={40}
-                    height={40}
-                    className="comparison-logo"
-                    unoptimized
-                  />
-                  <span>NoTime Storage</span>
-                </div>
+            {/* Column headers */}
+            <div className="cv2-row cv2-header-row">
+              <div className="cv2-feature-cell" />
+              <div className="cv2-notime-cell cv2-notime-header">
+                <Image src="/brand/notime-storage-logo.png?v=2" alt="NoTime Storage" width={36} height={36} className="cv2-logo" unoptimized />
+                <div className="cv2-notime-header-name">NoTime Storage</div>
+                <div className="cv2-notime-header-sub">Stress-free, door-to-door</div>
               </div>
-              <div className="comparison-cell">DIY Storage</div>
+              <div className="cv2-diy-cell cv2-diy-header">
+                <div className="cv2-diy-header-name">DIY Storage</div>
+                <div className="cv2-diy-header-sub">The hidden cost breakdown</div>
+              </div>
             </div>
-            
-            <div className="comparison-row">
-              <div className="comparison-cell comparison-feature">Pickup & Delivery</div>
-              <div className="comparison-cell comparison-highlight">✓ Included</div>
-              <div className="comparison-cell">✗ Rent a truck</div>
+
+            {/* Rows */}
+            <div className="cv2-row">
+              <div className="cv2-feature-cell">Pickup &amp; Delivery</div>
+              <div className="cv2-notime-cell"><span className="cv2-check">✓</span><span>Included</span></div>
+              <div className="cv2-diy-cell"><span className="cv2-x">✗</span><div className="cv2-cost"><span className="cv2-cost-amount">$320 min</span><span className="cv2-cost-source">Move.org</span></div></div>
             </div>
-            
-            <div className="comparison-row">
-              <div className="comparison-cell comparison-feature">Packing Materials</div>
-              <div className="comparison-cell comparison-highlight">✓ Free</div>
-              <div className="comparison-cell">✗ Buy separately</div>
+
+            <div className="cv2-row">
+              <div className="cv2-feature-cell">Packing Materials</div>
+              <div className="cv2-notime-cell"><span className="cv2-check">✓</span><span>Free</span></div>
+              <div className="cv2-diy-cell"><span className="cv2-x">✗</span><div className="cv2-cost"><span className="cv2-cost-amount">$68+</span><span className="cv2-cost-source">Home Depot</span></div></div>
             </div>
-            
-            <div className="comparison-row">
-              <div className="comparison-cell comparison-feature">Climate Control</div>
-              <div className="comparison-cell comparison-highlight">✓ Always</div>
-              <div className="comparison-cell">~ Extra cost</div>
+
+            <div className="cv2-row">
+              <div className="cv2-feature-cell">Climate Control</div>
+              <div className="cv2-notime-cell"><span className="cv2-check">✓</span><span>Always included</span></div>
+              <div className="cv2-diy-cell"><span className="cv2-x">✗</span><div className="cv2-cost"><span className="cv2-cost-amount">+$50/mo</span><span className="cv2-cost-source">Storage.com</span></div></div>
             </div>
-            
-            <div className="comparison-row">
-              <div className="comparison-cell comparison-feature">Insurance</div>
-              <div className="comparison-cell comparison-highlight">✓ Included</div>
-              <div className="comparison-cell">✗ Not included</div>
+
+            <div className="cv2-row">
+              <div className="cv2-feature-cell">Insurance</div>
+              <div className="cv2-notime-cell"><span className="cv2-check">✓</span><span>Included</span></div>
+              <div className="cv2-diy-cell"><span className="cv2-x">✗</span><div className="cv2-cost"><span className="cv2-cost-amount">+$15/mo</span><span className="cv2-cost-source">Add-on cost</span></div></div>
             </div>
-            
-            <div className="comparison-row">
-              <div className="comparison-cell comparison-feature">Access Anytime</div>
-              <div className="comparison-cell comparison-highlight">✓ Request delivery</div>
-              <div className="comparison-cell">~ Drive to unit</div>
+
+            <div className="cv2-row">
+              <div className="cv2-feature-cell">Access Anytime</div>
+              <div className="cv2-notime-cell"><span className="cv2-check">✓</span><span>Request delivery</span></div>
+              <div className="cv2-diy-cell"><span className="cv2-tilde">~</span><div className="cv2-cost"><span className="cv2-cost-amount">Drive to unit</span><span className="cv2-cost-source">Your time & gas</span></div></div>
             </div>
-            
-            <div className="comparison-row">
-              <div className="comparison-cell comparison-feature">Time Investment</div>
-              <div className="comparison-cell comparison-highlight">✓ 10 minutes</div>
-              <div className="comparison-cell">✗ Several hours</div>
+
+            <div className="cv2-row">
+              <div className="cv2-feature-cell">Time Investment</div>
+              <div className="cv2-notime-cell"><span className="cv2-check">✓</span><span>10 minutes</span></div>
+              <div className="cv2-diy-cell"><span className="cv2-x">✗</span><div className="cv2-cost"><span className="cv2-cost-amount">4–8 hours</span><span className="cv2-cost-source">Moving day alone</span></div></div>
+            </div>
+
+            {/* Total row */}
+            <div className="cv2-row cv2-total-row">
+              <div className="cv2-feature-cell cv2-total-label">Est. First Month</div>
+              <div className="cv2-notime-cell cv2-notime-total">
+                <div className="cv2-total-price-notime">From $80</div>
+                <div className="cv2-total-sub-notime">per month</div>
+              </div>
+              <div className="cv2-diy-cell cv2-diy-total">
+                <div className="cv2-total-price-diy">$800+</div>
+                <div className="cv2-total-sub-diy">first month alone</div>
+              </div>
             </div>
           </motion.div>
         </div>
       </section>
 
       {/* FAQ Section */}
-      <section className="faq">
+      <section id="faq" className="faq">
         <div className="faq-container">
           <motion.h2 
             className="faq-title"
@@ -1089,16 +1181,14 @@ export default function Home() {
           {/* Footer CTA */}
           <div className="footer-cta-section">
             <p className="footer-cta-text">Ready to store your things? Get started in minutes.</p>
-            {!loading && (
-              user ? (
-                <Link href="/booking/configure">
-                  <button className="button-primary">Book Storage Now</button>
-                </Link>
-              ) : (
-                <Link href="/auth/signup">
-                  <button className="button-primary">Get Started</button>
-                </Link>
-              )
+            {(loading || !user) ? (
+              <Link href="/auth/signup">
+                <button className="button-primary">Get Started</button>
+              </Link>
+            ) : (
+              <Link href="/booking/configure">
+                <button className="button-primary">Book Storage Now</button>
+              </Link>
             )}
           </div>
 

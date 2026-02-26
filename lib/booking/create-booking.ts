@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/server';
 import type { CreateBookingInput, BookingWithItems, BookingItemType } from './types';
 import { onBookingCreated } from './integrations';
+import { isTimeSlotAvailable } from './availability';
 
 export type CreateBookingResult =
   | { success: true; bookingId: string; debug?: Record<string, unknown> }
@@ -34,6 +35,15 @@ export async function createBooking(input: CreateBookingInput): Promise<CreateBo
 
   if (!input.items?.length) {
     return { success: false, error: 'At least one item (e.g. boxes) is required.' };
+  }
+
+  const slotCheck = await isTimeSlotAvailable(
+    input.move_out_date,
+    input.move_out_time_slot,
+    input.dorm
+  );
+  if (!slotCheck.available) {
+    return { success: false, error: slotCheck.error ?? 'This time slot is not available.' };
   }
 
   // Bookings RLS expects user_id = public.users.id. Match by id or auth_id (schema varies).

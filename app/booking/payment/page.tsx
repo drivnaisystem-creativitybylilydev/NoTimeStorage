@@ -112,7 +112,7 @@ export default function PaymentPage() {
       elevator_available: elevator === 'yes',
       stairs_required: stairs === 'yes',
       special_instructions: instructions || undefined,
-      school: 'Stonehill College',
+      school: searchParams.get('school') || 'Stonehill College',
       monthly_total_cents: monthlyTotalCents,
       items,
     };

@@ -41,8 +41,23 @@ export default async function DashboardPage() {
     .limit(1)
     .single();
 
+  // Backfill name/phone from auth metadata so admin and bookings show correct details
+  const meta = user.user_metadata ?? {};
+  const metaName = (meta.full_name as string)?.trim();
+  const metaPhone = (meta.phone as string)?.trim();
+  if (profile?.id && (metaName || metaPhone) && (!profile.full_name?.trim() || !profile.phone?.trim())) {
+    await supabase
+      .from('users')
+      .update({
+        ...(metaName && { full_name: metaName }),
+        ...(metaPhone && { phone: metaPhone }),
+        ...(!profile.email && user.email && { email: user.email }),
+      })
+      .eq('id', profile.id);
+  }
+
   // Use profile when available, fall back to auth user (e.g. email from auth)
-  const displayName = profile?.full_name || user.user_metadata?.full_name || 'there';
+  const displayName = profile?.full_name || metaName || user.user_metadata?.full_name || 'there';
   const displayEmail = profile?.email ?? user.email ?? '—';
   const displayPhone = profile?.phone || user.user_metadata?.phone || '—';
   const displaySchool = profile?.school || 'Stonehill College';

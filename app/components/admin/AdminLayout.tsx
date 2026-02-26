@@ -3,11 +3,24 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
+import { LayoutList, Users, Calendar, BarChart2, Settings } from 'lucide-react';
+
+const navItems = [
+  { href: '/admin/bookings',   label: 'Bookings',  icon: LayoutList },
+  { href: '/admin/customers',  label: 'Customers', icon: Users },
+  { href: '/admin/calendar',   label: 'Calendar',  icon: Calendar },
+  { href: '/admin/analytics',  label: 'Analytics', icon: BarChart2 },
+];
+
+const comingSoonItems = [
+  { label: 'Settings', icon: Settings },
+];
 
 export function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--color-paper)', display: 'flex', flexDirection: 'column' }}>
+    <div style={{ minHeight: '100vh', background: 'var(--color-gray-50)', display: 'flex', flexDirection: 'column' }}>
       {/* Top bar */}
       <header className="header">
         <div className="header-container">
@@ -23,9 +36,10 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
           </Link>
 
           <nav className="header-nav">
-            <Link href="/dashboard">Student Dashboard</Link>
-            <Link href="/admin/dashboard">Admin Overview</Link>
-            <Link href="/admin/bookings">Bookings</Link>
+            <Link href="/admin/bookings"  style={{ fontWeight: pathname?.startsWith('/admin/bookings')  ? 700 : undefined }}>Bookings</Link>
+            <Link href="/admin/customers" style={{ fontWeight: pathname?.startsWith('/admin/customers') ? 700 : undefined }}>Customers</Link>
+            <Link href="/admin/calendar"  style={{ fontWeight: pathname?.startsWith('/admin/calendar')  ? 700 : undefined }}>Calendar</Link>
+            <Link href="/admin/analytics" style={{ fontWeight: pathname?.startsWith('/admin/analytics') ? 700 : undefined }}>Analytics</Link>
           </nav>
         </div>
       </header>
@@ -34,52 +48,92 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
         {/* Sidebar */}
         <aside
           style={{
-            width: '260px',
-            padding: '32px 24px',
+            width: '240px',
+            flexShrink: 0,
+            padding: '40px 20px',
             borderRight: '1px solid var(--color-latte-soft)',
             background: 'var(--color-white)',
             display: 'flex',
             flexDirection: 'column',
-            gap: '16px',
+            gap: '4px',
           }}
         >
-          <nav style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '0.95rem' }}>
-            <Link
-              href="/admin/dashboard"
+          <div style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--color-gray-400)', marginBottom: '12px', paddingLeft: '12px' }}>
+            Navigation
+          </div>
+
+          {navItems.map(({ href, label, icon: Icon }) => {
+            const isActive = pathname?.startsWith(href);
+            return (
+              <Link
+                key={href}
+                href={href}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '10px',
+                  padding: '10px 12px',
+                  borderRadius: '8px',
+                  fontSize: '0.9rem',
+                  fontWeight: isActive ? 600 : 400,
+                  color: isActive ? 'var(--color-coffee)' : 'var(--color-gray-700)',
+                  background: isActive ? 'var(--color-latte-soft)' : 'transparent',
+                  textDecoration: 'none',
+                  transition: 'background 0.15s ease, color 0.15s ease',
+                }}
+                onMouseEnter={(e) => {
+                  if (!isActive) {
+                    (e.currentTarget as HTMLElement).style.background = 'var(--color-paper)';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!isActive) {
+                    (e.currentTarget as HTMLElement).style.background = 'transparent';
+                  }
+                }}
+              >
+                <Icon size={16} />
+                {label}
+              </Link>
+            );
+          })}
+
+          <div style={{ margin: '20px 0 12px', borderTop: '1px solid var(--color-latte-soft)' }} />
+
+          <div style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--color-gray-400)', marginBottom: '8px', paddingLeft: '12px' }}>
+            Coming Soon
+          </div>
+
+          {comingSoonItems.map(({ label, icon: Icon }) => (
+            <div
+              key={label}
               style={{
-                color: pathname === '/admin/dashboard' ? 'var(--color-coffee)' : 'var(--color-gray-700)',
-                fontWeight: pathname === '/admin/dashboard' ? 600 : 400,
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px',
+                padding: '10px 12px',
+                borderRadius: '8px',
+                fontSize: '0.9rem',
+                color: 'var(--color-gray-400)',
+                cursor: 'not-allowed',
+                userSelect: 'none',
               }}
             >
-              Overview
-            </Link>
-            <Link
-              href="/admin/bookings"
-              style={{
-                color: pathname?.startsWith('/admin/bookings') ? 'var(--color-coffee)' : 'var(--color-gray-700)',
-                fontWeight: pathname?.startsWith('/admin/bookings') ? 600 : 400,
-              }}
-            >
-              Bookings
-            </Link>
-            <span style={{ marginTop: '16px', fontSize: '0.8rem', textTransform: 'uppercase', color: 'var(--color-gray-500)', letterSpacing: '0.08em' }}>
-              Coming soon
-            </span>
-            <span style={{ color: 'var(--color-gray-500)', fontSize: '0.9rem' }}>Customers</span>
-            <span style={{ color: 'var(--color-gray-500)', fontSize: '0.9rem' }}>Calendar</span>
-            <span style={{ color: 'var(--color-gray-500)', fontSize: '0.9rem' }}>Analytics</span>
-            <span style={{ color: 'var(--color-gray-500)', fontSize: '0.9rem' }}>Settings</span>
-          </nav>
+              <Icon size={16} />
+              {label}
+            </div>
+          ))}
         </aside>
 
         {/* Main content */}
         <main
           style={{
             flex: 1,
-            padding: '40px 48px',
-            maxWidth: '1200px',
-            margin: '0 auto',
+            padding: '80px 96px',
+            maxWidth: '1400px',
             width: '100%',
+            background: 'var(--color-gray-50)',
+            minWidth: 0,
           }}
         >
           {children}
@@ -88,4 +142,3 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
     </div>
   );
 }
-

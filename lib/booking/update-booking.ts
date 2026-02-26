@@ -78,12 +78,20 @@ export async function updateBookingDates(
   const check = await getUnpaidBookingOwnership(supabase, bookingId);
   if (!check.ok) return { success: false, error: check.error };
 
-  const months = storageMonths(move_out_date, move_in_date);
   const { data: booking } = await supabase
     .from('bookings')
-    .select('total_monthly_rate')
+    .select('total_monthly_rate, dorm')
     .eq('id', bookingId)
     .single();
+  const dorm = (booking?.dorm as string) ?? '';
+  const slotCheck = await import('@/lib/booking/availability').then((m) =>
+    m.isTimeSlotAvailable(move_out_date, move_out_time_slot, dorm, bookingId)
+  );
+  if (!slotCheck.available) {
+    return { success: false, error: slotCheck.error ?? 'This time slot is not available.' };
+  }
+
+  const months = storageMonths(move_out_date, move_in_date);
   const totalMonthlyRate = (booking?.total_monthly_rate as number) ?? 0;
   const totalPrice = totalMonthlyRate * months;
 

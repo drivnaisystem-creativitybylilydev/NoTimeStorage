@@ -109,7 +109,7 @@ export function BookingDetailModal({ booking, onClose }: BookingDetailModalProps
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px' }}>
               <div>
                 <div style={{ fontSize: '0.75rem', color: 'var(--color-gray-600)', marginBottom: '4px' }}>Name</div>
-                <div style={{ fontWeight: 600, color: 'var(--color-coffee)' }}>{booking.customer?.full_name || '—'}</div>
+                <div style={{ fontWeight: 600, color: 'var(--color-coffee)' }}>{booking.customer?.full_name?.trim() || booking.customer?.email || '—'}</div>
               </div>
               <div>
                 <div style={{ fontSize: '0.75rem', color: 'var(--color-gray-600)', marginBottom: '4px' }}>Email</div>
