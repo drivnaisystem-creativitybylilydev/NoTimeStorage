@@ -15,6 +15,7 @@ export default async function AdminBookingsPage({
     dateFrom?: string;
     dateTo?: string;
     school?: string;
+    dorm?: string;
     search?: string;
     userId?: string;
     sortBy?: 'move_out_date' | 'move_in_date' | 'created_at';
