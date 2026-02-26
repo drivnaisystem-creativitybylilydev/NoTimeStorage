@@ -1236,7 +1236,7 @@ export default function Home() {
             <div className="footer-column">
               <h4 className="footer-heading">Contact</h4>
               <ul className="footer-contact">
-                <li>support@notimestorage.com</li>
+                <li>support@notimestorage.co</li>
                 <li>(555) 123-4567</li>
                 <li>Mon-Fri: 8am - 8pm</li>
                 <li>Sat-Sun: 9am - 6pm</li>
