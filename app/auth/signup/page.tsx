@@ -83,14 +83,68 @@ export default function SignUpPage() {
               height={60}
             />
           </div>
-          
-          <div className="auth-success">
-            <h1>Check your email</h1>
-            <p>We've sent you a confirmation link to <strong>{formData.email}</strong></p>
-            <p>Click the link in the email to verify your account.</p>
-            <Link href="/auth/login" className="button-primary">
-              Go to Login
-            </Link>
+
+          <div className="auth-success" style={{ textAlign: 'center', padding: '8px 0 24px' }}>
+            {/* Animated green check */}
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '24px' }}>
+              <svg
+                viewBox="0 0 52 52"
+                width="80"
+                height="80"
+                style={{ display: 'block' }}
+              >
+                <style>{`
+                  @keyframes circle-draw {
+                    from { stroke-dashoffset: 166; }
+                    to   { stroke-dashoffset: 0; }
+                  }
+                  @keyframes check-draw {
+                    from { stroke-dashoffset: 48; }
+                    to   { stroke-dashoffset: 0; }
+                  }
+                  .check-circle {
+                    stroke-dasharray: 166;
+                    stroke-dashoffset: 166;
+                    animation: circle-draw 0.6s cubic-bezier(0.65, 0, 0.45, 1) forwards;
+                  }
+                  .check-mark {
+                    stroke-dasharray: 48;
+                    stroke-dashoffset: 48;
+                    animation: check-draw 0.4s cubic-bezier(0.65, 0, 0.45, 1) 0.5s forwards;
+                  }
+                `}</style>
+                <circle
+                  className="check-circle"
+                  cx="26" cy="26" r="25"
+                  fill="none"
+                  stroke="#22c55e"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                />
+                <polyline
+                  className="check-mark"
+                  points="14,26 22,34 38,18"
+                  fill="none"
+                  stroke="#22c55e"
+                  strokeWidth="3"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </div>
+
+            <h1 style={{ fontSize: '1.5rem', fontWeight: '700', color: 'var(--color-coffee)', marginBottom: '12px' }}>
+              Check your email
+            </h1>
+            <p style={{ color: '#4A3A34', marginBottom: '8px' }}>
+              We&apos;ve sent a confirmation link to
+            </p>
+            <p style={{ fontWeight: '700', color: 'var(--color-coffee)', marginBottom: '16px' }}>
+              {formData.email}
+            </p>
+            <p style={{ color: '#6B5A52', fontSize: '0.9rem' }}>
+              Click the link in the email to activate your account.
+            </p>
           </div>
         </div>
       </div>
