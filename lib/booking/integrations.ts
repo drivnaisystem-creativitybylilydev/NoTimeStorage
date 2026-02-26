@@ -192,69 +192,52 @@ async function syncToAirtable(b: BookingWithCustomer): Promise<void> {
   }
 }
 
-// ---- New booking email (Resend) ----
+// ---- New booking emails (Resend — branded templates) ----
 
-/** Send one email to the configured recipient when a booking is created. Recipient = BOOKING_NOTIFY_EMAIL. */
 async function sendNewBookingEmail(b: BookingWithCustomer): Promise<void> {
-  let to = process.env.BOOKING_NOTIFY_EMAIL?.trim() || '';
-  const apiKey = process.env.RESEND_API_KEY?.trim() || '';
-  if (!to && apiKey && process.env.NODE_ENV === 'development') {
-    to = 'delivered@resend.dev';
-  }
-  if (process.env.NODE_ENV === 'development') {
-    console.log('[integrations] sendNewBookingEmail: to=', to || '(empty)', 'apiKey set=', !!apiKey);
-  }
-  if (!to || !apiKey) {
-    if (process.env.NODE_ENV === 'development') {
-      console.log('[integrations] New-booking email skipped – missing:', !to ? 'BOOKING_NOTIFY_EMAIL' : 'RESEND_API_KEY');
-    }
-    return;
-  }
+  const { sendNewBookingAdmin, sendOrderConfirmedUser } = await import('@/lib/email/send');
 
   const customerName = b.customer?.full_name || b.customer?.email || 'Customer';
+  const customerEmail = b.customer?.email || '';
   const moveOutFormatted = formatDate(b.move_out_date);
   const moveOutTime = formatTimeSlot(b.move_out_time_slot);
   const moveInFormatted = formatDate(b.move_in_date);
-  const access = b.elevator_available ? 'Elevator' : 'Stairs';
-  const itemsSummary =
-    b.items && b.items.length > 0
-      ? b.items.map((i) => `${i.quantity}× ${i.item_type.replace(/_/g, ' ')}`).join(', ')
-      : '—';
+  const boxItem = b.items?.find((i) => i.item_type === 'box');
+  const boxQty = boxItem?.quantity ?? 1;
+  const additionalItems = b.items
+    ?.filter((i) => i.item_type !== 'box')
+    .map((i) => `${i.quantity}× ${i.item_type.replace(/_/g, ' ')}`)
+    .join(', ') || '';
+  const monthlyTotal = typeof b.total_monthly_rate === 'number'
+    ? b.total_monthly_rate
+    : parseFloat(String(b.total_monthly_rate || 0));
 
-  const subject = `New booking – ${moveOutFormatted} ${moveOutTime} – ${customerName}, ${b.dorm || '—'}`;
-  const html = `
-    <h2>New NoTime Storage booking</h2>
-    <p><strong>Customer:</strong> ${customerName}</p>
-    <p><strong>Email:</strong> ${b.customer?.email ?? '—'}</p>
-    <p><strong>Phone:</strong> ${b.customer?.phone ?? '—'}</p>
-    <p><strong>Move-out:</strong> ${moveOutFormatted} at ${moveOutTime}</p>
-    <p><strong>Move-in:</strong> ${moveInFormatted}</p>
-    <p><strong>Dorm:</strong> ${b.dorm ?? '—'}</p>
-    <p><strong>Access:</strong> ${access}</p>
-    <p><strong>School:</strong> ${b.school ?? '—'}</p>
-    <p><strong>Items:</strong> ${itemsSummary}</p>
-    <p><strong>Booking ID:</strong> ${b.id}</p>
-  `.replace(/\n\s+/g, '\n').trim();
+  const sharedParams = {
+    customerName,
+    bookingId: b.id,
+    school: b.school ?? '—',
+    dorm: b.dorm ?? '—',
+    moveOutDate: moveOutFormatted,
+    moveOutTime,
+    moveInDate: moveInFormatted,
+    boxQuantity: boxQty,
+    monthlyTotal,
+    additionalItems,
+    specialInstructions: b.special_instructions ?? '',
+    elevator: b.elevator_available ?? false,
+    stairs: b.stairs_required ?? false,
+  };
 
-  try {
-    const { Resend } = await import('resend');
-    const resend = new Resend(apiKey);
-    const from = process.env.RESEND_FROM_EMAIL || 'NoTime Storage <onboarding@resend.dev>';
-    if (process.env.NODE_ENV === 'development') {
-      console.log('[integrations] Calling Resend API: from=', from, 'to=', to);
-    }
-    const { data, error } = await resend.emails.send({ from, to, subject, html });
-    if (error) {
-      console.error('[integrations] New-booking email error –', typeof error === 'object' ? JSON.stringify(error) : error);
-      if (process.env.NODE_ENV === 'development' && from.includes('onboarding@resend.dev')) {
-        console.error('[integrations] Tip: onboarding@resend.dev can only send TO Resend test addresses (e.g. delivered@resend.dev).');
-      }
-    } else if (process.env.NODE_ENV === 'development') {
-      console.log('[integrations] New-booking email sent to', to, '– Booking ID:', b.id, data?.id ? `(Resend id: ${data.id})` : '');
-    }
-  } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    console.error('[integrations] New-booking email error (exception) –', message);
+  // Email to admin
+  await sendNewBookingAdmin({
+    ...sharedParams,
+    customerEmail,
+    customerPhone: b.customer?.phone ?? '—',
+  });
+
+  // Confirmation email to user
+  if (customerEmail) {
+    await sendOrderConfirmedUser({ ...sharedParams, to: customerEmail });
   }
 }
 
