@@ -75,7 +75,8 @@ export async function createBooking(input: CreateBookingInput): Promise<CreateBo
       total_monthly_rate: totalMonthlyRate,
       total_price: totalPrice,
       payment_status: 'unpaid',
-      notes: input.special_instructions ?? null,
+      room: input.room ?? null,
+      special_instructions: input.special_instructions ?? null,
       move_out_date: input.move_out_date,
       move_in_date: input.move_in_date,
       move_out_time_slot: input.move_out_time_slot,
@@ -83,7 +84,7 @@ export async function createBooking(input: CreateBookingInput): Promise<CreateBo
       elevator_available: input.elevator_available,
       stairs_required: input.stairs_required,
     })
-    .select('id, user_id, status, move_out_date, move_in_date, move_out_time_slot, dorm, elevator_available, stairs_required, school, total_monthly_rate, created_at, updated_at')
+    .select('id, user_id, status, move_out_date, move_in_date, move_out_time_slot, dorm, room, elevator_available, stairs_required, school, total_monthly_rate, special_instructions, created_at, updated_at')
     .single();
 
   if (bookingError) {
@@ -135,6 +136,7 @@ export async function createBooking(input: CreateBookingInput): Promise<CreateBo
     move_in_date: booking.move_in_date,
     move_out_time_slot: booking.move_out_time_slot,
     dorm: booking.dorm,
+    room: booking.room ?? null,
     elevator_available: booking.elevator_available,
     stairs_required: booking.stairs_required,
     school: booking.school,
@@ -142,7 +144,7 @@ export async function createBooking(input: CreateBookingInput): Promise<CreateBo
     total_monthly_rate: totalMonthlyRate,
     total_price: totalPrice,
     box_quantity: boxQuantity,
-    special_instructions: input.special_instructions ?? null,
+    special_instructions: booking.special_instructions ?? null,
     created_at: booking.created_at,
     updated_at: booking.updated_at,
     items: input.items,

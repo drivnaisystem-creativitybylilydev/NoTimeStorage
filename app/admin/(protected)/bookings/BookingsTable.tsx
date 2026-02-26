@@ -336,7 +336,7 @@ function BookingsTableContent({ initialBookings, total, currentPage, filters, so
                   </span>
                 </th>
                 <th>Customer</th>
-                <th>Dorm</th>
+                <th>Dorm / Room</th>
                 <th>Status</th>
                 <th style={{ textAlign: 'right' }}>Total</th>
                 <th style={{ textAlign: 'center' }}>Actions</th>
@@ -360,7 +360,10 @@ function BookingsTableContent({ initialBookings, total, currentPage, filters, so
                       <div style={{ fontWeight: 600, color: 'var(--color-coffee-dark)' }}>{b.customer?.full_name?.trim() || b.customer?.email || '—'}</div>
                       <div style={{ fontSize: '13px', color: 'var(--color-gray-600)', marginTop: '4px' }}>{b.customer?.full_name ? (b.customer?.email || '—') : (b.customer?.phone || '—')}</div>
                     </td>
-                    <td style={{ color: 'var(--color-coffee)' }}>{b.dorm || '—'}</td>
+                    <td style={{ color: 'var(--color-coffee)' }}>
+                      <div>{b.dorm || '—'}</div>
+                      {(b as any).room && <div style={{ fontSize: '13px', color: 'var(--color-gray-600)', marginTop: '2px' }}>Room {(b as any).room}</div>}
+                    </td>
                     <td>
                       <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
                         <span

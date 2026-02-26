@@ -88,6 +88,7 @@ export async function sendNewBookingAdmin(params: {
   bookingId: string;
   school: string;
   dorm: string;
+  room?: string;
   moveOutDate: string;
   moveOutTime: string;
   moveInDate: string;

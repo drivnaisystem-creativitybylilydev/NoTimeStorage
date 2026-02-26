@@ -14,6 +14,7 @@ interface NewBookingAdminEmailProps {
   bookingId: string;
   school: string;
   dorm: string;
+  room?: string;
   moveOutDate: string;
   moveOutTime: string;
   moveInDate: string;
@@ -32,6 +33,7 @@ export function NewBookingAdminEmail({
   bookingId = '',
   school = '—',
   dorm = '—',
+  room = '',
   moveOutDate = '—',
   moveOutTime = '—',
   moveInDate = '—',
@@ -119,6 +121,12 @@ export function NewBookingAdminEmail({
                 <td style={{ ...emailStyles.cardLabel, paddingBottom: '8px' }}>Dorm / Location</td>
                 <td style={{ ...emailStyles.cardValue, paddingBottom: '8px' }}>{dorm}</td>
               </tr>
+              {room && (
+                <tr>
+                  <td style={{ ...emailStyles.cardLabel, paddingBottom: '8px' }}>Room</td>
+                  <td style={{ ...emailStyles.cardValue, paddingBottom: '8px' }}>{room}</td>
+                </tr>
+              )}
               <tr>
                 <td style={{ ...emailStyles.cardLabel, paddingBottom: '8px' }}>Move-out date</td>
                 <td style={{ ...emailStyles.cardValue, paddingBottom: '8px' }}>{moveOutDate}</td>

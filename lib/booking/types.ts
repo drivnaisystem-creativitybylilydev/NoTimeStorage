@@ -24,6 +24,7 @@ export interface CreateBookingInput {
   move_in_date: string;
   move_out_time_slot: string; // e.g. "14:00"
   dorm: string;
+  room?: string;
   elevator_available: boolean;
   stairs_required: boolean;
   special_instructions?: string;
@@ -40,6 +41,7 @@ export interface Booking {
   move_in_date: string;
   move_out_time_slot: string;
   dorm: string;
+  room?: string | null;
   elevator_available: boolean;
   stairs_required: boolean;
   special_instructions: string | null;

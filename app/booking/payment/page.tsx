@@ -46,7 +46,6 @@ function PaymentPageContent() {
   const stairs = searchParams.get('stairs') || '';
   const room = searchParams.get('room') || '';
   const instructions = searchParams.get('instructions') || '';
-  const specialInstructions = [room ? `Room: ${room}` : '', instructions].filter(Boolean).join('\n');
 
   // Calculate pricing
   const getBoxPrice = (qty: number) => {
@@ -111,9 +110,10 @@ function PaymentPageContent() {
       move_in_date: moveInDate,
       move_out_time_slot: moveOutTime,
       dorm,
+      room: room || undefined,
       elevator_available: elevator === 'yes',
       stairs_required: stairs === 'yes',
-      special_instructions: specialInstructions || undefined,
+      special_instructions: instructions || undefined,
       school: searchParams.get('school') || 'Stonehill College',
       monthly_total_cents: monthlyTotalCents,
       items,

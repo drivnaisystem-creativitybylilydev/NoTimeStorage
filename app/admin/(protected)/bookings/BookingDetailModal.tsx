@@ -155,10 +155,15 @@ export function BookingDetailModal({ booking, onClose }: BookingDetailModalProps
                 <div style={{ fontWeight: 600, color: 'var(--color-coffee)' }}>{booking.dorm || '—'}</div>
               </div>
               <div>
+                <div style={{ fontSize: '0.75rem', color: 'var(--color-gray-600)', marginBottom: '4px' }}>Room</div>
+                <div style={{ fontWeight: 600, color: 'var(--color-coffee)' }}>{(booking as any).room || '—'}</div>
+              </div>
+              <div>
                 <div style={{ fontSize: '0.75rem', color: 'var(--color-gray-600)', marginBottom: '4px' }}>Access</div>
                 <div style={{ fontWeight: 600, color: 'var(--color-coffee)' }}>
                   {booking.elevator_available ? 'Elevator' : ''}
                   {booking.stairs_required ? (booking.elevator_available ? ' · Stairs' : 'Stairs') : ''}
+                  {!booking.elevator_available && !booking.stairs_required ? '—' : ''}
                 </div>
               </div>
               <div>
