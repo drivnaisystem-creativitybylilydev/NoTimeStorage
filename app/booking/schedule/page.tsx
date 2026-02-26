@@ -6,6 +6,8 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { getAvailableTimeSlots } from '@/lib/booking/availability';
 import { getDefaultTimeSlots } from '@/lib/booking/time-slots';
+import { SCHOOL_NAMES, getDormsForSchool } from '@/lib/schools/config';
+import { createClient } from '@/lib/supabase/client';
 
 // Configuration: Minimum storage duration in months
 const MINIMUM_STORAGE_MONTHS = 3;
@@ -41,48 +43,25 @@ function SchedulePageContent() {
   const [dormOpen, setDormOpen] = useState(false);
   const dormDropdownRef = useRef<HTMLDivElement>(null);
 
-  // School → dorms map
-  const SCHOOL_DORMS: Record<string, string[]> = {
-    'Stonehill College': [
-      'Boland Hall',
-      'Corning Hall',
-      'Cushing-Martin Hall',
-      'Duffy Hall',
-      'Gate House',
-      'Holy Cross Hall',
-      'Joseph Martin Institute',
-      'New Hall',
-      "O'Hara Hall",
-      'Pilgrim Heights',
-      'Shields Science Center',
-      'Southeast & Southwest Quadrangles',
-      'Stucker House',
-      'The Knoll',
-      'Townhouses',
-      'Off-Campus Housing',
-    ],
-    'University of New Haven': [
-      'Bergami Hall',
-      'Bethel Hall',
-      'Bixler Hall',
-      'Gerber Hall',
-      'Westside Hall',
-      'Celentano Hall',
-      'Dunham Hall',
-      'Sheffield Hall',
-      'Winchester Hall',
-      'The Atwood',
-      'Campbell Houses',
-      'Forest Hills Apartments',
-      'Park View',
-      'Ruden Street Apartments',
-      'Savin Court Townhouses',
-      'Off-Campus Housing',
-    ],
-  };
+  // Pre-fill school from user profile
+  useEffect(() => {
+    const supabase = createClient();
+    supabase.auth.getUser().then(async ({ data: { user } }) => {
+      if (!user) return;
+      const { data: profile } = await supabase
+        .from('users')
+        .select('school')
+        .or(`id.eq.${user.id},auth_id.eq.${user.id}`)
+        .limit(1)
+        .single();
+      if (profile?.school && SCHOOL_NAMES.includes(profile.school)) {
+        setSchool(profile.school);
+      }
+    });
+  }, []);
 
-  const schools = Object.keys(SCHOOL_DORMS);
-  const dorms = school ? SCHOOL_DORMS[school] ?? [] : [];
+  const schools = SCHOOL_NAMES;
+  const dorms = getDormsForSchool(school);
 
   const allTimeSlots = useMemo(() => getDefaultTimeSlots(), []);
 

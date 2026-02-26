@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import Link from 'next/link';
 import Image from 'next/image';
+import { SCHOOL_NAMES } from '@/lib/schools/config';
 
 export default function SignUpPage() {
   const router = useRouter();
@@ -18,6 +19,7 @@ export default function SignUpPage() {
     lastName: '',
     phone: '',
     fullName: '',
+    school: '',
   });
   
   const [loading, setLoading] = useState(false);
@@ -53,7 +55,7 @@ export default function SignUpPage() {
           data: {
             full_name: `${formData.firstName} ${formData.lastName}`,
             phone: formData.phone,
-            school: 'Stonehill College', // Default school; more options can be added later
+            school: formData.school,
           },
         },
       });
@@ -220,6 +222,35 @@ export default function SignUpPage() {
               placeholder="(555) 123-4567"
               required
             />
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="school">Your College</label>
+            <select
+              id="school"
+              value={formData.school}
+              onChange={(e) => setFormData({ ...formData, school: e.target.value })}
+              required
+              style={{
+                width: '100%',
+                padding: '0.75rem 1rem',
+                border: '2px solid var(--color-latte)',
+                borderRadius: '8px',
+                fontSize: '1rem',
+                color: formData.school ? 'var(--color-coffee)' : '#9CA3AF',
+                backgroundColor: 'white',
+                cursor: 'pointer',
+                appearance: 'none',
+                backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%234B2E25' d='M6 8L1 3h10z'/%3E%3C/svg%3E")`,
+                backgroundRepeat: 'no-repeat',
+                backgroundPosition: 'right 1rem center',
+              }}
+            >
+              <option value="" disabled>Select your college</option>
+              {SCHOOL_NAMES.map((s) => (
+                <option key={s} value={s}>{s}</option>
+              ))}
+            </select>
           </div>
 
           <div className="form-group">
