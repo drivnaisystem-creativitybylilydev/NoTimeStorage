@@ -36,7 +36,7 @@ export default async function DashboardPage() {
   // Resolve profile (same as create-booking: id or auth_id)
   const { data: profile } = await supabase
     .from('users')
-    .select('id, full_name, email, phone, school')
+    .select('id, full_name, email, phone, school, deposit_paid')
     .or(`id.eq.${user.id},auth_id.eq.${user.id}`)
     .limit(1)
     .single();
@@ -61,6 +61,7 @@ export default async function DashboardPage() {
   const displayEmail = profile?.email ?? user.email ?? '—';
   const displayPhone = profile?.phone || user.user_metadata?.phone || '—';
   const displaySchool = profile?.school || 'Stonehill College';
+  const depositPaid = profile?.deposit_paid === true;
 
   // Fetch user's bookings with line items (user_id = public.users.id)
   const profileId = profile?.id ?? user.id;
@@ -109,7 +110,7 @@ export default async function DashboardPage() {
             <Link href="/">Home</Link>
             <Link href="/#pricing">Pricing</Link>
             <Link href="/dashboard">Dashboard</Link>
-            <Link href="/booking/configure" className="header-cta">
+            <Link href={depositPaid ? '/booking/configure' : '/deposit'} className="header-cta">
               Book Storage
             </Link>
           </nav>
@@ -173,6 +174,34 @@ export default async function DashboardPage() {
             </div>
           </div>
 
+          {/* Deposit banner — shown only when deposit not yet paid */}
+          {!depositPaid && (
+            <div style={{
+              marginBottom: '32px', padding: '24px 28px',
+              background: 'linear-gradient(135deg, #4B2E25 0%, #7A4A35 100%)',
+              borderRadius: '12px', display: 'flex', alignItems: 'center',
+              justifyContent: 'space-between', gap: '20px', flexWrap: 'wrap',
+            }}>
+              <div>
+                <p style={{ color: '#F7ECD8', fontWeight: '700', fontSize: '1.05rem', marginBottom: '4px' }}>
+                  One step left to unlock your storage
+                </p>
+                <p style={{ color: '#C9A47E', fontSize: '0.875rem', margin: 0 }}>
+                  Pay the $50 refundable deposit to start booking.
+                </p>
+              </div>
+              <Link href="/deposit">
+                <button type="button" style={{
+                  background: '#C9A47E', color: '#2D1A0E', fontWeight: '700',
+                  padding: '10px 24px', borderRadius: '8px', border: 'none',
+                  cursor: 'pointer', fontSize: '0.95rem', whiteSpace: 'nowrap',
+                }}>
+                  Pay $50 Deposit →
+                </button>
+              </Link>
+            </div>
+          )}
+
           {/* Your Bookings */}
           <div style={{ marginBottom: '40px', padding: '32px', background: 'var(--color-paper)', borderRadius: '12px', border: '2px solid var(--color-latte)' }}>
             <h2 style={{ fontSize: '1.5rem', fontWeight: '700', color: 'var(--color-coffee)', marginBottom: '24px' }}>
@@ -183,9 +212,9 @@ export default async function DashboardPage() {
                 <p style={{ fontSize: '1rem', color: 'var(--color-gray-600)', marginBottom: '24px' }}>
                   You don&apos;t have any active bookings yet.
                 </p>
-                <Link href="/booking/configure">
+                <Link href={depositPaid ? '/booking/configure' : '/deposit'}>
                   <button type="button" className="button-primary" style={{ fontSize: '1rem', padding: '0.875rem 2rem' }}>
-                    Book Your First Storage
+                    {depositPaid ? 'Book Your First Storage' : 'Pay Deposit to Book'}
                   </button>
                 </Link>
               </>
@@ -194,9 +223,9 @@ export default async function DashboardPage() {
                 {bookings.map((b) => (
                   <BookingCard key={b.id} booking={b as import('./BookingCard').BookingRow} />
                 ))}
-                <Link href="/booking/configure">
+                <Link href={depositPaid ? '/booking/configure' : '/deposit'}>
                   <button type="button" className="button-primary" style={{ fontSize: '1rem', padding: '0.875rem 2rem', alignSelf: 'flex-start' }}>
-                    Book Another Storage
+                    {depositPaid ? 'Book Another Storage' : 'Pay Deposit to Book More'}
                   </button>
                 </Link>
               </div>
