@@ -1,5 +1,3 @@
-'use server';
-
 import { SquareClient, SquareEnvironment } from 'square';
 
 const isSandbox = process.env.SQUARE_ENV !== 'production';
