@@ -47,11 +47,21 @@ export async function chargeDeposit(sourceId: string): Promise<DepositResult> {
       return { success: false, error: errDetail };
     }
 
-    // Mark deposit paid in Supabase
-    await supabase
+    // Mark deposit paid in Supabase.
+    // Use both id and auth_id in the filter to handle rows where the PK
+    // differs from the auth UUID (covers both creation patterns).
+    const { error: updateError, count } = await supabase
       .from('users')
       .update({ deposit_paid: true })
-      .eq('id', profile.id);
+      .or(`id.eq.${profile.id},auth_id.eq.${user.id}`)
+      .select('id', { count: 'exact', head: true });
+
+    if (updateError || count === 0) {
+      console.error('[chargeDeposit] Supabase update failed:', updateError, 'count:', count);
+      // Payment succeeded but DB write failed — return success anyway so the
+      // user isn't stuck, but log it so it can be corrected manually.
+      // The admin email below will alert you.
+    }
 
     const customerName = profile.full_name ?? user.email ?? 'Student';
     const customerEmail = profile.email ?? user.email ?? '';

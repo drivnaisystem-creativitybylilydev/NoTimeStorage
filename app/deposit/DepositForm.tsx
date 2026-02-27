@@ -88,8 +88,9 @@ export function DepositForm({ applicationId, locationId, isSandbox, customerName
         return;
       }
 
-      // Success → go to booking
-      router.push('/booking/configure?deposit=paid');
+      // Success — force a hard navigation so the server layout re-reads
+      // the updated deposit_paid flag from Supabase
+      window.location.href = '/booking/configure';
     } catch (err: any) {
       setError(err?.message ?? 'Unexpected error. Please try again.');
       setLoading(false);
