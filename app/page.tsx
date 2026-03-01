@@ -216,6 +216,7 @@ export default function Home() {
             <a href="#how-it-works">How It Works</a>
             <a href="#pricing">Pricing</a>
             <a href="#faq">FAQ</a>
+            <a href="#contact">Contact</a>
             {(loading || !user) ? (
               <>
                 <Link href="/auth/signup" className="header-cta">Get Started</Link>
@@ -252,6 +253,7 @@ export default function Home() {
         <a href="#how-it-works" onClick={() => setMobileNavOpen(false)}>How It Works</a>
         <a href="#pricing" onClick={() => setMobileNavOpen(false)}>Pricing</a>
         <a href="#faq" onClick={() => setMobileNavOpen(false)}>FAQ</a>
+        <a href="#contact" onClick={() => setMobileNavOpen(false)}>Contact</a>
         {(loading || !user) ? (
           <>
             <Link href="/auth/login" onClick={() => setMobileNavOpen(false)}>Login</Link>
