@@ -3,7 +3,7 @@
 import { useState, useMemo } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import type { BookingWithCustomer } from '@/lib/admin/actions';
-import { formatDate, formatTime } from '@/lib/utils/date';
+import { formatDate } from '@/lib/utils/date';
 
 const SCHOOLS = ['All Schools', 'Stonehill College', 'University of New Haven'];
 
