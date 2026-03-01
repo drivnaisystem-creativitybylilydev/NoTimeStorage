@@ -4564,3 +4564,206 @@ button {
   }
 }
 
+/* ========================================================
+   HOMEPAGE MOBILE RESPONSIVE FIXES
+   Targets: 375px (iPhone SE), 390px (iPhone 12/13), 430px (iPhone 14 Pro Max)
+   Desktop (1024px+) is untouched.
+   ======================================================== */
+
+/* ── ISSUE 1: School logo tiles — shrink for mobile ── */
+@media (max-width: 639px) {
+  .campus-school-tile {
+    width: 200px;
+    height: 190px;
+    padding: 6px 12px 10px;
+    gap: 4px;
+  }
+
+  .campus-school-logo {
+    width: 120px;
+    height: 120px;
+  }
+
+  .campus-school-name {
+    font-size: 0.72rem;
+  }
+
+  .campus-school-location {
+    font-size: 0.6rem;
+  }
+
+  .campus-school-monogram {
+    font-size: 1.4rem;
+  }
+
+  .campus-logos-scroll {
+    gap: var(--spacing-md);
+  }
+}
+
+@media (max-width: 374px) {
+  .campus-school-tile {
+    width: 170px;
+    height: 170px;
+  }
+
+  .campus-school-logo {
+    width: 100px;
+    height: 100px;
+  }
+}
+
+/* ── ISSUE 2: Pricing section — box image overflow fix ── */
+@media (max-width: 480px) {
+  .pricing-box-image {
+    margin-bottom: -150px;
+  }
+
+  .pricing-box-image .box-img {
+    width: 100%;
+    max-width: 100%;
+  }
+}
+
+/* ── ISSUE 3: Comparison table — better mobile readability ── */
+@media (max-width: 480px) {
+  .cv2-notime-header-sub,
+  .cv2-diy-header-sub {
+    display: none;
+  }
+
+  .cv2-row {
+    grid-template-columns: 1.4fr 1fr 1fr;
+  }
+
+  .cv2-feature-cell,
+  .cv2-notime-cell,
+  .cv2-diy-cell {
+    word-break: break-word;
+    hyphens: auto;
+  }
+}
+
+/* ── ISSUE 3b: All section CTA buttons — allow wrapping, prevent cutoff ── */
+@media (max-width: 640px) {
+  .section-cta .button-primary,
+  .section-cta .button-secondary,
+  .comparison-cta .button-primary,
+  .comparison-cta .button-secondary {
+    white-space: normal;
+    line-height: 1.35;
+    min-height: 52px;
+    padding: 14px 24px;
+    max-width: calc(100vw - 48px);
+  }
+
+  .section-cta .button-primary,
+  .comparison-cta .button-primary {
+    min-width: unset;
+  }
+}
+
+/* ── ISSUE 4: Testimonials — tighter cards on mobile ── */
+@media (max-width: 639px) {
+  .testimonials-grid {
+    gap: var(--spacing-md);
+  }
+
+  .testimonial-card {
+    padding: var(--spacing-lg);
+    max-width: 380px;
+    margin: 0 auto;
+  }
+
+  .testimonial-text {
+    font-size: var(--font-size-sm);
+    line-height: 1.6;
+  }
+
+  .testimonial-author strong {
+    font-size: var(--font-size-sm);
+  }
+
+  .testimonial-author span {
+    font-size: var(--font-size-xs);
+  }
+}
+
+/* ── ISSUE 5: FAQ — prevent icon being pushed off-screen ── */
+@media (max-width: 639px) {
+  .faq-question {
+    padding: var(--spacing-md);
+    font-size: var(--font-size-base);
+    gap: var(--spacing-sm);
+  }
+
+  .faq-question span:first-child {
+    min-width: 0;
+    flex: 1;
+    padding-right: var(--spacing-sm);
+  }
+
+  .faq-icon {
+    flex-shrink: 0;
+    width: 22px;
+    height: 22px;
+    font-size: var(--font-size-xl);
+  }
+
+  .faq-answer {
+    padding: 0 var(--spacing-md) var(--spacing-md);
+  }
+
+  .faq-answer p {
+    font-size: var(--font-size-sm);
+    margin-top: var(--spacing-sm);
+  }
+
+  .faq-list {
+    gap: var(--spacing-sm);
+  }
+}
+
+/* ── GLOBAL: Section padding tighter on small phones ── */
+@media (max-width: 480px) {
+  .why-section,
+  .comparison-section,
+  .testimonials-section,
+  .reminder-cta-section {
+    padding-top: var(--spacing-2xl);
+    padding-bottom: var(--spacing-2xl);
+    padding-left: var(--spacing-md);
+    padding-right: var(--spacing-md);
+  }
+
+  .section-cta,
+  .comparison-cta {
+    margin-top: var(--spacing-xl);
+    padding-bottom: var(--spacing-sm);
+  }
+}
+
+/* ── GLOBAL: Carousel card width on very narrow phones ── */
+@media (max-width: 374px) {
+  .peek-carousel-card {
+    width: 260px;
+    height: 340px;
+    margin-left: -130px;
+    margin-top: -170px;
+  }
+
+  .peek-carousel-track {
+    min-height: 380px;
+  }
+
+  .value-card {
+    padding: var(--spacing-lg);
+  }
+
+  .value-icon {
+    width: 56px;
+    height: 56px;
+    font-size: 2rem;
+  }
+}
+

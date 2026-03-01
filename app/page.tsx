@@ -496,7 +496,7 @@ export default function Home() {
             transition={{ duration: 0.5, ease: [0.25, 0.1, 0.25, 1] }}
           >
             {(loading || !user) ? (
-              <Link href="/auth/signup"><button className="button-primary">Reserve Your Spot — Get Started</button></Link>
+              <Link href="/auth/signup"><button className="button-primary">Reserve Your Spot</button></Link>
             ) : (
               <Link href="/booking/configure"><button className="button-primary">Start Your Booking</button></Link>
             )}
@@ -594,7 +594,7 @@ export default function Home() {
             transition={{ duration: 0.5, ease: [0.25, 0.1, 0.25, 1] }}
           >
             {(loading || !user) ? (
-              <Link href="/auth/signup"><button className="button-primary">Get Started — It Takes 3 Steps</button></Link>
+              <Link href="/auth/signup"><button className="button-primary">Get Started Today</button></Link>
             ) : (
               <Link href="/booking/configure"><button className="button-primary">Book Your Pickup</button></Link>
             )}
@@ -995,7 +995,7 @@ export default function Home() {
           >
             {(loading || !user) ? (
               <Link href="/auth/signup">
-                <button className="button-primary">Choose NoTime Storage — Get Started</button>
+                <button className="button-primary">Choose NoTime Storage</button>
               </Link>
             ) : (
               <Link href="/booking/configure">
@@ -1048,7 +1048,7 @@ export default function Home() {
             transition={{ duration: 0.5, ease: [0.25, 0.1, 0.25, 1] }}
           >
             {(loading || !user) ? (
-              <Link href="/auth/signup"><button className="button-primary">Join Happy Students — Get Started</button></Link>
+              <Link href="/auth/signup"><button className="button-primary">Join Happy Students</button></Link>
             ) : (
               <Link href="/booking/configure"><button className="button-primary">Book Storage Now</button></Link>
             )}
@@ -1242,7 +1242,7 @@ export default function Home() {
             transition={{ duration: 0.5, ease: [0.25, 0.1, 0.25, 1] }}
           >
             {(loading || !user) ? (
-              <Link href="/auth/signup"><button className="button-primary">Ready? Create Your Account</button></Link>
+              <Link href="/auth/signup"><button className="button-primary">Create Your Account</button></Link>
             ) : (
               <Link href="/booking/configure"><button className="button-primary">Go to Booking</button></Link>
             )}
