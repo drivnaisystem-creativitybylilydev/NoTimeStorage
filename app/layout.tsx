@@ -28,7 +28,7 @@ export const metadata: Metadata = {
   title: "NoTime Storage — Student Storage, Door to Door",
   description: "Stress-free, climate-controlled storage for college students. We pick up from your dorm and deliver back when you need it.",
   icons: {
-    icon: "/brand/notime-storage-logo.png",
+    icon: "/favicon.ico",
     apple: "/brand/notime-storage-logo.png",
   },
 };
