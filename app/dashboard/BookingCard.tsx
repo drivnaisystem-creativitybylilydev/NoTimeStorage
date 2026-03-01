@@ -26,13 +26,8 @@ export type BookingRow = {
   booking_items: BookingItem[] | null;
 };
 
-function formatDate(d: string) {
-  try {
-    return new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-  } catch {
-    return d;
-  }
-}
+import { formatDateShort, formatTime as formatTimeET } from '@/lib/utils/date';
+function formatDate(d: string) { return formatDateShort(d); }
 
 function formatTimeSlot(s: string) {
   if (!s) return '—';
@@ -51,7 +46,7 @@ function generateTimeSlots() {
   for (let hour = 8; hour < 17; hour++) {
     for (let min = 0; min < 60; min += 20) {
       const value = `${hour.toString().padStart(2, '0')}:${min.toString().padStart(2, '0')}`;
-      const label = new Date(`2000-01-01T${value}`).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+      const label = formatTimeET(value);
       slots.push({ value, label });
     }
   }

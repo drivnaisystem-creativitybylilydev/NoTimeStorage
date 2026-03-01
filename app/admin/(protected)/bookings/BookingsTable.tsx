@@ -18,13 +18,8 @@ type BookingsTableProps = {
   sortOrder: 'asc' | 'desc';
 };
 
-function formatDate(d: string) {
-  try {
-    return new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-  } catch {
-    return d;
-  }
-}
+import { formatDateShort } from '@/lib/utils/date';
+function formatDate(d: string) { return formatDateShort(d); }
 
 function formatTimeSlot(s: string) {
   if (!s) return '—';

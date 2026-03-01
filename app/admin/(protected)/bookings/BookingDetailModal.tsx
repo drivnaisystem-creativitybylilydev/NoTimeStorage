@@ -9,13 +9,8 @@ type BookingDetailModalProps = {
   onClose: () => void;
 };
 
-function formatDate(d: string) {
-  try {
-    return new Date(d).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
-  } catch {
-    return d;
-  }
-}
+import { formatDate as formatDateET } from '@/lib/utils/date';
+function formatDate(d: string) { return formatDateET(d, { weekday: undefined, month: 'long', day: 'numeric', year: 'numeric' }); }
 
 function formatTimeSlot(s: string) {
   if (!s) return '—';

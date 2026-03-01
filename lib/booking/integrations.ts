@@ -42,30 +42,10 @@ async function getBookingWithCustomer(booking: BookingWithItems): Promise<Bookin
 }
 
 /** Format time slot for display (e.g. "14:00" → "2:00 PM") */
-function formatTimeSlot(s: string): string {
-  if (!s) return '';
-  const match = s.match(/^(\d{1,2}):(\d{2})/);
-  if (match) {
-    const h = parseInt(match[1], 10);
-    const ampm = h >= 12 ? 'PM' : 'AM';
-    const h12 = h % 12 || 12;
-    return `${h12}:${match[2]} ${ampm}`;
-  }
-  return s;
-}
+function formatTimeSlot(s: string): string { return formatTimeET(s); }
 
-/** Format date for display (e.g. "2026-05-15" → "May 15, 2026") */
-function formatDate(d: string): string {
-  try {
-    return new Date(d + 'T12:00:00').toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-    });
-  } catch {
-    return d;
-  }
-}
+import { formatDateShort, formatTime as formatTimeET } from '@/lib/utils/date';
+function formatDate(d: string): string { return formatDateShort(d); }
 
 // ---- Google Calendar ----
 

@@ -177,7 +177,7 @@ function SchedulePageContent() {
 
   const formatDateDisplay = (date: Date | null) => {
     if (!date) return 'Select date';
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'America/New_York' });
   };
 
   const monthData = useMemo(() => getMonthData(currentMonth.getFullYear(), currentMonth.getMonth()), [currentMonth]);
@@ -393,7 +393,7 @@ function SchedulePageContent() {
               </button>
               
               <h3 style={{ fontSize: '1.25rem', fontWeight: '700', color: 'var(--color-coffee)' }}>
-                {currentMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+                {currentMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric', timeZone: 'America/New_York' })}
               </h3>
               
               <button

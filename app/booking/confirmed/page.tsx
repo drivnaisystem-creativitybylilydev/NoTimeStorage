@@ -4,6 +4,7 @@ import { Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
+import { formatDate } from '@/lib/utils/date';
 
 function BookingConfirmedContent() {
   const searchParams = useSearchParams();
@@ -14,11 +15,7 @@ function BookingConfirmedContent() {
   const totalPrice = searchParams.get('totalPrice') || '';
   const months = searchParams.get('months') || '';
 
-  const formattedDate = moveOutDate
-    ? new Date(moveOutDate + 'T12:00:00').toLocaleDateString('en-US', {
-        weekday: 'long', month: 'long', day: 'numeric', year: 'numeric',
-      })
-    : '';
+  const formattedDate = moveOutDate ? formatDate(moveOutDate) : '';
 
   return (
     <div className="auth-container">

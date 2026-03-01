@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import { createBooking } from '@/lib/booking/create-booking';
 import type { CreateBookingInput, BookingItemType } from '@/lib/booking/types';
+import { formatDate, formatTime } from '@/lib/utils/date';
 
 const ITEM_TYPE_MAP: Record<string, BookingItemType> = {
   smallWithBox: 'small_with_box',
@@ -151,26 +152,6 @@ function PaymentPageContent() {
     setSaveError(result.error);
   };
 
-  // Format date
-  const formatDate = (dateStr: string) => {
-    if (!dateStr) return '';
-    return new Date(dateStr).toLocaleDateString('en-US', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
-  };
-
-  // Format time
-  const formatTime = (timeStr: string) => {
-    if (!timeStr) return '';
-    return new Date(`2000-01-01T${timeStr}`).toLocaleTimeString('en-US', {
-      hour: 'numeric',
-      minute: '2-digit',
-      hour12: true
-    });
-  };
 
   return (
     <div className="auth-container">

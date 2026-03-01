@@ -3,6 +3,7 @@
 import { useState, useMemo } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import type { BookingWithCustomer } from '@/lib/admin/actions';
+import { formatDate, formatTime } from '@/lib/utils/date';
 
 const SCHOOLS = ['All Schools', 'Stonehill College', 'University of New Haven'];
 
@@ -72,7 +73,7 @@ function DayDetailPanel({ date, bookings, onClose, schoolFilter, boxFilter }: Da
     b.box_quantity >= selectedBoxRange.min && b.box_quantity <= selectedBoxRange.max;
 
   const sorted = [...bookings].sort((a, b) => (a.move_out_time_slot || '').localeCompare(b.move_out_time_slot || ''));
-  const dateFmt = (() => { try { return new Date(date + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }); } catch { return date; } })();
+  const dateFmt = formatDate(date);
 
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.35)' }} onClick={onClose}>
