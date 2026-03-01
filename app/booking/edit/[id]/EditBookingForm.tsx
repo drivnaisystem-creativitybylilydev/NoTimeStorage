@@ -202,19 +202,19 @@ export function EditBookingForm({
       }
       const result = await chargeBookingUpgrade(bookingId, items, tokenResult.token, deltaTotalCents);
       setProcessing(false);
-      if (result.success) { router.push('/dashboard'); return; }
+      if (result.success) { router.push('/booking/updated?type=items'); return; }
       setError(result.error);
     } else if (isPaid) {
       // Paid booking, items equal or reduced: update via chargeBookingUpgrade with no charge
       const result = await chargeBookingUpgrade(bookingId, items, null, 0);
       setProcessing(false);
-      if (result.success) { router.push('/dashboard'); return; }
+      if (result.success) { router.push('/booking/updated?type=items'); return; }
       setError(result.error);
     } else {
       // Unpaid booking, items equal or reduced: just save
       const result = await updateBookingItems(bookingId, items);
       setProcessing(false);
-      if (result.success) { router.push('/dashboard'); return; }
+      if (result.success) { router.push('/booking/updated?type=items'); return; }
       setError(result.error);
     }
   };

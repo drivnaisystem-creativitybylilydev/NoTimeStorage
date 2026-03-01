@@ -79,7 +79,8 @@ export function BookingCard({ booking: b }: { booking: BookingRow }) {
     setSaving(false);
     if (result.success) {
       setEditingDates(false);
-      router.refresh();
+      router.push('/booking/updated?type=dates');
+      return;
     } else {
       setError(result.error);
     }

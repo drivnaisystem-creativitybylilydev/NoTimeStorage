@@ -328,23 +328,6 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Find Your School */}
-      <section className="find-school-section">
-        <div className="find-school-container">
-          <h3 className="find-school-title">Find Your School</h3>
-          <div className="find-school-search">
-            <input 
-              type="text" 
-              placeholder="Search for your university..." 
-              className="school-search-input"
-              disabled
-            />
-            <button className="button-primary" disabled>Search</button>
-          </div>
-          <p className="find-school-note">School search coming soon</p>
-        </div>
-      </section>
-
       {/* Why NoTime Storage */}
       <section className="why-section">
         <div className="why-container">
@@ -473,6 +456,19 @@ export default function Home() {
               />
             ))}
           </div>
+          <motion.div 
+            className="section-cta"
+            initial={{ opacity: 0, y: 12 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-50px" }}
+            transition={{ duration: 0.5, ease: [0.25, 0.1, 0.25, 1] }}
+          >
+            {(loading || !user) ? (
+              <Link href="/auth/signup"><button className="button-primary">Reserve Your Spot — Get Started</button></Link>
+            ) : (
+              <Link href="/booking/configure"><button className="button-primary">Start Your Booking</button></Link>
+            )}
+          </motion.div>
         </div>
       </section>
 
@@ -558,6 +554,19 @@ export default function Home() {
               <p className="step-description">Request your items back anytime. We deliver them directly to your door when you need them.</p>
             </motion.div>
           </div>
+          <motion.div 
+            className="section-cta"
+            initial={{ opacity: 0, y: 12 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-50px" }}
+            transition={{ duration: 0.5, ease: [0.25, 0.1, 0.25, 1] }}
+          >
+            {(loading || !user) ? (
+              <Link href="/auth/signup"><button className="button-primary">Get Started — It Takes 3 Steps</button></Link>
+            ) : (
+              <Link href="/booking/configure"><button className="button-primary">Book Your Pickup</button></Link>
+            )}
+          </motion.div>
         </div>
       </section>
 
@@ -656,9 +665,15 @@ export default function Home() {
                 <li>Climate-controlled storage</li>
                 <li>Insurance included</li>
               </ul>
-              <Link href="/booking/configure?plan=1box">
-                <button className="button-primary">Select</button>
-              </Link>
+              {(loading || !user) ? (
+                <Link href="/auth/signup?redirect=/deposit">
+                  <button className="button-primary">Select</button>
+                </Link>
+              ) : (
+                <Link href="/deposit">
+                  <button className="button-primary">Select</button>
+                </Link>
+              )}
             </motion.div>
 
             {/* 2 Boxes - Best Value */}
@@ -690,9 +705,15 @@ export default function Home() {
                 <li>Insurance included</li>
                 <li>Priority scheduling</li>
               </ul>
-              <Link href="/booking/configure?plan=2boxes">
-                <button className="button-primary">Select</button>
-              </Link>
+              {(loading || !user) ? (
+                <Link href="/auth/signup?redirect=/deposit">
+                  <button className="button-primary">Select</button>
+                </Link>
+              ) : (
+                <Link href="/deposit">
+                  <button className="button-primary">Select</button>
+                </Link>
+              )}
             </motion.div>
 
             {/* 4 Boxes */}
@@ -721,9 +742,15 @@ export default function Home() {
                 <li>Insurance included</li>
                 <li>Priority scheduling</li>
               </ul>
-              <Link href="/booking/configure?plan=4boxes">
-                <button className="button-primary">Select</button>
-              </Link>
+              {(loading || !user) ? (
+                <Link href="/auth/signup?redirect=/deposit">
+                  <button className="button-primary">Select</button>
+                </Link>
+              ) : (
+                <Link href="/deposit">
+                  <button className="button-primary">Select</button>
+                </Link>
+              )}
             </motion.div>
           </div>
 
@@ -833,44 +860,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Testimonials */}
-      <section className="testimonials-section">
-        <div className="testimonials-container">
-          <h2 className="testimonials-title">Student Reviews</h2>
-          <p className="testimonials-subtitle">Sample testimonials — copy TBD</p>
-          
-          <div className="testimonials-grid">
-            <div className="testimonial-card">
-              <div className="testimonial-stars">★★★★★</div>
-              <p className="testimonial-text">"Made my summer break so much easier. They picked up everything from my dorm and delivered it back perfectly in the fall."</p>
-              <div className="testimonial-author">
-                <strong>Student Testimonial</strong>
-                <span>Sample review</span>
-              </div>
-            </div>
-            
-            <div className="testimonial-card">
-              <div className="testimonial-stars">★★★★★</div>
-              <p className="testimonial-text">"My parents loved how easy and secure this was. No need to rent a storage unit or drive back and forth."</p>
-              <div className="testimonial-author">
-                <strong>Student Testimonial</strong>
-                <span>Sample review</span>
-              </div>
-            </div>
-            
-            <div className="testimonial-card">
-              <div className="testimonial-stars">★★★★★</div>
-              <p className="testimonial-text">"Great pricing for students and the online tracking made it easy to see exactly what I had stored."</p>
-              <div className="testimonial-author">
-                <strong>Student Testimonial</strong>
-                <span>Sample review</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Comparison Table */}
+      {/* Comparison Table - before reviews for conversion */}
       <section className="comparison-section">
         <div className="comparison-container">
           <motion.h2 
@@ -962,6 +952,74 @@ export default function Home() {
                 <div className="cv2-total-sub-diy">first month alone</div>
               </div>
             </div>
+          </motion.div>
+
+          <motion.div 
+            className="comparison-cta"
+            initial={{ opacity: 0, y: 16 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-50px" }}
+            transition={{ duration: 0.5, delay: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
+          >
+            {(loading || !user) ? (
+              <Link href="/auth/signup">
+                <button className="button-primary">Choose NoTime Storage — Get Started</button>
+              </Link>
+            ) : (
+              <Link href="/booking/configure">
+                <button className="button-primary">Book Your Storage</button>
+              </Link>
+            )}
+          </motion.div>
+        </div>
+      </section>
+
+      {/* Testimonials */}
+      <section className="testimonials-section">
+        <div className="testimonials-container">
+          <h2 className="testimonials-title">Student Reviews</h2>
+          <p className="testimonials-subtitle">Sample testimonials — copy TBD</p>
+          
+          <div className="testimonials-grid">
+            <div className="testimonial-card">
+              <div className="testimonial-stars">★★★★★</div>
+              <p className="testimonial-text">"Made my summer break so much easier. They picked up everything from my dorm and delivered it back perfectly in the fall."</p>
+              <div className="testimonial-author">
+                <strong>Student Testimonial</strong>
+                <span>Sample review</span>
+              </div>
+            </div>
+            
+            <div className="testimonial-card">
+              <div className="testimonial-stars">★★★★★</div>
+              <p className="testimonial-text">"My parents loved how easy and secure this was. No need to rent a storage unit or drive back and forth."</p>
+              <div className="testimonial-author">
+                <strong>Student Testimonial</strong>
+                <span>Sample review</span>
+              </div>
+            </div>
+            
+            <div className="testimonial-card">
+              <div className="testimonial-stars">★★★★★</div>
+              <p className="testimonial-text">"Great pricing for students and the online tracking made it easy to see exactly what I had stored."</p>
+              <div className="testimonial-author">
+                <strong>Student Testimonial</strong>
+                <span>Sample review</span>
+              </div>
+            </div>
+          </div>
+          <motion.div 
+            className="section-cta"
+            initial={{ opacity: 0, y: 12 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-50px" }}
+            transition={{ duration: 0.5, ease: [0.25, 0.1, 0.25, 1] }}
+          >
+            {(loading || !user) ? (
+              <Link href="/auth/signup"><button className="button-primary">Join Happy Students — Get Started</button></Link>
+            ) : (
+              <Link href="/booking/configure"><button className="button-primary">Book Storage Now</button></Link>
+            )}
           </motion.div>
         </div>
       </section>
@@ -1144,6 +1202,19 @@ export default function Home() {
               </AnimatePresence>
             </motion.div>
           </div>
+          <motion.div 
+            className="section-cta"
+            initial={{ opacity: 0, y: 12 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-50px" }}
+            transition={{ duration: 0.5, ease: [0.25, 0.1, 0.25, 1] }}
+          >
+            {(loading || !user) ? (
+              <Link href="/auth/signup"><button className="button-primary">Ready? Create Your Account</button></Link>
+            ) : (
+              <Link href="/booking/configure"><button className="button-primary">Go to Booking</button></Link>
+            )}
+          </motion.div>
         </div>
       </section>
 

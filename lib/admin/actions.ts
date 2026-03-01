@@ -6,6 +6,8 @@ export type DashboardStats = {
   totalBookings: number;
   activeBookings: number;
   revenueThisMonth: number;
+  revenueThisWeek: number;
+  revenueToday: number;
   unpaidBookings: number;
 };
 
@@ -63,10 +65,32 @@ export async function getDashboardStats(): Promise<DashboardStats> {
     return countsThisMonth ? sum + price : sum;
   }, 0);
 
+  // Week: start of current week (Sunday 00:00) to now
+  const weekStart = new Date(now);
+  weekStart.setDate(now.getDate() - now.getDay());
+  weekStart.setHours(0, 0, 0, 0);
+  const revenueThisWeek = paidBookings.reduce((sum, row) => {
+    const price = typeof row.total_price === 'number' ? row.total_price : parseFloat(String(row.total_price || 0)) || 0;
+    const d = row.paid_at ? new Date(row.paid_at) : row.created_at ? new Date(row.created_at) : null;
+    if (!d) return sum;
+    return d >= weekStart ? sum + price : sum;
+  }, 0);
+
+  // Today: start of today (00:00) to now
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+  const revenueToday = paidBookings.reduce((sum, row) => {
+    const price = typeof row.total_price === 'number' ? row.total_price : parseFloat(String(row.total_price || 0)) || 0;
+    const d = row.paid_at ? new Date(row.paid_at) : row.created_at ? new Date(row.created_at) : null;
+    if (!d) return sum;
+    return d >= todayStart ? sum + price : sum;
+  }, 0);
+
   return {
     totalBookings: totalBookings ?? 0,
     activeBookings: activeBookings ?? 0,
     revenueThisMonth,
+    revenueThisWeek,
+    revenueToday,
     unpaidBookings: unpaidBookings ?? 0,
   };
 }

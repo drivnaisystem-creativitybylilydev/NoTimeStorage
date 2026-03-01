@@ -44,6 +44,10 @@ export default async function AdminBookingsPage({
   ]);
 
   const revenueDisplay = `$${stats.revenueThisMonth.toFixed(2)}`;
+  const revenueBreakdown = [
+    { label: 'This week', value: `$${stats.revenueThisWeek.toFixed(2)}` },
+    { label: 'Today', value: `$${stats.revenueToday.toFixed(2)}` },
+  ];
 
   return (
     <div className="admin-page" style={{ display: 'flex', flexDirection: 'column', gap: '64px' }}>
@@ -71,7 +75,8 @@ export default async function AdminBookingsPage({
         <StatsCard
           label="Revenue this month"
           value={revenueDisplay}
-          helper="Sum of paid bookings created this calendar month"
+          breakdown={revenueBreakdown}
+          helper="Sum of paid bookings (this month). Week and today below."
           tone="revenue"
           icon="dollar"
         />

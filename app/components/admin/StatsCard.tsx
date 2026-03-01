@@ -15,6 +15,8 @@ type StatsCardProps = {
   label: string;
   value: string;
   helper?: string;
+  /** Optional list of sub-metrics shown below the main value (e.g. "This week: $X") */
+  breakdown?: { label: string; value: string }[];
   tone?: 'default' | 'success' | 'revenue' | 'warning';
   icon?: IconType;
 };
@@ -50,7 +52,7 @@ const toneStyles = {
   },
 };
 
-export function StatsCard({ label, value, helper, tone = 'default', icon: iconName }: StatsCardProps) {
+export function StatsCard({ label, value, helper, breakdown, tone = 'default', icon: iconName }: StatsCardProps) {
   const styles = toneStyles[tone];
   const Icon = iconName ? iconMap[iconName] : null;
 
@@ -120,6 +122,16 @@ export function StatsCard({ label, value, helper, tone = 'default', icon: iconNa
       >
         {value}
       </div>
+      {breakdown && breakdown.length > 0 && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '4px' }}>
+          {breakdown.map(({ label: bl, value: bv }) => (
+            <div key={bl} style={{ fontSize: '13px', color: 'var(--color-gray-600)', display: 'flex', justifyContent: 'space-between', gap: '8px' }}>
+              <span>{bl}</span>
+              <span style={{ fontWeight: 600, color: styles.valueColor }}>{bv}</span>
+            </div>
+          ))}
+        </div>
+      )}
       {helper && (
         <div style={{ fontSize: '13px', color: 'var(--color-gray-500)', lineHeight: 1.4, marginTop: 'auto' }}>
           {helper}
