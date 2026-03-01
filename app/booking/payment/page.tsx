@@ -240,7 +240,7 @@ function PaymentPageContent() {
 
   return (
     <div className="auth-container">
-      <div style={{ maxWidth: '800px', width: '100%', background: 'white', borderRadius: '16px', padding: '48px', boxShadow: '0 20px 60px rgba(0,0,0,0.08)' }}>
+      <div style={{ maxWidth: '800px', width: '100%', background: 'white', borderRadius: '16px', padding: 'clamp(20px, 5vw, 48px)', boxShadow: '0 20px 60px rgba(0,0,0,0.08)' }}>
 
         {/* Header */}
         <div style={{ textAlign: 'center', marginBottom: '40px' }}>

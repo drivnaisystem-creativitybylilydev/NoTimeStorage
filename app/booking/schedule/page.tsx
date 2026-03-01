@@ -216,7 +216,7 @@ function SchedulePageContent() {
     
     // Empty cells for days before month starts
     for (let i = 0; i < startingDayOfWeek; i++) {
-      days.push(<div key={`empty-${i}`} style={{ width: '40px', height: '40px' }} />);
+      days.push(<div key={`empty-${i}`} style={{ width: 'clamp(32px, 10vw, 40px)', height: 'clamp(32px, 10vw, 40px)' }} />);
     }
     
     // Actual days
@@ -229,14 +229,14 @@ function SchedulePageContent() {
       const isMoveOut = moveOutDate && date.toDateString() === moveOutDate.toDateString();
       const isMoveIn = moveInDate && date.toDateString() === moveInDate.toDateString();
       
-      days.push(
+        days.push(
         <button
           key={day}
           onClick={() => handleDateClick(date)}
           disabled={disabled}
           style={{
-            width: '40px',
-            height: '40px',
+            width: 'clamp(32px, 10vw, 40px)',
+            height: 'clamp(32px, 10vw, 40px)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -256,7 +256,7 @@ function SchedulePageContent() {
             borderRadius: isSelected ? '50%' : '8px',
             cursor: disabled ? 'not-allowed' : 'pointer',
             fontWeight: isSelected ? '700' : inRange ? '600' : '400',
-            fontSize: '0.875rem',
+            fontSize: 'clamp(0.7rem, 2.5vw, 0.875rem)',
             transition: 'all 0.2s ease',
             position: 'relative',
             opacity: disabled ? 0.4 : 1,
@@ -285,7 +285,7 @@ function SchedulePageContent() {
 
   return (
     <div className="auth-container">
-      <div style={{ maxWidth: '800px', width: '100%', background: 'white', borderRadius: '16px', padding: '48px', boxShadow: '0 20px 60px rgba(0,0,0,0.08)' }}>
+      <div style={{ maxWidth: '800px', width: '100%', background: 'white', borderRadius: '16px', padding: 'clamp(20px, 5vw, 48px)', boxShadow: '0 20px 60px rgba(0,0,0,0.08)' }}>
         {/* Header */}
         <div style={{ textAlign: 'center', marginBottom: '48px' }}>
           <Link href="/">
@@ -373,7 +373,7 @@ function SchedulePageContent() {
           )}
 
           {/* Calendar */}
-          <div style={{ background: 'white', borderRadius: '16px', padding: '24px', border: '2px solid var(--color-latte)', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
+          <div style={{ background: 'white', borderRadius: '16px', padding: 'clamp(12px, 4vw, 24px)', border: '2px solid var(--color-latte)', boxShadow: '0 4px 12px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
             {/* Calendar Header */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
               <button
@@ -768,7 +768,7 @@ function SchedulePageContent() {
         </div>
 
         {/* Elevator + Stairs — compact side by side */}
-        <div style={{ display: 'flex', gap: '24px', marginBottom: '24px' }}>
+        <div style={{ display: 'flex', gap: '16px', marginBottom: '24px', flexWrap: 'wrap' }}>
           <div style={{ flex: 1 }}>
             <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: 'var(--color-coffee)', fontSize: '0.875rem' }}>
               Elevator Available? *
@@ -861,9 +861,9 @@ function SchedulePageContent() {
         </div>
 
         {/* Action Buttons */}
-        <div style={{ display: 'flex', gap: '16px', justifyContent: 'space-between' }}>
+        <div style={{ display: 'flex', gap: '16px', justifyContent: 'space-between', flexWrap: 'wrap' }}>
           <Link href={`/booking/configure?${searchParams.toString()}`}>
-            <button className="button-secondary" style={{ padding: '16px 32px', fontSize: '1rem' }}>
+            <button className="button-secondary" style={{ padding: '16px 24px', fontSize: '1rem' }}>
               ← Back
             </button>
           </Link>
@@ -872,10 +872,11 @@ function SchedulePageContent() {
             disabled={!isFormValid}
             className="button-primary"
             style={{
-              padding: '16px 48px',
+              padding: '16px 32px',
               fontSize: '1.125rem',
               opacity: isFormValid ? 1 : 0.5,
-              cursor: isFormValid ? 'pointer' : 'not-allowed'
+              cursor: isFormValid ? 'pointer' : 'not-allowed',
+              flexShrink: 0,
             }}
           >
             Continue to Payment →

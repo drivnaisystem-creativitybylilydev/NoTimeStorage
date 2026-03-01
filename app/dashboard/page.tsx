@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import { BookingCard } from './BookingCard';
+import { DashboardHeader } from './DashboardHeader';
 
 type BookingItem = { item_type: string; quantity: number; monthly_rate: number; subtotal: number };
 type BookingRow = {
@@ -93,43 +94,11 @@ export default async function DashboardPage() {
   return (
     <div>
       {/* Dashboard Header */}
-      <header className="header">
-        <div className="header-container">
-          <Link href="/" className="header-logo">
-            <Image
-              src="/brand/notime-storage-logo.png"
-              alt="NoTime Storage"
-              width={50}
-              height={50}
-              className="header-logo-image"
-            />
-            <span className="header-logo-text">NoTime Storage</span>
-          </Link>
-
-          <nav className="header-nav">
-            <Link href="/">Home</Link>
-            <Link href="/#pricing">Pricing</Link>
-            <Link href="/dashboard">Dashboard</Link>
-            <Link href={depositPaid ? '/booking/configure' : '/deposit'} className="header-cta">
-              Book Storage
-            </Link>
-          </nav>
-
-          <form action="/auth/signout" method="post" style={{ margin: 0 }}>
-            <button 
-              type="submit"
-              className="header-login"
-              style={{ cursor: 'pointer' }}
-            >
-              Sign Out
-            </button>
-          </form>
-        </div>
-      </header>
+      <DashboardHeader depositPaid={depositPaid} />
 
       {/* Dashboard Content - same layout as booking pages */}
       <div className="auth-container">
-        <div style={{ maxWidth: '900px', width: '100%', background: 'white', borderRadius: '16px', padding: '48px', boxShadow: '0 20px 60px rgba(0,0,0,0.08)' }}>
+        <div style={{ maxWidth: '900px', width: '100%', background: 'white', borderRadius: '16px', padding: 'clamp(20px, 5vw, 48px)', boxShadow: '0 20px 60px rgba(0,0,0,0.08)' }}>
           {/* Header - matches Configure page */}
           <div style={{ textAlign: 'center', marginBottom: '48px' }}>
             <Link href="/">
@@ -150,7 +119,7 @@ export default async function DashboardPage() {
           </div>
 
           {/* Your Profile - same card style as Storage Boxes / Additional Items */}
-          <div style={{ marginBottom: '40px', padding: '32px', background: 'var(--color-paper)', borderRadius: '12px', border: '2px solid var(--color-latte)' }}>
+          <div style={{ marginBottom: '40px', padding: 'clamp(16px, 4vw, 32px)', background: 'var(--color-paper)', borderRadius: '12px', border: '2px solid var(--color-latte)' }}>
             <h2 style={{ fontSize: '1.5rem', fontWeight: '700', color: 'var(--color-coffee)', marginBottom: '24px' }}>
               👤 Your Profile
             </h2>
@@ -203,7 +172,7 @@ export default async function DashboardPage() {
           )}
 
           {/* Your Bookings */}
-          <div style={{ marginBottom: '40px', padding: '32px', background: 'var(--color-paper)', borderRadius: '12px', border: '2px solid var(--color-latte)' }}>
+          <div style={{ marginBottom: '40px', padding: 'clamp(16px, 4vw, 32px)', background: 'var(--color-paper)', borderRadius: '12px', border: '2px solid var(--color-latte)' }}>
             <h2 style={{ fontSize: '1.5rem', fontWeight: '700', color: 'var(--color-coffee)', marginBottom: '24px' }}>
               📦 Your Bookings
             </h2>
@@ -233,7 +202,7 @@ export default async function DashboardPage() {
           </div>
 
           {/* Quick Actions */}
-          <div style={{ padding: '32px', background: 'var(--color-paper)', borderRadius: '12px', border: '2px solid var(--color-latte)' }}>
+          <div style={{ padding: 'clamp(16px, 4vw, 32px)', background: 'var(--color-paper)', borderRadius: '12px', border: '2px solid var(--color-latte)' }}>
             <h2 style={{ fontSize: '1.5rem', fontWeight: '700', color: 'var(--color-coffee)', marginBottom: '24px' }}>
               ⚡ Quick Actions
             </h2>

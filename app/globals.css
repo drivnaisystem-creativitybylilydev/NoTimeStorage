@@ -685,16 +685,17 @@ button {
     margin-top: var(--spacing-sm);
   }
 
-  button {
+  .hero-buttons button,
+  .hero-buttons a {
     width: 100%;
+  }
+
+  .hero-buttons .button-primary,
+  .hero-buttons .button-secondary {
     padding: 1.125rem 2rem;
     font-size: var(--font-size-lg);
     font-weight: 600;
-  }
-
-  .hero-buttons .button-primary {
-    padding: 1.125rem 2rem;
-    font-size: var(--font-size-lg);
+    width: 100%;
   }
 }
 
@@ -717,12 +718,8 @@ button {
     letter-spacing: -0.01em;
   }
 
-  button {
-    padding: 1rem 1.5rem;
-    font-size: var(--font-size-base);
-  }
-
-  .hero-buttons .button-primary {
+  .hero-buttons .button-primary,
+  .hero-buttons .button-secondary {
     padding: 1rem 1.5rem;
     font-size: var(--font-size-base);
   }
@@ -4171,5 +4168,399 @@ button {
 
 .cv2-row:not(.cv2-header-row):not(.cv2-total-row):hover .cv2-diy-cell {
   background: #F3EDE5;
+}
+
+/* ========================================
+   COMPREHENSIVE MOBILE OVERRIDES
+   Applied on top of all section-specific media queries.
+   ======================================== */
+
+/* ── Global section padding ── */
+@media (max-width: 480px) {
+  section {
+    padding: var(--spacing-2xl) var(--spacing-md);
+  }
+}
+
+/* ── Auth card ── */
+@media (max-width: 480px) {
+  .auth-container {
+    padding: var(--spacing-md) var(--spacing-sm);
+    align-items: flex-start;
+    padding-top: var(--spacing-xl);
+  }
+
+  .auth-card {
+    padding: var(--spacing-xl) var(--spacing-md);
+    border-radius: 12px;
+  }
+
+  .auth-header h1 {
+    font-size: var(--font-size-xl);
+  }
+}
+
+/* ── Hamburger / mobile nav ── */
+.hamburger-btn {
+  display: none;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 5px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 6px;
+  z-index: 110;
+}
+
+.hamburger-btn span {
+  display: block;
+  width: 22px;
+  height: 2px;
+  background: var(--color-latte-soft);
+  border-radius: 2px;
+  transition: transform 0.25s ease, opacity 0.2s ease;
+}
+
+.hamburger-btn.open span:nth-child(1) {
+  transform: translateY(7px) rotate(45deg);
+}
+.hamburger-btn.open span:nth-child(2) {
+  opacity: 0;
+}
+.hamburger-btn.open span:nth-child(3) {
+  transform: translateY(-7px) rotate(-45deg);
+}
+
+.mobile-nav-drawer {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  background: var(--color-coffee-dark);
+  padding: 80px var(--spacing-lg) var(--spacing-xl);
+  z-index: 100;
+  flex-direction: column;
+  gap: var(--spacing-md);
+  border-bottom: 2px solid var(--color-latte);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+}
+
+.mobile-nav-drawer.open {
+  display: flex;
+}
+
+.mobile-nav-drawer a {
+  color: var(--color-latte-soft);
+  font-size: var(--font-size-lg);
+  font-weight: 600;
+  text-decoration: none;
+  padding: var(--spacing-sm) 0;
+  border-bottom: 1px solid rgba(201, 164, 126, 0.2);
+  transition: color 0.2s;
+}
+
+.mobile-nav-drawer a:last-child {
+  border-bottom: none;
+}
+
+.mobile-nav-drawer a:hover {
+  color: var(--color-latte);
+}
+
+.mobile-nav-drawer .mobile-nav-cta {
+  background: var(--color-latte);
+  color: var(--color-coffee);
+  text-align: center;
+  border-radius: 8px;
+  padding: var(--spacing-md);
+  border-bottom: none;
+  margin-top: var(--spacing-sm);
+}
+
+@media (max-width: 640px) {
+  .hamburger-btn {
+    display: flex;
+  }
+
+  .header-nav {
+    display: none;
+  }
+
+  .header-social {
+    display: none;
+  }
+
+  /* Move sign-out into the mobile drawer; hide the header version */
+  .header-signout-form {
+    display: none;
+  }
+}
+
+/* ── Comparison table v2 mobile ── */
+@media (max-width: 640px) {
+  .cv2-feature-cell {
+    padding: 14px 12px;
+    font-size: 0.78rem;
+  }
+
+  .cv2-notime-cell {
+    padding: 14px 10px;
+    font-size: 0.78rem;
+    gap: 6px;
+  }
+
+  .cv2-diy-cell {
+    padding: 14px 10px;
+    font-size: 0.78rem;
+  }
+
+  .cv2-header-row .cv2-notime-cell,
+  .cv2-header-row .cv2-diy-cell {
+    padding: 16px 10px;
+  }
+
+  .cv2-total-row .cv2-notime-cell,
+  .cv2-total-row .cv2-diy-cell {
+    padding: 16px 10px;
+  }
+
+  .cv2-notime-header-name,
+  .cv2-diy-header-name {
+    font-size: 0.82rem;
+  }
+
+  .cv2-total-price-notime,
+  .cv2-total-price-diy {
+    font-size: 1.2rem;
+  }
+
+  .cv2-logo {
+    width: 26px;
+    height: 26px;
+  }
+
+  .cv2-check,
+  .cv2-x,
+  .cv2-tilde {
+    width: 16px;
+    height: 16px;
+    font-size: 9px;
+  }
+
+  .cv2-cost-amount {
+    font-size: 0.78rem;
+  }
+
+  .cv2-cost-source {
+    font-size: 0.6rem;
+  }
+}
+
+@media (max-width: 400px) {
+  .cv2-row {
+    grid-template-columns: 1.4fr 1fr 1fr;
+  }
+
+  .cv2-feature-cell {
+    padding: 12px 8px;
+    font-size: 0.7rem;
+  }
+
+  .cv2-notime-cell,
+  .cv2-diy-cell {
+    padding: 12px 6px;
+    font-size: 0.7rem;
+    gap: 4px;
+  }
+}
+
+/* ── Section CTA buttons ── */
+@media (max-width: 640px) {
+  .section-cta,
+  .comparison-cta {
+    padding: 0 var(--spacing-md);
+  }
+
+  .section-cta .button-primary,
+  .section-cta .button-secondary,
+  .comparison-cta .button-primary,
+  .comparison-cta .button-secondary {
+    width: 100%;
+    max-width: 360px;
+  }
+}
+
+/* ── Campus school tiles ── */
+@media (max-width: 640px) {
+  .campus-schools-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: var(--spacing-md);
+    padding: 0 var(--spacing-md);
+  }
+
+  .campus-school-tile {
+    padding: var(--spacing-md) var(--spacing-sm);
+  }
+}
+
+@media (max-width: 400px) {
+  .campus-schools-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ── Testimonials ── */
+@media (max-width: 640px) {
+  .testimonials-section {
+    padding: var(--spacing-2xl) var(--spacing-md);
+  }
+
+  .testimonials-grid {
+    grid-template-columns: 1fr;
+    gap: var(--spacing-lg);
+  }
+
+  .testimonial-card {
+    padding: var(--spacing-lg);
+  }
+}
+
+/* ── FAQ ── */
+@media (max-width: 640px) {
+  .faq-section {
+    padding: var(--spacing-2xl) var(--spacing-md);
+  }
+
+  .faq-items {
+    max-width: 100%;
+  }
+
+  .faq-question {
+    padding: var(--spacing-md) var(--spacing-md);
+    font-size: var(--font-size-sm);
+  }
+
+  .faq-answer {
+    padding: 0 var(--spacing-md) var(--spacing-md);
+    font-size: var(--font-size-sm);
+  }
+}
+
+/* ── Why/value section ── */
+@media (max-width: 640px) {
+  .why-title,
+  .comparison-title {
+    font-size: var(--font-size-2xl);
+  }
+
+  .why-subtitle,
+  .comparison-subtitle {
+    font-size: var(--font-size-sm);
+  }
+}
+
+/* ── Footer CTA ── */
+@media (max-width: 640px) {
+  .footer-cta-buttons {
+    flex-direction: column;
+    gap: var(--spacing-md);
+  }
+
+  .footer-cta-buttons .button-primary,
+  .footer-cta-buttons .button-secondary {
+    width: 100%;
+  }
+}
+
+/* ── Admin tables horizontal scroll ── */
+@media (max-width: 768px) {
+  .admin-card > div {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .admin-table {
+    min-width: 600px;
+  }
+
+  .admin-page .admin-title {
+    font-size: 22px;
+  }
+
+  .admin-page .admin-subtitle {
+    font-size: 13px;
+  }
+}
+
+/* ── Booking page containers ── */
+@media (max-width: 640px) {
+  .booking-page-container {
+    padding: var(--spacing-lg) var(--spacing-md) !important;
+  }
+}
+
+/* ── Dashboard booking cards ── */
+@media (max-width: 640px) {
+  .dashboard-booking-card-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ── Booking/dashboard page inner headings (override inline font-sizes) ── */
+@media (max-width: 480px) {
+  .auth-container h1 {
+    font-size: clamp(1.5rem, 7vw, 2.25rem) !important;
+  }
+
+  .auth-container h2 {
+    font-size: clamp(1.1rem, 5vw, 1.5rem) !important;
+  }
+
+  .auth-container p {
+    font-size: clamp(0.875rem, 4vw, 1.125rem) !important;
+  }
+}
+
+/* ── Booking flow: fix "Continue to Schedule" total bar on mobile ── */
+@media (max-width: 480px) {
+  /* The "Monthly Total / Continue" flex bar at bottom of configure page */
+  .auth-container [style*="justify-content: space-between"] > button.button-primary {
+    width: 100% !important;
+    flex-shrink: unset !important;
+  }
+}
+
+/* ── Calendar cells: shrink on very small screens ── */
+@media (max-width: 360px) {
+  /* Force calendar day cells to fit a 320px screen */
+  .auth-container [style*="repeat(7, 1fr)"] button {
+    width: 34px !important;
+    height: 34px !important;
+    font-size: 0.75rem !important;
+  }
+}
+
+/* ── Booking schedule page: time-slot grid wraps nicely ── */
+@media (max-width: 480px) {
+  .auth-container [role="group"] {
+    grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)) !important;
+  }
+}
+
+/* ── Deposit locked tease: don't let it overflow on mobile ── */
+@media (max-width: 480px) {
+  .auth-card {
+    overflow: hidden;
+  }
+}
+
+/* ── Pricing section CTA on mobile: full-width ── */
+@media (max-width: 480px) {
+  .pricing-card .button-primary {
+    width: 100%;
+  }
 }
 

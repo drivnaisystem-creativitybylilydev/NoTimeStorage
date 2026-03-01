@@ -83,7 +83,7 @@ function ConfigurePageContent() {
 
   return (
     <div className="auth-container">
-      <div style={{ maxWidth: '900px', width: '100%', background: 'white', borderRadius: '16px', padding: '48px', boxShadow: '0 20px 60px rgba(0,0,0,0.08)' }}>
+      <div style={{ maxWidth: '900px', width: '100%', background: 'white', borderRadius: '16px', padding: 'clamp(20px, 5vw, 48px)', boxShadow: '0 20px 60px rgba(0,0,0,0.08)' }}>
         {/* Header */}
         <div style={{ textAlign: 'center', marginBottom: '48px' }}>
           <Link href="/">
@@ -104,15 +104,15 @@ function ConfigurePageContent() {
         </div>
 
         {/* Box Selection */}
-        <div style={{ marginBottom: '40px', padding: '32px', background: 'var(--color-paper)', borderRadius: '12px', border: '2px solid var(--color-latte)' }}>
-          <h2 style={{ fontSize: '1.5rem', fontWeight: '700', color: 'var(--color-coffee)', marginBottom: '24px' }}>
+        <div style={{ marginBottom: '40px', padding: 'clamp(16px, 4vw, 32px)', background: 'var(--color-paper)', borderRadius: '12px', border: '2px solid var(--color-latte)' }}>
+          <h2 style={{ fontSize: 'clamp(1.2rem, 4vw, 1.5rem)', fontWeight: '700', color: 'var(--color-coffee)', marginBottom: '24px' }}>
             📦 Storage Boxes
           </h2>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
-            <label style={{ fontSize: '1.125rem', fontWeight: '600', color: 'var(--color-gray-700)', minWidth: '120px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
+            <label style={{ fontSize: '1rem', fontWeight: '600', color: 'var(--color-gray-700)' }}>
               Quantity:
             </label>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
               <button
                 onClick={() => setBoxQuantity(Math.max(1, boxQuantity - 1))}
                 className="button-secondary"
@@ -143,7 +143,7 @@ function ConfigurePageContent() {
         </div>
 
         {/* Additional Items */}
-        <div style={{ marginBottom: '40px', padding: '32px', background: 'var(--color-white)', borderRadius: '12px', border: '2px solid var(--color-latte-soft)' }}>
+        <div style={{ marginBottom: '40px', padding: 'clamp(16px, 4vw, 32px)', background: 'var(--color-white)', borderRadius: '12px', border: '2px solid var(--color-latte-soft)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
             <h2 style={{ fontSize: '1.5rem', fontWeight: '700', color: 'var(--color-coffee)', margin: 0 }}>
               ➕ Additional Items (Optional)
@@ -165,7 +165,7 @@ function ConfigurePageContent() {
           {/* Small Items */}
           <div style={{ marginBottom: '20px', paddingBottom: '20px', borderBottom: '1px solid var(--color-latte-soft)' }}>
             <div style={{ fontWeight: '600', marginBottom: '12px', color: 'var(--color-gray-800)' }}>Small Items (lamp, fan, small bin)</div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span style={{ fontSize: '0.875rem' }}>With box - $9/mo</span>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -188,7 +188,7 @@ function ConfigurePageContent() {
           {/* Medium Items */}
           <div style={{ marginBottom: '20px', paddingBottom: '20px', borderBottom: '1px solid var(--color-latte-soft)' }}>
             <div style={{ fontWeight: '600', marginBottom: '12px', color: 'var(--color-gray-800)' }}>Medium Items (monitor, microwave, chair)</div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span style={{ fontSize: '0.875rem' }}>With box - $9/mo</span>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -223,14 +223,14 @@ function ConfigurePageContent() {
         </div>
 
         {/* Total & Continue */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '24px', background: 'var(--color-latte-soft)', borderRadius: '12px', marginBottom: '24px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px', padding: 'clamp(16px, 4vw, 24px)', background: 'var(--color-latte-soft)', borderRadius: '12px', marginBottom: '24px' }}>
           <div>
             <div style={{ fontSize: '0.875rem', color: 'var(--color-gray-600)', marginBottom: '4px' }}>Monthly Total</div>
-            <div style={{ fontSize: '2rem', fontWeight: '800', color: 'var(--color-coffee)' }}>
+            <div style={{ fontSize: 'clamp(1.5rem, 5vw, 2rem)', fontWeight: '800', color: 'var(--color-coffee)' }}>
               ${monthlyTotal}/month
             </div>
           </div>
-          <button onClick={handleContinue} className="button-primary" style={{ padding: '16px 48px', fontSize: '1.125rem' }}>
+          <button onClick={handleContinue} className="button-primary" style={{ padding: '16px 32px', fontSize: '1.125rem', flexShrink: 0 }}>
             Continue to Schedule →
           </button>
         </div>
