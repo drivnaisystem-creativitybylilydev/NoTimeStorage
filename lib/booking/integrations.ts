@@ -13,6 +13,7 @@ export type BookingWithCustomer = BookingWithItems & {
     full_name: string | null;
     email: string | null;
     phone: string | null;
+    parent_email?: string | null;
   };
 };
 
@@ -21,7 +22,7 @@ async function getBookingWithCustomer(booking: BookingWithItems): Promise<Bookin
     const supabase = await createClient();
     const { data: user } = await supabase
       .from('users')
-      .select('full_name, email, phone')
+      .select('full_name, email, phone, parent_email')
       .eq('id', booking.user_id)
       .single();
     return {
@@ -31,6 +32,7 @@ async function getBookingWithCustomer(booking: BookingWithItems): Promise<Bookin
             full_name: user.full_name ?? null,
             email: user.email ?? null,
             phone: user.phone ?? null,
+            parent_email: user.parent_email ?? null,
           }
         : undefined,
     };
@@ -235,9 +237,13 @@ async function sendNewBookingEmail(b: BookingWithCustomer): Promise<void> {
     customerPhone: b.customer?.phone ?? '—',
   });
 
-  // Confirmation email to user
+  // Confirmation email to user (+ parent if provided)
   if (customerEmail) {
-    await sendOrderConfirmedUser({ ...sharedParams, to: customerEmail });
+    await sendOrderConfirmedUser({
+      ...sharedParams,
+      to: customerEmail,
+      parentEmail: b.customer?.parent_email ?? undefined,
+    });
   }
 }
 

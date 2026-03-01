@@ -42,16 +42,24 @@ export function DepositForm({ applicationId, locationId, isSandbox, customerName
 
     return () => {
       cardInstanceRef.current?.destroy?.();
+      cardInstanceRef.current = null;
     };
   }, []);
 
   async function initSquare() {
+    // Guard against double-init (React Strict Mode runs effects twice in dev)
+    if (cardInstanceRef.current) return;
+
     try {
       const sq = (window as any).Square;
       if (!sq) { setError('Square SDK not available.'); return; }
 
       const payments = sq.payments(applicationId, locationId);
       paymentsRef.current = payments;
+
+      // Clear any leftover DOM from a previous mount before attaching
+      const container = document.getElementById('sq-card');
+      if (container) container.innerHTML = '';
 
       const card = await payments.card({
         style: {
@@ -108,24 +116,23 @@ export function DepositForm({ applicationId, locationId, isSandbox, customerName
           <h1 style={{ fontSize: '1.5rem', fontWeight: '800', color: 'var(--color-coffee)', marginBottom: '8px' }}>
             Reserve Your Spot
           </h1>
-          <p style={{ color: '#6B5A52', fontSize: '0.95rem', lineHeight: '1.6' }}>
-            A <strong>$50 deposit</strong> is required to confirm your storage booking.
-            It will be applied toward your total.
+          <p style={{ color: '#6B5A52', fontSize: '0.9rem', lineHeight: '1.6' }}>
+            We collect a one-time <strong>$50 commitment fee</strong> to keep our service
+            available only for serious students — no spam, no no-shows.
           </p>
         </div>
 
-        {/* Deposit summary card */}
+        {/* Deposit summary */}
         <div style={{
           background: 'var(--color-paper)', border: '1px solid var(--color-latte)',
-          borderRadius: '12px', padding: '16px 20px', marginBottom: '24px',
+          borderRadius: '12px', padding: '16px 20px', marginBottom: '20px',
         }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-            <span style={{ color: '#6B5A52', fontSize: '0.875rem' }}>Deposit</span>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+            <span style={{ color: '#6B5A52', fontSize: '0.875rem' }}>Commitment fee</span>
             <span style={{ color: 'var(--color-coffee)', fontWeight: '700' }}>$50.00</span>
           </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-            <span style={{ color: '#6B5A52', fontSize: '0.875rem' }}>Applied to</span>
-            <span style={{ color: 'var(--color-coffee)', fontSize: '0.875rem', fontWeight: '600' }}>Your storage total</span>
+          <div style={{ borderTop: '1px solid var(--color-latte)', paddingTop: '10px', fontSize: '0.8rem', color: '#16A34A', fontWeight: '600', textAlign: 'center' }}>
+            ✓ This $50 is fully deducted from your first month&apos;s bill
           </div>
         </div>
 
@@ -165,7 +172,7 @@ export function DepositForm({ applicationId, locationId, isSandbox, customerName
         </button>
 
         <p style={{ textAlign: 'center', marginTop: '16px', fontSize: '0.8rem', color: '#9E8E88' }}>
-          Secured by Square · Your deposit is applied to your total balance
+          Secured by Square · $50 deducted from your first month&apos;s bill
         </p>
 
         <div style={{ textAlign: 'center', marginTop: '12px' }}>

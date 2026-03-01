@@ -47,6 +47,13 @@ function PaymentPageContent() {
   const room = searchParams.get('room') || '';
   const instructions = searchParams.get('instructions') || '';
 
+  // Calculate storage duration in months (minimum 3)
+  const storageMonths = (() => {
+    if (!moveOutDate || !moveInDate) return 3;
+    const diff = (new Date(moveInDate).getTime() - new Date(moveOutDate).getTime()) / (1000 * 60 * 60 * 24 * 30.44);
+    return Math.max(3, Math.round(diff));
+  })();
+
   // Calculate pricing
   const getBoxPrice = (qty: number) => {
     if (qty === 1) return 80;
@@ -137,7 +144,8 @@ function PaymentPageContent() {
     console.log('[payment] createBooking result:', result.success ? 'success' : 'error', result);
     setSaving(false);
     if (result.success) {
-      router.push(`/booking/confirmed?moveOutDate=${moveOutDate}&school=${encodeURIComponent(searchParams.get('school') || '')}&boxes=${boxes}&monthlyTotal=${monthlyTotal}`);
+      const totalPrice = monthlyTotal * storageMonths;
+      router.push(`/booking/confirmed?moveOutDate=${moveOutDate}&school=${encodeURIComponent(searchParams.get('school') || '')}&boxes=${boxes}&monthlyTotal=${monthlyTotal}&totalPrice=${totalPrice}&months=${storageMonths}`);
       return;
     }
     setSaveError(result.error);
@@ -179,10 +187,10 @@ function PaymentPageContent() {
             />
           </Link>
           <h1 style={{ fontSize: '2.25rem', fontWeight: '800', color: 'var(--color-coffee)', marginBottom: '12px' }}>
-            Review & Payment
+            Review & Confirm
           </h1>
           <p style={{ fontSize: '1.125rem', color: 'var(--color-gray-600)' }}>
-            Confirm your booking details
+            Double-check your details before confirming
           </p>
         </div>
 
@@ -217,7 +225,7 @@ function PaymentPageContent() {
             <div style={{ color: 'var(--color-gray-700)', fontSize: '0.875rem', lineHeight: '1.8' }}>
               <div><strong>Move-out:</strong> {formatDate(moveOutDate)} at {formatTime(moveOutTime)}</div>
               {moveInDate && <div><strong>Move-in:</strong> {formatDate(moveInDate)}</div>}
-              <div><strong>Location:</strong> {dorm}</div>
+              <div><strong>Location:</strong> {dorm}{room ? `, Room ${room}` : ''}</div>
               <div><strong>Elevator:</strong> {elevator === 'yes' ? 'Available' : 'Not available'}</div>
               <div><strong>Stairs:</strong> {stairs === 'yes' ? 'Required' : 'Not required'}</div>
             </div>
@@ -236,49 +244,27 @@ function PaymentPageContent() {
           </div>
         </div>
 
-        {/* Reserve or pay */}
+          {/* Confirm booking */}
         {saveError && (
           <div style={{ padding: '12px', marginBottom: '16px', background: '#FEE2E2', border: '1px solid #EF4444', borderRadius: '8px', color: '#B91C1C', fontSize: '0.875rem' }}>
             {saveError}
           </div>
         )}
 
-        <div style={{ padding: '32px', background: 'var(--color-paper)', borderRadius: '12px', marginBottom: '32px', border: '2px solid var(--color-latte)' }}>
-          <h2 style={{ fontSize: '1.25rem', fontWeight: '700', color: 'var(--color-coffee)', marginBottom: '12px' }}>
-            Reserve your spot
-          </h2>
-          <p style={{ color: 'var(--color-gray-600)', fontSize: '0.875rem', marginBottom: '20px' }}>
-            {userId
-              ? 'Save this booking to your account. Payment (Stripe) will be added soon.'
-              : 'Sign in or create an account to save your booking.'}
-          </p>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px', marginBottom: '24px' }}>
           <button
             type="button"
             onClick={handleReserve}
             disabled={saving}
             className="button-primary"
-            style={{ padding: '16px 48px', fontSize: '1.125rem', opacity: saving ? 0.7 : 1, cursor: saving ? 'wait' : 'pointer' }}
+            style={{ padding: '16px 56px', fontSize: '1.125rem', opacity: saving ? 0.7 : 1, cursor: saving ? 'wait' : 'pointer' }}
           >
-            {saving ? 'Saving…' : userId ? 'Save booking' : 'Sign in to save booking'}
+            {saving ? 'Confirming…' : userId ? 'Confirm Booking' : 'Sign in to confirm'}
           </button>
-        </div>
 
-        <div style={{ padding: '24px', background: '#FEF3C7', borderRadius: '12px', marginBottom: '32px', border: '2px solid #F59E0B', textAlign: 'center' }}>
-          <p style={{ color: '#78350F', fontSize: '0.875rem', margin: 0 }}>
-            <strong>Payment (Stripe)</strong> and email confirmations are coming next. Your booking will sync to Google Calendar, Slack, and Airtable once those integrations are enabled.
-          </p>
-        </div>
-
-        {/* Action Buttons */}
-        <div style={{ display: 'flex', gap: '16px', justifyContent: 'center', flexWrap: 'wrap' }}>
           <Link href={`/booking/schedule?${searchParams.toString()}`}>
-            <button type="button" className="button-secondary" style={{ padding: '16px 32px', fontSize: '1rem' }}>
+            <button type="button" className="button-secondary" style={{ padding: '12px 32px', fontSize: '0.95rem' }}>
               ← Edit Details
-            </button>
-          </Link>
-          <Link href="/dashboard">
-            <button type="button" className="button-primary" style={{ padding: '16px 48px', fontSize: '1.125rem' }}>
-              Go to Dashboard
             </button>
           </Link>
         </div>

@@ -11,6 +11,8 @@ function BookingConfirmedContent() {
   const school = searchParams.get('school') || '';
   const boxes = searchParams.get('boxes') || '1';
   const monthlyTotal = searchParams.get('monthlyTotal') || '';
+  const totalPrice = searchParams.get('totalPrice') || '';
+  const months = searchParams.get('months') || '';
 
   const formattedDate = moveOutDate
     ? new Date(moveOutDate + 'T12:00:00').toLocaleDateString('en-US', {
@@ -89,10 +91,22 @@ function BookingConfirmedContent() {
                   <span style={{ color: 'var(--color-coffee)', fontWeight: '600', fontSize: '0.875rem' }}>{boxes} box{parseInt(boxes) > 1 ? 'es' : ''}</span>
                 </div>
               )}
-              {monthlyTotal && (
-                <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid var(--color-latte)', paddingTop: '10px', marginTop: '4px' }}>
-                  <span style={{ color: '#6B5A52', fontSize: '0.875rem', fontWeight: '600' }}>Monthly total</span>
-                  <span style={{ color: 'var(--color-coffee)', fontWeight: '800', fontSize: '1rem' }}>${monthlyTotal}/mo</span>
+              {(totalPrice || monthlyTotal) && (
+                <div style={{ borderTop: '1px solid var(--color-latte)', paddingTop: '10px', marginTop: '4px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                    <span style={{ color: '#6B5A52', fontSize: '0.875rem', fontWeight: '600' }}>Total</span>
+                    <div style={{ textAlign: 'right' }}>
+                      <span style={{ color: 'var(--color-coffee)', fontWeight: '800', fontSize: '1.1rem' }}>
+                        ${totalPrice || monthlyTotal}
+                        {months ? ` for ${months} months` : ''}
+                      </span>
+                      {monthlyTotal && totalPrice && (
+                        <div style={{ color: '#9E8E88', fontSize: '0.75rem', marginTop: '2px' }}>
+                          ${monthlyTotal}/month
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </div>
               )}
             </div>

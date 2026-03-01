@@ -22,7 +22,7 @@ export async function chargeDeposit(sourceId: string): Promise<DepositResult> {
 
   const { data: profile } = await supabase
     .from('users')
-    .select('id, full_name, email, phone, school, deposit_paid')
+    .select('id, full_name, email, phone, school, deposit_paid, parent_email')
     .or(`id.eq.${user.id},auth_id.eq.${user.id}`)
     .limit(1)
     .single();
@@ -64,6 +64,7 @@ export async function chargeDeposit(sourceId: string): Promise<DepositResult> {
 
     sendDepositConfirmedUser({
       to: customerEmail,
+      parentEmail: profile.parent_email ?? undefined,
       customerName,
       depositAmount: 50,
     }).catch(console.error);

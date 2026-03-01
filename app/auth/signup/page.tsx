@@ -20,6 +20,7 @@ export default function SignUpPage() {
     phone: '',
     fullName: '',
     school: '',
+    parentEmail: '',
   });
   
   const [loading, setLoading] = useState(false);
@@ -56,6 +57,7 @@ export default function SignUpPage() {
             full_name: `${formData.firstName} ${formData.lastName}`,
             phone: formData.phone,
             school: formData.school,
+            parent_email: formData.parentEmail || null,
           },
         },
       });
@@ -222,6 +224,18 @@ export default function SignUpPage() {
               placeholder="(555) 123-4567"
               required
             />
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="parentEmail">Parent / Guardian Email <span style={{ color: '#9CA3AF', fontWeight: '400' }}>(optional)</span></label>
+            <input
+              type="email"
+              id="parentEmail"
+              value={formData.parentEmail}
+              onChange={(e) => setFormData({ ...formData, parentEmail: e.target.value })}
+              placeholder="parent@example.com"
+            />
+            <small>They&apos;ll receive copies of all booking confirmations</small>
           </div>
 
           <div className="form-group">

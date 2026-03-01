@@ -7,6 +7,7 @@ async function syncUserProfile(supabase: Awaited<ReturnType<typeof createClient>
   const full_name = (metadata?.full_name as string)?.trim() || null;
   const phone = (metadata?.phone as string)?.trim() || null;
   const school = (metadata?.school as string)?.trim() || null;
+  const parent_email = (metadata?.parent_email as string)?.trim() || null;
 
   const { data: existing } = await supabase
     .from('users')
@@ -23,6 +24,7 @@ async function syncUserProfile(supabase: Awaited<ReturnType<typeof createClient>
         email: email || undefined,
         phone: phone ?? undefined,
         school: school ?? undefined,
+        parent_email: parent_email ?? undefined,
       })
       .eq('id', existing.id);
   } else {
@@ -33,6 +35,7 @@ async function syncUserProfile(supabase: Awaited<ReturnType<typeof createClient>
       email: email || undefined,
       phone: phone ?? undefined,
       school: school ?? undefined,
+      parent_email: parent_email ?? undefined,
     });
     if (error) {
       console.warn('[auth/callback] syncUserProfile insert skipped:', error.message);

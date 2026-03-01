@@ -231,6 +231,27 @@ export async function markBookingPaid(bookingId: string): Promise<ActionResult> 
     return { success: false, error: `Update had no effect. ${rlsHint}` };
   }
 
+  // Insert full_payment record into payments table
+  const { data: booking } = await supabase
+    .from('bookings')
+    .select('total_price')
+    .eq('id', bookingId)
+    .single();
+
+  if (booking?.total_price) {
+    const { error: paymentError } = await supabase
+      .from('payments')
+      .insert({
+        booking_id: bookingId,
+        amount: booking.total_price,
+        payment_type: 'full_payment',
+        status: 'succeeded',
+      });
+    if (paymentError) {
+      console.error('[markBookingPaid] payments insert error:', paymentError);
+    }
+  }
+
   return { success: true };
 }
 
@@ -252,7 +273,16 @@ export async function adminCancelBooking(bookingId: string): Promise<ActionResul
 
   if (!adminUser) return { success: false, error: 'Admin access required' };
 
-  // Delete booking_items first, then booking
+  // Cancel related schedules before deleting the booking
+  const { error: schedErr } = await supabase
+    .from('schedules')
+    .update({ status: 'cancelled' })
+    .eq('booking_id', bookingId);
+  if (schedErr) {
+    console.error('[adminCancelBooking] schedules', schedErr);
+  }
+
+  // Delete booking_items first, then booking (cascade deletes payments too)
   const { error: itemsErr } = await supabase.from('booking_items').delete().eq('booking_id', bookingId);
   if (itemsErr) {
     console.error('[adminCancelBooking] booking_items', itemsErr);

@@ -128,6 +128,64 @@ export async function createBooking(input: CreateBookingInput): Promise<CreateBo
     };
   }
 
+  // ── Schedules ───────────────────────────────────────────────────────────────
+  // Create one row for move-out and one for move-in so the schedules table
+  // has a complete record of both events for this booking.
+  const schedulesToInsert = [
+    {
+      booking_id: booking.id,
+      schedule_type: 'move_out',
+      date: input.move_out_date,
+      time_slot: input.move_out_time_slot,
+      dorm_name: input.dorm,
+      room_number: input.room ?? null,
+      has_elevator: input.elevator_available,
+      has_stairs: input.stairs_required,
+      special_notes: input.special_instructions ?? null,
+      status: 'scheduled',
+    },
+    {
+      booking_id: booking.id,
+      schedule_type: 'move_in',
+      date: input.move_in_date,
+      time_slot: '09:00:00',
+      dorm_name: input.dorm,
+      room_number: input.room ?? null,
+      has_elevator: input.elevator_available,
+      has_stairs: input.stairs_required,
+      special_notes: null,
+      status: 'scheduled',
+    },
+  ];
+
+  const { error: schedulesError } = await supabase
+    .from('schedules')
+    .insert(schedulesToInsert);
+
+  if (schedulesError) {
+    console.error('[createBooking] schedules insert error', schedulesError);
+    // Non-fatal — booking already created, don't roll back
+  }
+
+  // ── Payments ─────────────────────────────────────────────────────────────
+  // Record the deposit as already paid (collected before booking was created).
+  // stripe_transaction_id stores the Square payment ID — column will be
+  // renamed in a future migration.
+  const { error: paymentError } = await supabase
+    .from('payments')
+    .insert({
+      booking_id: booking.id,
+      amount: 50,
+      payment_type: 'deposit',
+      stripe_transaction_id: null,
+      status: 'succeeded',
+    });
+
+  if (paymentError) {
+    console.error('[createBooking] payments insert error', paymentError);
+    // Non-fatal — booking already created, don't roll back
+  }
+
   const bookingForHooks: BookingWithItems = {
     id: booking.id,
     user_id: booking.user_id,

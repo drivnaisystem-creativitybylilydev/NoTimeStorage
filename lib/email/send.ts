@@ -9,18 +9,19 @@ import { NewBookingAdminEmail } from '@/emails/new-booking-admin';
 const FROM = 'NoTime Storage <noreply@notimestorage.co>';
 const ADMIN_EMAIL = process.env.BOOKING_NOTIFY_EMAIL || '';
 
-async function sendEmail(to: string, subject: string, html: string) {
+async function sendEmail(to: string | string[], subject: string, html: string) {
   const apiKey = process.env.RESEND_API_KEY?.trim();
-  if (!apiKey || !to) {
+  const recipients = Array.isArray(to) ? to.filter(Boolean) : [to];
+  if (!apiKey || !recipients.length) {
     console.warn('[email] Skipped — missing RESEND_API_KEY or recipient');
     return;
   }
   try {
     const { Resend } = await import('resend');
     const resend = new Resend(apiKey);
-    const { error } = await resend.emails.send({ from: FROM, to, subject, html });
+    const { error } = await resend.emails.send({ from: FROM, to: recipients, subject, html });
     if (error) console.error('[email] Send error:', error);
-    else console.log('[email] Sent to', to, '–', subject);
+    else console.log('[email] Sent to', recipients.join(', '), '–', subject);
   } catch (err) {
     console.error('[email] Exception:', err);
   }
@@ -30,6 +31,7 @@ async function sendEmail(to: string, subject: string, html: string) {
 
 export async function sendDepositConfirmedUser(params: {
   to: string;
+  parentEmail?: string | null;
   customerName: string;
   depositAmount?: number;
 }) {
@@ -37,13 +39,15 @@ export async function sendDepositConfirmedUser(params: {
     customerName: params.customerName,
     depositAmount: params.depositAmount ?? 50,
   }));
-  await sendEmail(params.to, 'Your deposit is confirmed — book your storage now!', html);
+  const recipients = [params.to, params.parentEmail].filter(Boolean) as string[];
+  await sendEmail(recipients, 'Your deposit is confirmed — book your storage now!', html);
 }
 
 // ── User: order confirmed ────────────────────────────────────────────────────
 
 export async function sendOrderConfirmedUser(params: {
   to: string;
+  parentEmail?: string | null;
   customerName: string;
   bookingId: string;
   school: string;
@@ -56,7 +60,8 @@ export async function sendOrderConfirmedUser(params: {
   additionalItems?: string;
 }) {
   const html = await render(OrderConfirmedUserEmail(params));
-  await sendEmail(params.to, '📦 Your NoTime Storage booking is confirmed', html);
+  const recipients = [params.to, params.parentEmail].filter(Boolean) as string[];
+  await sendEmail(recipients, '📦 Your NoTime Storage booking is confirmed', html);
 }
 
 // ── Admin: deposit paid ──────────────────────────────────────────────────────
