@@ -268,7 +268,7 @@ export function DepositForm({ applicationId, locationId, isSandbox, customerName
             whileHover={sdkReady && !loading ? { scale: 1.02 } : {}}
             whileTap={sdkReady && !loading ? { scale: 0.98 } : {}}
           >
-            {loading ? 'Processing…' : 'Pay $50 & unlock booking'}
+            {loading ? 'Processing…' : 'Unlock My Booking'}
           </motion.button>
 
           <p style={{ textAlign: 'center', marginTop: '16px', fontSize: '0.8rem', color: '#9E8E88' }}>
