@@ -4613,6 +4613,48 @@ button {
   }
 }
 
+/* ── ISSUE 1b: Additional items toggle — fix chevron overlap & title overflow ── */
+@media (max-width: 639px) {
+  /* Remove the ✨ emoji that spills right: -35px outside the container */
+  .additional-items-toggle .pricing-subsection-title::after {
+    display: none;
+  }
+
+  /* Make the chevron flow in the column stack rather than sitting absolute */
+  .additional-items-chevron {
+    position: static;
+    align-self: center;
+    margin-top: var(--spacing-sm);
+  }
+
+  /* Stack: text block on top, chevron underneath — no overlap */
+  .additional-items-toggle-content {
+    flex-direction: column;
+    align-items: center;
+    gap: var(--spacing-sm);
+    padding-right: 0; /* remove any right-side offset */
+  }
+
+  /* Title: shrink font so it fits comfortably */
+  .pricing-subsection-title {
+    font-size: clamp(1.1rem, 5vw, 1.35rem);
+    white-space: normal;
+    overflow: visible;
+    text-align: center;
+  }
+
+  .pricing-subsection-subtitle {
+    font-size: var(--font-size-xs);
+    white-space: normal;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .additional-items-toggle {
+    overflow: hidden; /* clip anything that still bleeds out */
+  }
+}
+
 /* ── ISSUE 2: Pricing section — box image overflow fix ── */
 @media (max-width: 480px) {
   .pricing-box-image {
@@ -4690,17 +4732,45 @@ button {
 }
 
 /* ── ISSUE 5: FAQ — prevent icon being pushed off-screen ── */
+
+/* Base fix: ensure the question text span can shrink — applies at ALL widths */
+.faq-question {
+  overflow: hidden; /* prevent the button itself from overflowing */
+}
+
+.faq-question span:first-child {
+  min-width: 0; /* critical: allow flex child to shrink below content size */
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Prevent the .faq section / container from causing horizontal page scroll */
+.faq {
+  overflow-x: hidden;
+}
+
+.faq-container {
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.faq-list {
+  overflow: hidden;
+}
+
 @media (max-width: 639px) {
   .faq-question {
     padding: var(--spacing-md);
-    font-size: var(--font-size-base);
+    font-size: var(--font-size-sm);
     gap: var(--spacing-sm);
   }
 
   .faq-question span:first-child {
-    min-width: 0;
     flex: 1;
     padding-right: var(--spacing-sm);
+    white-space: normal; /* allow wrapping so long questions use 2 lines */
+    overflow: visible;
+    text-overflow: unset;
   }
 
   .faq-icon {
@@ -4708,6 +4778,7 @@ button {
     width: 22px;
     height: 22px;
     font-size: var(--font-size-xl);
+    margin-left: auto;
   }
 
   .faq-answer {
