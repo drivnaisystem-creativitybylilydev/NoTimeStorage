@@ -2,6 +2,7 @@
 
 import { squareClient, squareConfig } from './client';
 import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { randomUUID } from 'crypto';
 import { sendDepositConfirmedUser, sendDepositPaidAdmin } from '@/lib/email/send';
 
@@ -15,10 +16,13 @@ export type DepositResult =
  * Supabase and fires confirmation emails.
  */
 export async function chargeDeposit(sourceId: string): Promise<DepositResult> {
-  const supabase = await createClient();
-
-  const { data: { user } } = await supabase.auth.getUser();
+  // Auth check via anon client
+  const authClient = await createClient();
+  const { data: { user } } = await authClient.auth.getUser();
   if (!user) return { success: false, error: 'Not logged in.' };
+
+  // DB reads/writes via admin client (bypasses RLS)
+  const supabase = createAdminClient();
 
   const { data: profile } = await supabase
     .from('users')
@@ -47,9 +51,7 @@ export async function chargeDeposit(sourceId: string): Promise<DepositResult> {
       return { success: false, error: errDetail };
     }
 
-    // Mark deposit paid in Supabase.
-    // Use both id and auth_id in the filter to handle rows where the PK
-    // differs from the auth UUID (covers both creation patterns).
+    // Mark deposit paid — admin client guarantees the write succeeds regardless of RLS
     const { error: updateError } = await supabase
       .from('users')
       .update({ deposit_paid: true })

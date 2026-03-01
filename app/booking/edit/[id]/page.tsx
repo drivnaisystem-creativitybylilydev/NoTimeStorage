@@ -26,26 +26,12 @@ function parseBookingItemsToForm(items: BookingItemRow[] | null): { boxQuantity:
   for (const row of items) {
     const qty = row.quantity ?? 0;
     switch (row.item_type) {
-      case 'box':
-        boxQuantity += qty;
-        break;
-      case 'small_with_box':
-        additionalItems.smallWithBox += qty;
-        break;
-      case 'small_without_box':
-        additionalItems.smallWithoutBox += qty;
-        break;
-      case 'medium_with_box':
-        additionalItems.mediumWithBox += qty;
-        break;
-      case 'medium_without_box':
-        additionalItems.mediumWithoutBox += qty;
-        break;
-      case 'large':
-        additionalItems.large += qty;
-        break;
-      default:
-        break;
+      case 'box': boxQuantity += qty; break;
+      case 'small_with_box': additionalItems.smallWithBox += qty; break;
+      case 'small_without_box': additionalItems.smallWithoutBox += qty; break;
+      case 'medium_with_box': additionalItems.mediumWithBox += qty; break;
+      case 'medium_without_box': additionalItems.mediumWithoutBox += qty; break;
+      case 'large': additionalItems.large += qty; break;
     }
   }
 
@@ -76,6 +62,10 @@ export default async function EditBookingPage({ params }: { params: Promise<{ id
       id,
       user_id,
       payment_status,
+      total_monthly_rate,
+      storage_months,
+      move_out_date,
+      move_in_date,
       booking_items ( item_type, quantity )
     `)
     .eq('id', bookingId)
@@ -83,18 +73,22 @@ export default async function EditBookingPage({ params }: { params: Promise<{ id
 
   if (error || !booking) notFound();
   if (booking.user_id !== profileId) notFound();
-  if (booking.payment_status === 'paid') {
-    redirect('/dashboard');
-  }
 
   const items = (booking as { booking_items?: BookingItemRow[] }).booking_items ?? [];
   const { boxQuantity, additionalItems } = parseBookingItemsToForm(Array.isArray(items) ? items : []);
+
+  const isPaid = booking.payment_status === 'paid';
+  const initialMonthlyTotal = (booking.total_monthly_rate as number) ?? 0;
+  const storageMonths = (booking.storage_months as number) ?? 3;
 
   return (
     <EditBookingForm
       bookingId={bookingId}
       initialBoxQuantity={boxQuantity}
       initialAdditionalItems={additionalItems}
+      isPaid={isPaid}
+      initialMonthlyTotal={initialMonthlyTotal}
+      storageMonths={storageMonths}
     />
   );
 }

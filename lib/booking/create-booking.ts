@@ -1,6 +1,7 @@
 'use server';
 
 import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import type { CreateBookingInput, BookingWithItems, BookingItemType } from './types';
 import { onBookingCreated } from './integrations';
 import { isTimeSlotAvailable } from './availability';
@@ -22,12 +23,14 @@ function storageMonths(moveOut: string, moveIn: string): number {
 
 export async function createBooking(input: CreateBookingInput): Promise<CreateBookingResult> {
   console.log('[createBooking] server action called');
-  const supabase = await createClient();
-
-  const { data: { user } } = await supabase.auth.getUser();
+  // Auth check via anon client
+  const authClient = await createClient();
+  const { data: { user } } = await authClient.auth.getUser();
   if (!user) {
     return { success: false, error: 'You must be logged in to create a booking.' };
   }
+  // All DB writes via admin client (bypasses RLS)
+  const supabase = createAdminClient();
 
   if (input.user_id !== user.id) {
     return { success: false, error: 'User ID does not match session.' };

@@ -56,8 +56,16 @@ function ConfigurePageContent() {
 
   const monthlyTotal = boxesTotal + itemsTotal;
 
-  const updateItem = (key: keyof typeof additionalItems, value: number) => {
-    setAdditionalItems(prev => ({ ...prev, [key]: Math.max(0, value) }));
+  const MAX_ADDITIONAL_ITEMS = 4;
+  const totalAdditionalItems = Object.values(additionalItems).reduce((sum, v) => sum + v, 0);
+
+  const updateItem = (key: keyof typeof additionalItems, delta: number) => {
+    setAdditionalItems(prev => {
+      const next = Math.max(0, prev[key] + delta);
+      const newTotal = totalAdditionalItems - prev[key] + next;
+      if (newTotal > MAX_ADDITIONAL_ITEMS) return prev;
+      return { ...prev, [key]: next };
+    });
   };
 
   const handleContinue = () => {
@@ -136,11 +144,22 @@ function ConfigurePageContent() {
 
         {/* Additional Items */}
         <div style={{ marginBottom: '40px', padding: '32px', background: 'var(--color-white)', borderRadius: '12px', border: '2px solid var(--color-latte-soft)' }}>
-          <h2 style={{ fontSize: '1.5rem', fontWeight: '700', color: 'var(--color-coffee)', marginBottom: '8px' }}>
-            ➕ Additional Items (Optional)
-          </h2>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
+            <h2 style={{ fontSize: '1.5rem', fontWeight: '700', color: 'var(--color-coffee)', margin: 0 }}>
+              ➕ Additional Items (Optional)
+            </h2>
+            <span style={{
+              fontSize: '0.8rem', fontWeight: '700', padding: '4px 10px',
+              borderRadius: '20px', whiteSpace: 'nowrap',
+              background: totalAdditionalItems >= MAX_ADDITIONAL_ITEMS ? '#FEE2E2' : 'var(--color-paper)',
+              color: totalAdditionalItems >= MAX_ADDITIONAL_ITEMS ? '#B91C1C' : '#6B5A52',
+              border: `1px solid ${totalAdditionalItems >= MAX_ADDITIONAL_ITEMS ? '#FCA5A5' : 'var(--color-latte)'}`,
+            }}>
+              {totalAdditionalItems} / {MAX_ADDITIONAL_ITEMS} items
+            </span>
+          </div>
           <p style={{ fontSize: '0.875rem', color: 'var(--color-gray-600)', marginBottom: '24px' }}>
-            Add items that don't fit in boxes
+            Add items that don&apos;t fit in boxes — max {MAX_ADDITIONAL_ITEMS} additional items total
           </p>
 
           {/* Small Items */}
@@ -150,17 +169,17 @@ function ConfigurePageContent() {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span style={{ fontSize: '0.875rem' }}>With box - $9/mo</span>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <button onClick={() => updateItem('smallWithBox', additionalItems.smallWithBox - 1)} className="button-secondary" style={{ padding: '4px 12px', fontSize: '1rem' }}>−</button>
+                  <button onClick={() => updateItem('smallWithBox', -1)} className="button-secondary" style={{ padding: '4px 12px', fontSize: '1rem' }}>−</button>
                   <span style={{ minWidth: '30px', textAlign: 'center', fontWeight: '600' }}>{additionalItems.smallWithBox}</span>
-                  <button onClick={() => updateItem('smallWithBox', additionalItems.smallWithBox + 1)} className="button-secondary" style={{ padding: '4px 12px', fontSize: '1rem' }}>+</button>
+                  <button onClick={() => updateItem('smallWithBox', +1)} disabled={totalAdditionalItems >= MAX_ADDITIONAL_ITEMS} className="button-secondary" style={{ padding: '4px 12px', fontSize: '1rem', opacity: totalAdditionalItems >= MAX_ADDITIONAL_ITEMS ? 0.35 : 1 }}>+</button>
                 </div>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span style={{ fontSize: '0.875rem' }}>Without box - $11/mo</span>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <button onClick={() => updateItem('smallWithoutBox', additionalItems.smallWithoutBox - 1)} className="button-secondary" style={{ padding: '4px 12px', fontSize: '1rem' }}>−</button>
+                  <button onClick={() => updateItem('smallWithoutBox', -1)} className="button-secondary" style={{ padding: '4px 12px', fontSize: '1rem' }}>−</button>
                   <span style={{ minWidth: '30px', textAlign: 'center', fontWeight: '600' }}>{additionalItems.smallWithoutBox}</span>
-                  <button onClick={() => updateItem('smallWithoutBox', additionalItems.smallWithoutBox + 1)} className="button-secondary" style={{ padding: '4px 12px', fontSize: '1rem' }}>+</button>
+                  <button onClick={() => updateItem('smallWithoutBox', +1)} disabled={totalAdditionalItems >= MAX_ADDITIONAL_ITEMS} className="button-secondary" style={{ padding: '4px 12px', fontSize: '1rem', opacity: totalAdditionalItems >= MAX_ADDITIONAL_ITEMS ? 0.35 : 1 }}>+</button>
                 </div>
               </div>
             </div>
@@ -173,17 +192,17 @@ function ConfigurePageContent() {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span style={{ fontSize: '0.875rem' }}>With box - $9/mo</span>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <button onClick={() => updateItem('mediumWithBox', additionalItems.mediumWithBox - 1)} className="button-secondary" style={{ padding: '4px 12px', fontSize: '1rem' }}>−</button>
+                  <button onClick={() => updateItem('mediumWithBox', -1)} className="button-secondary" style={{ padding: '4px 12px', fontSize: '1rem' }}>−</button>
                   <span style={{ minWidth: '30px', textAlign: 'center', fontWeight: '600' }}>{additionalItems.mediumWithBox}</span>
-                  <button onClick={() => updateItem('mediumWithBox', additionalItems.mediumWithBox + 1)} className="button-secondary" style={{ padding: '4px 12px', fontSize: '1rem' }}>+</button>
+                  <button onClick={() => updateItem('mediumWithBox', +1)} disabled={totalAdditionalItems >= MAX_ADDITIONAL_ITEMS} className="button-secondary" style={{ padding: '4px 12px', fontSize: '1rem', opacity: totalAdditionalItems >= MAX_ADDITIONAL_ITEMS ? 0.35 : 1 }}>+</button>
                 </div>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span style={{ fontSize: '0.875rem' }}>Without box - $12/mo</span>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <button onClick={() => updateItem('mediumWithoutBox', additionalItems.mediumWithoutBox - 1)} className="button-secondary" style={{ padding: '4px 12px', fontSize: '1rem' }}>−</button>
+                  <button onClick={() => updateItem('mediumWithoutBox', -1)} className="button-secondary" style={{ padding: '4px 12px', fontSize: '1rem' }}>−</button>
                   <span style={{ minWidth: '30px', textAlign: 'center', fontWeight: '600' }}>{additionalItems.mediumWithoutBox}</span>
-                  <button onClick={() => updateItem('mediumWithoutBox', additionalItems.mediumWithoutBox + 1)} className="button-secondary" style={{ padding: '4px 12px', fontSize: '1rem' }}>+</button>
+                  <button onClick={() => updateItem('mediumWithoutBox', +1)} disabled={totalAdditionalItems >= MAX_ADDITIONAL_ITEMS} className="button-secondary" style={{ padding: '4px 12px', fontSize: '1rem', opacity: totalAdditionalItems >= MAX_ADDITIONAL_ITEMS ? 0.35 : 1 }}>+</button>
                 </div>
               </div>
             </div>
@@ -195,9 +214,9 @@ function ConfigurePageContent() {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <span style={{ fontSize: '0.875rem' }}>Any size - $15/mo</span>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <button onClick={() => updateItem('large', additionalItems.large - 1)} className="button-secondary" style={{ padding: '4px 12px', fontSize: '1rem' }}>−</button>
+                <button onClick={() => updateItem('large', -1)} className="button-secondary" style={{ padding: '4px 12px', fontSize: '1rem' }}>−</button>
                 <span style={{ minWidth: '30px', textAlign: 'center', fontWeight: '600' }}>{additionalItems.large}</span>
-                <button onClick={() => updateItem('large', additionalItems.large + 1)} className="button-secondary" style={{ padding: '4px 12px', fontSize: '1rem' }}>+</button>
+                <button onClick={() => updateItem('large', +1)} disabled={totalAdditionalItems >= MAX_ADDITIONAL_ITEMS} className="button-secondary" style={{ padding: '4px 12px', fontSize: '1rem', opacity: totalAdditionalItems >= MAX_ADDITIONAL_ITEMS ? 0.35 : 1 }}>+</button>
               </div>
             </div>
           </div>

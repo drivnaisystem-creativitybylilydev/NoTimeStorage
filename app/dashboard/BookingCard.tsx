@@ -239,23 +239,25 @@ export function BookingCard({ booking: b }: { booking: BookingRow }) {
         </span>
       </div>
 
-      {isUnpaid && (
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginTop: '16px', paddingTop: '16px', borderTop: '1px solid var(--color-latte-soft)' }}>
-          {!editingDates && (
-            <button type="button" onClick={() => setEditingDates(true)} className="button-secondary" style={{ padding: '8px 16px', fontSize: '0.875rem' }}>
-              Change dates
-            </button>
-          )}
-          <Link href={`/booking/edit/${b.id}`}>
-            <button type="button" className="button-secondary" style={{ padding: '8px 16px', fontSize: '0.875rem' }}>
-              Change boxes & items
-            </button>
-          </Link>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginTop: '16px', paddingTop: '16px', borderTop: '1px solid var(--color-latte-soft)' }}>
+        {/* Change dates & cancel — unpaid only */}
+        {isUnpaid && !editingDates && (
+          <button type="button" onClick={() => setEditingDates(true)} className="button-secondary" style={{ padding: '8px 16px', fontSize: '0.875rem' }}>
+            Change dates
+          </button>
+        )}
+        {/* Change boxes & items — always available */}
+        <Link href={`/booking/edit/${b.id}`}>
+          <button type="button" className="button-secondary" style={{ padding: '8px 16px', fontSize: '0.875rem' }}>
+            {isUnpaid ? 'Change boxes & items' : 'Add boxes & items'}
+          </button>
+        </Link>
+        {isUnpaid && (
           <button type="button" onClick={handleDelete} disabled={deleting} style={{ padding: '8px 16px', fontSize: '0.875rem', background: 'transparent', color: 'var(--color-gray-600)', border: '1px solid #e5e7eb', borderRadius: '8px', cursor: deleting ? 'wait' : 'pointer' }}>
             {deleting ? 'Deleting…' : 'Cancel booking'}
           </button>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }

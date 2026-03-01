@@ -1,6 +1,7 @@
 'use server';
 
 import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { revalidatePath } from 'next/cache';
 import type { BookingItemType, BookingItemInput } from './types';
 
@@ -18,9 +19,12 @@ function storageMonths(moveOut: string, moveIn: string): number {
 }
 
 /** Resolve current user's public.users.id and ensure booking exists, belongs to user, and is unpaid. */
-async function getUnpaidBookingOwnership(supabase: Awaited<ReturnType<typeof createClient>>, bookingId: string) {
-  const { data: { user } } = await supabase.auth.getUser();
+async function getUnpaidBookingOwnership(authClient: Awaited<ReturnType<typeof createClient>>, bookingId: string) {
+  const { data: { user } } = await authClient.auth.getUser();
   if (!user) return { ok: false as const, error: 'You must be logged in.' };
+
+  // Use admin client for all DB reads to bypass RLS
+  const supabase = createAdminClient();
 
   const { data: profile } = await supabase
     .from('users')
@@ -43,9 +47,11 @@ async function getUnpaidBookingOwnership(supabase: Awaited<ReturnType<typeof cre
 }
 
 export async function deleteBooking(bookingId: string): Promise<ActionResult> {
-  const supabase = await createClient();
-  const check = await getUnpaidBookingOwnership(supabase, bookingId);
+  const authClient = await createClient();
+  const check = await getUnpaidBookingOwnership(authClient, bookingId);
   if (!check.ok) return { success: false, error: check.error };
+
+  const supabase = createAdminClient();
 
   // Delete line items first (required if FK has no ON DELETE CASCADE; harmless if it does)
   const { error: itemsErr } = await supabase.from('booking_items').delete().eq('booking_id', bookingId);
@@ -74,9 +80,11 @@ export async function updateBookingDates(
   move_in_date: string,
   move_out_time_slot: string
 ): Promise<ActionResult> {
-  const supabase = await createClient();
-  const check = await getUnpaidBookingOwnership(supabase, bookingId);
+  const authClient = await createClient();
+  const check = await getUnpaidBookingOwnership(authClient, bookingId);
   if (!check.ok) return { success: false, error: check.error };
+
+  const supabase = createAdminClient();
 
   const { data: booking } = await supabase
     .from('bookings')
@@ -115,10 +123,12 @@ export async function updateBookingDates(
 }
 
 export async function updateBookingItems(bookingId: string, items: BookingItemInput[]): Promise<ActionResult> {
-  const supabase = await createClient();
-  const check = await getUnpaidBookingOwnership(supabase, bookingId);
+  const authClient = await createClient();
+  const check = await getUnpaidBookingOwnership(authClient, bookingId);
   if (!check.ok) return { success: false, error: check.error };
   if (!items?.length) return { success: false, error: 'At least one item (e.g. boxes) is required.' };
+
+  const supabase = createAdminClient();
 
   const boxItem = items.find((i) => i.item_type === 'box');
   const boxQuantity = boxItem ? boxItem.quantity : 0;
