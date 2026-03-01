@@ -5,6 +5,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
+import { submitContactForm } from '@/lib/contact/submit';
+import { submitReminderSignup } from '@/lib/reminder/signup';
 
 export default function Home() {
   const [user, setUser] = useState<any>(null);
@@ -53,6 +55,69 @@ export default function Home() {
 
   // Mobile nav state
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+
+  // Contact form state
+  const [contactName, setContactName] = useState('');
+  const [contactEmail, setContactEmail] = useState('');
+  const [contactSubject, setContactSubject] = useState('');
+  const [contactSubjectOther, setContactSubjectOther] = useState('');
+  const [contactMessage, setContactMessage] = useState('');
+  const [contactSubmitting, setContactSubmitting] = useState(false);
+  const [contactSubmitted, setContactSubmitted] = useState(false);
+  const [contactError, setContactError] = useState<string | null>(null);
+
+  const [reminderEmail, setReminderEmail] = useState('');
+  const [reminderSubmitting, setReminderSubmitting] = useState(false);
+  const [reminderSuccess, setReminderSuccess] = useState(false);
+  const [reminderError, setReminderError] = useState<string | null>(null);
+
+  const CONTACT_SUBJECT_OPTIONS = [
+    'Booking & scheduling',
+    'Pricing & payment',
+    'Technical support',
+    'Partnership / Campus',
+    'Billing or refund',
+    'Other',
+  ] as const;
+  const isSubjectOther = contactSubject === 'Other';
+
+  const handleContactSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setContactError(null);
+    setContactSubmitting(true);
+    const result = await submitContactForm({
+      name: contactName,
+      email: contactEmail,
+      subject: contactSubject,
+      subject_other: isSubjectOther ? contactSubjectOther : null,
+      message: contactMessage,
+    });
+    setContactSubmitting(false);
+    if (result.success) {
+      setContactSubmitted(true);
+      setContactName('');
+      setContactEmail('');
+      setContactSubject('');
+      setContactSubjectOther('');
+      setContactMessage('');
+    } else {
+      setContactError(result.error);
+    }
+  };
+
+  const handleReminderSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setReminderError(null);
+    setReminderSubmitting(true);
+    const result = await submitReminderSignup({ email: reminderEmail });
+    setReminderSubmitting(false);
+    if (result.success) {
+      setReminderSuccess(true);
+      setReminderEmail('');
+    } else {
+      setReminderError(result.error);
+    }
+  };
 
   const toggleFaq = (index: number) => {
     setOpenFaq(openFaq === index ? null : index);
@@ -1256,19 +1321,185 @@ export default function Home() {
           <h2 className="reminder-cta-title">Get Reminders for Next Semester</h2>
           <p className="reminder-cta-subtitle">Get notified when storage booking opens for your campus</p>
           
-          <form className="reminder-form">
+          <form className="reminder-form" onSubmit={handleReminderSubmit}>
             <input 
               type="email" 
               placeholder="Enter your email address" 
               className="reminder-input"
-              disabled
+              value={reminderEmail}
+              onChange={(e) => setReminderEmail(e.target.value)}
+              disabled={reminderSubmitting || reminderSuccess}
+              required
             />
-            <button type="button" className="button-primary" disabled>
-              Set Reminder
+            <button 
+              type="submit" 
+              className="button-primary" 
+              disabled={reminderSubmitting || reminderSuccess}
+            >
+              {reminderSubmitting ? 'Saving…' : reminderSuccess ? 'Signed up' : 'Set Reminder'}
             </button>
           </form>
-          
-          <p className="reminder-note">Reminder automation will be connected in Phase 2</p>
+
+          {reminderSuccess && (
+            <p className="reminder-note reminder-success">
+              You're on the list. We'll email you when storage booking opens.
+            </p>
+          )}
+          {reminderError && (
+            <p className="reminder-note reminder-error" role="alert">
+              {reminderError}
+            </p>
+          )}
+          {!reminderSuccess && !reminderError && (
+            <p className="reminder-note">We'll notify you when the next season opens.</p>
+          )}
+        </div>
+      </section>
+
+      {/* Contact Section */}
+      <section id="contact" className="contact-section">
+        <div className="contact-container">
+          <motion.h2
+            className="contact-title"
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-80px" }}
+            transition={{ duration: 0.6, ease: [0.25, 0.1, 0.25, 1] }}
+          >
+            Get in Touch
+          </motion.h2>
+          <motion.p
+            className="contact-subtitle"
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-80px" }}
+            transition={{ duration: 0.6, delay: 0.08, ease: [0.25, 0.1, 0.25, 1] }}
+          >
+            Have a question or concern? We&apos;re here to help.
+          </motion.p>
+
+          <motion.div
+            className="contact-form-wrapper"
+            initial={{ opacity: 0, y: 24 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-60px" }}
+            transition={{ duration: 0.5, delay: 0.15, ease: [0.25, 0.1, 0.25, 1] }}
+          >
+            {contactSubmitted ? (
+              <motion.div
+                className="contact-success"
+                initial={{ opacity: 0, scale: 0.96 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.4, ease: [0.25, 0.1, 0.25, 1] }}
+              >
+                <span className="contact-success-icon">✓</span>
+                <h3 className="contact-success-title">Message sent</h3>
+                <p className="contact-success-text">Thanks for reaching out. We&apos;ll get back to you soon.</p>
+                <button
+                  type="button"
+                  className="button-secondary"
+                  onClick={() => { setContactSubmitted(false); setContactError(null); }}
+                >
+                  Send another message
+                </button>
+              </motion.div>
+            ) : (
+              <form className="contact-form" onSubmit={handleContactSubmit}>
+                <div className="contact-form-row">
+                  <label htmlFor="contact-name" className="contact-label">Name *</label>
+                  <input
+                    id="contact-name"
+                    type="text"
+                    required
+                    placeholder="Your name"
+                    className="contact-input"
+                    value={contactName}
+                    onChange={(e) => setContactName(e.target.value)}
+                    disabled={contactSubmitting}
+                  />
+                </div>
+                <div className="contact-form-row">
+                  <label htmlFor="contact-email" className="contact-label">Email *</label>
+                  <input
+                    id="contact-email"
+                    type="email"
+                    required
+                    placeholder="you@example.com"
+                    className="contact-input"
+                    value={contactEmail}
+                    onChange={(e) => setContactEmail(e.target.value)}
+                    disabled={contactSubmitting}
+                  />
+                </div>
+                <div className="contact-form-row">
+                  <label htmlFor="contact-subject" className="contact-label">Subject *</label>
+                  <select
+                    id="contact-subject"
+                    required
+                    className="contact-select"
+                    value={contactSubject}
+                    onChange={(e) => {
+                      setContactSubject(e.target.value);
+                      if (e.target.value !== 'Other') setContactSubjectOther('');
+                    }}
+                    disabled={contactSubmitting}
+                  >
+                    <option value="">Select a topic</option>
+                    {CONTACT_SUBJECT_OPTIONS.map((opt) => (
+                      <option key={opt} value={opt}>{opt}</option>
+                    ))}
+                  </select>
+                </div>
+                {isSubjectOther && (
+                  <motion.div
+                    className="contact-form-row"
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    transition={{ duration: 0.25 }}
+                  >
+                    <label htmlFor="contact-subject-other" className="contact-label">Please specify</label>
+                    <input
+                      id="contact-subject-other"
+                      type="text"
+                      placeholder="Describe your concern"
+                      className="contact-input"
+                      value={contactSubjectOther}
+                      onChange={(e) => setContactSubjectOther(e.target.value)}
+                      disabled={contactSubmitting}
+                    />
+                  </motion.div>
+                )}
+                <div className="contact-form-row contact-form-row--full">
+                  <label htmlFor="contact-message" className="contact-label">Your message *</label>
+                  <textarea
+                    id="contact-message"
+                    required
+                    rows={5}
+                    placeholder="Tell us how we can help..."
+                    className="contact-textarea"
+                    value={contactMessage}
+                    onChange={(e) => setContactMessage(e.target.value)}
+                    disabled={contactSubmitting}
+                  />
+                </div>
+                <div className="contact-form-actions">
+                  {contactError && (
+                    <p className="contact-form-error" role="alert">
+                      {contactError}
+                    </p>
+                  )}
+                  <button
+                    type="submit"
+                    className="button-primary contact-submit"
+                    disabled={contactSubmitting}
+                  >
+                    {contactSubmitting ? 'Sending…' : 'Send message'}
+                  </button>
+                </div>
+              </form>
+            )}
+          </motion.div>
         </div>
       </section>
 
@@ -1319,8 +1550,8 @@ export default function Home() {
               <ul className="footer-links">
                 <li><a href="#pricing">Pricing</a></li>
                 <li><a href="#how-it-works">How It Works</a></li>
-                <li><a href="#storage-options">Storage Options</a></li>
-                <li><a href="#pickup-delivery">Pickup & Delivery</a></li>
+                <li><a href="#pricing">Storage Options</a></li>
+                <li><a href="#how-it-works">Pickup & Delivery</a></li>
               </ul>
             </div>
 
