@@ -32,6 +32,7 @@ function SchedulePageContent() {
   const [selectingMoveOut, setSelectingMoveOut] = useState(true);
   const [currentMonth, setCurrentMonth] = useState(new Date(2026, new Date().getMonth()));
   const [moveOutTime, setMoveOutTime] = useState('');
+  const [moveInTime, setMoveInTime] = useState('');
   const [dorm, setDorm] = useState('');
   const [elevatorAccess, setElevatorAccess] = useState<'yes' | 'no' | ''>('');
   const [stairsAccess, setStairsAccess] = useState<'yes' | 'no' | ''>('');
@@ -182,7 +183,7 @@ function SchedulePageContent() {
 
   const monthData = useMemo(() => getMonthData(currentMonth.getFullYear(), currentMonth.getMonth()), [currentMonth]);
 
-  const isFormValid = moveOutDate && moveInDate && moveOutTime && school && dorm && elevatorAccess && stairsAccess && roomNumber.trim();
+  const isFormValid = moveOutDate && moveInDate && moveOutTime && moveInTime && school && dorm && elevatorAccess && stairsAccess && roomNumber.trim();
 
   const handleContinue = () => {
     if (!isFormValid) return;
@@ -197,6 +198,7 @@ function SchedulePageContent() {
       moveOutDate: moveOutDate!.toISOString().split('T')[0],
       moveInDate: moveInDate!.toISOString().split('T')[0],
       moveOutTime,
+      moveInTime,
       school,
       dorm,
       elevator: elevatorAccess,
@@ -707,6 +709,61 @@ function SchedulePageContent() {
                 Choose an available time. Gray slots are already taken. 20 min between different dorms; same dorm can share or use 5 min apart.
               </small>
             </>
+          )}
+        </div>
+
+        {/* Move-In Time */}
+        <div className="form-group" style={{ marginBottom: '24px' }}>
+          <label id="moveInTime-label" style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: 'var(--color-coffee)' }}>
+            Preferred Move-In Time *
+          </label>
+          {!moveInDate && (
+            <p style={{ fontSize: '0.9375rem', color: 'var(--color-gray-600)', marginBottom: '12px' }}>
+              Select your move-in date above to choose a delivery time.
+            </p>
+          )}
+          {moveInDate && (
+            <div
+              role="group"
+              aria-labelledby="moveInTime-label"
+              style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))', gap: '10px' }}
+            >
+              {allTimeSlots.map((slot) => {
+                const selected = moveInTime === slot.value;
+                return (
+                  <button
+                    key={slot.value}
+                    type="button"
+                    onClick={() => setMoveInTime(slot.value)}
+                    style={{
+                      padding: '12px 14px',
+                      borderRadius: '8px',
+                      border: `2px solid ${selected ? 'var(--color-coffee)' : 'var(--color-latte)'}`,
+                      background: selected ? 'var(--color-coffee)' : 'white',
+                      color: selected ? 'var(--color-latte-soft)' : 'var(--color-coffee)',
+                      fontSize: '0.875rem',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      transition: 'border-color 0.15s ease, background 0.15s ease, color 0.15s ease',
+                    }}
+                    onMouseEnter={(e) => {
+                      if (!selected) {
+                        e.currentTarget.style.background = 'var(--color-latte-soft)';
+                        e.currentTarget.style.borderColor = 'var(--color-coffee)';
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (!selected) {
+                        e.currentTarget.style.background = 'white';
+                        e.currentTarget.style.borderColor = 'var(--color-latte)';
+                      }
+                    }}
+                  >
+                    {slot.label}
+                  </button>
+                );
+              })}
+            </div>
           )}
         </div>
 

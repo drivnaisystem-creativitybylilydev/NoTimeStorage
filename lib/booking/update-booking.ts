@@ -18,12 +18,11 @@ function storageMonths(moveOut: string, moveIn: string): number {
   return Math.max(1, months);
 }
 
-/** Resolve current user's public.users.id and ensure booking exists, belongs to user, and is unpaid. */
-async function getUnpaidBookingOwnership(authClient: Awaited<ReturnType<typeof createClient>>, bookingId: string) {
+/** Verify ownership only — no payment status restriction. Used for date/cancellation changes. */
+async function getBookingOwnership(authClient: Awaited<ReturnType<typeof createClient>>, bookingId: string) {
   const { data: { user } } = await authClient.auth.getUser();
   if (!user) return { ok: false as const, error: 'You must be logged in.' };
 
-  // Use admin client for all DB reads to bypass RLS
   const supabase = createAdminClient();
 
   const { data: profile } = await supabase
@@ -41,33 +40,32 @@ async function getUnpaidBookingOwnership(authClient: Awaited<ReturnType<typeof c
     .single();
   if (error || !booking) return { ok: false as const, error: 'Booking not found.' };
   if (booking.user_id !== profile.id) return { ok: false as const, error: 'You can only edit your own booking.' };
-  if (booking.payment_status === 'paid') return { ok: false as const, error: 'Paid bookings cannot be changed.' };
 
-  return { ok: true as const, profileId: profile.id };
+  return { ok: true as const, profileId: profile.id, isPaid: booking.payment_status === 'paid' };
+}
+
+/** Verify ownership AND that booking is unpaid (for item changes on unpaid bookings). */
+async function getUnpaidBookingOwnership(authClient: Awaited<ReturnType<typeof createClient>>, bookingId: string) {
+  const check = await getBookingOwnership(authClient, bookingId);
+  if (!check.ok) return check;
+  if (check.isPaid) return { ok: false as const, error: 'Paid bookings cannot be changed this way.' };
+  return check;
 }
 
 export async function deleteBooking(bookingId: string): Promise<ActionResult> {
   const authClient = await createClient();
-  const check = await getUnpaidBookingOwnership(authClient, bookingId);
+  const check = await getBookingOwnership(authClient, bookingId);
   if (!check.ok) return { success: false, error: check.error };
 
   const supabase = createAdminClient();
 
-  // Delete line items first (required if FK has no ON DELETE CASCADE; harmless if it does)
-  const { error: itemsErr } = await supabase.from('booking_items').delete().eq('booking_id', bookingId);
-  if (itemsErr) {
-    console.error('[deleteBooking] booking_items', itemsErr);
-    return { success: false, error: itemsErr.message };
-  }
+  // Cascade: schedules and payments have ON DELETE CASCADE; booking_items may not
+  await supabase.from('booking_items').delete().eq('booking_id', bookingId);
+  await supabase.from('schedules').delete().eq('booking_id', bookingId);
 
   const { error } = await supabase.from('bookings').delete().eq('id', bookingId);
   if (error) {
     console.error('[deleteBooking] bookings', error);
-    // RLS often returns "new row violates row-level security" or "permission denied"
-    const msg = error.message || '';
-    if (msg.includes('policy') || msg.includes('row-level security') || msg.includes('permission')) {
-      return { success: false, error: 'You don\'t have permission to cancel this booking. Add the DELETE policy from docs/booking-backend.md (RLS for edit/delete) in Supabase.' };
-    }
     return { success: false, error: error.message };
   }
   revalidatePath('/dashboard');
@@ -81,7 +79,7 @@ export async function updateBookingDates(
   move_out_time_slot: string
 ): Promise<ActionResult> {
   const authClient = await createClient();
-  const check = await getUnpaidBookingOwnership(authClient, bookingId);
+  const check = await getBookingOwnership(authClient, bookingId);
   if (!check.ok) return { success: false, error: check.error };
 
   const supabase = createAdminClient();
@@ -91,6 +89,7 @@ export async function updateBookingDates(
     .select('total_monthly_rate, dorm')
     .eq('id', bookingId)
     .single();
+
   const dorm = (booking?.dorm as string) ?? '';
   const slotCheck = await import('@/lib/booking/availability').then((m) =>
     m.isTimeSlotAvailable(move_out_date, move_out_time_slot, dorm, bookingId)
@@ -103,7 +102,8 @@ export async function updateBookingDates(
   const totalMonthlyRate = (booking?.total_monthly_rate as number) ?? 0;
   const totalPrice = totalMonthlyRate * months;
 
-  const { error } = await supabase
+  // Update booking dates and recalculated total
+  const { error: bookingErr } = await supabase
     .from('bookings')
     .update({
       move_out_date,
@@ -114,10 +114,24 @@ export async function updateBookingDates(
       updated_at: new Date().toISOString(),
     })
     .eq('id', bookingId);
-  if (error) {
-    console.error('[updateBookingDates]', error);
-    return { success: false, error: error.message };
+  if (bookingErr) {
+    console.error('[updateBookingDates]', bookingErr);
+    return { success: false, error: bookingErr.message };
   }
+
+  // Keep schedules in sync — update dates on both move_out and move_in rows
+  await supabase
+    .from('schedules')
+    .update({ date: move_out_date, time_slot: move_out_time_slot, updated_at: new Date().toISOString() })
+    .eq('booking_id', bookingId)
+    .eq('schedule_type', 'move_out');
+
+  await supabase
+    .from('schedules')
+    .update({ date: move_in_date, updated_at: new Date().toISOString() })
+    .eq('booking_id', bookingId)
+    .eq('schedule_type', 'move_in');
+
   revalidatePath('/dashboard');
   return { success: true };
 }

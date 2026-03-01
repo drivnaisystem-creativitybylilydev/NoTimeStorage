@@ -109,6 +109,7 @@ function PaymentPageContent() {
   const moveOutDate = searchParams.get('moveOutDate') || '';
   const moveInDate = searchParams.get('moveInDate') || '';
   const moveOutTime = searchParams.get('moveOutTime') || '';
+  const moveInTime = searchParams.get('moveInTime') || '';
   const dorm = searchParams.get('dorm') || '';
   const elevator = searchParams.get('elevator') || '';
   const stairs = searchParams.get('stairs') || '';
@@ -172,6 +173,7 @@ function PaymentPageContent() {
       move_out_date: moveOutDate,
       move_in_date: moveInDate,
       move_out_time_slot: moveOutTime,
+      move_in_time_slot: moveInTime || undefined,
       dorm,
       room: room || undefined,
       elevator_available: elevator === 'yes',

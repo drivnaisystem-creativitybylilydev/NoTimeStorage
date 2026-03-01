@@ -23,6 +23,7 @@ export interface CreateBookingInput {
   move_out_date: string; // YYYY-MM-DD
   move_in_date: string;
   move_out_time_slot: string; // e.g. "14:00"
+  move_in_time_slot?: string; // e.g. "10:00"
   dorm: string;
   room?: string;
   elevator_available: boolean;

@@ -187,7 +187,7 @@ export default async function DashboardPage() {
                   One step left to unlock your storage
                 </p>
                 <p style={{ color: '#C9A47E', fontSize: '0.875rem', margin: 0 }}>
-                  Pay the $50 commitment fee to start booking — it&apos;s deducted from your first month&apos;s bill.
+                  Pay the $50 commitment fee to start booking — it&apos;s deducted from your total storage bill.
                 </p>
               </div>
               <Link href="/deposit">

@@ -132,7 +132,7 @@ export function DepositForm({ applicationId, locationId, isSandbox, customerName
             <span style={{ color: 'var(--color-coffee)', fontWeight: '700' }}>$50.00</span>
           </div>
           <div style={{ borderTop: '1px solid var(--color-latte)', paddingTop: '10px', fontSize: '0.8rem', color: '#16A34A', fontWeight: '600', textAlign: 'center' }}>
-            ✓ This $50 is fully deducted from your first month&apos;s bill
+            ✓ This $50 is fully deducted from your total storage bill
           </div>
         </div>
 
@@ -172,7 +172,7 @@ export function DepositForm({ applicationId, locationId, isSandbox, customerName
         </button>
 
         <p style={{ textAlign: 'center', marginTop: '16px', fontSize: '0.8rem', color: '#9E8E88' }}>
-          Secured by Square · $50 deducted from your first month&apos;s bill
+          Secured by Square · $50 deducted from your total storage bill
         </p>
 
         <div style={{ textAlign: 'center', marginTop: '12px' }}>
