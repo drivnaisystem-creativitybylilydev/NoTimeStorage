@@ -2527,29 +2527,16 @@ button {
   background-color: var(--color-latte-soft);
 }
 
-/* Scrolling Campus Logos */
-.campus-logos-scroll-container {
-  width: 100%;
-  overflow-x: hidden;
-  overflow-y: visible;
-  position: relative;
-  padding: var(--spacing-md) 0;
-}
-
-.campus-logos-scroll {
+/* Campus cards - static row (no scroll) */
+.campus-cards-row {
   display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
   gap: var(--spacing-lg);
-  animation: scroll-campus-logos 25s linear infinite;
-  width: fit-content;
-}
-
-@keyframes scroll-campus-logos {
-  0% {
-    transform: translateX(0);
-  }
-  100% {
-    transform: translateX(-50%);
-  }
+  width: 100%;
+  padding: var(--spacing-md) 0;
+  position: relative;
 }
 
 .campus-placeholder-tile {
@@ -2634,16 +2621,13 @@ button {
   color: var(--color-gray-500);
 }
 
-/* Static "Your Campus - Coming Soon" card: 70% visible, right-edge fade, no loop */
+/* Static "Your Campus - Coming Soon" card: 70% visible, right-edge fade, locked-character style */
 .campus-coming-soon-holder {
-  position: absolute;
-  right: 0;
-  top: 50%;
-  transform: translateY(-50%);
   height: 260px;
   width: 196px; /* 70% of 280px card */
   overflow: hidden;
-  z-index: 2;
+  flex-shrink: 0;
+  position: relative;
   pointer-events: auto;
   transition: width 0.35s ease;
 }
@@ -2731,6 +2715,33 @@ button {
   color: var(--color-coffee);
   opacity: 0.85;
   letter-spacing: 0.02em;
+}
+
+/* Locked-character style logo area - full black tease */
+.campus-coming-locked-logo {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  background: linear-gradient(145deg, #e8e0d8 0%, #d4c8bc 100%);
+  box-shadow:
+    inset 0 1px 2px rgba(255,255,255,0.8),
+    inset 0 -1px 4px rgba(0,0,0,0.06),
+    0 4px 16px rgba(0,0,0,0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border: 2px solid rgba(0,0,0,0.12);
+}
+
+.campus-coming-lock-icon {
+  width: 56px;
+  height: 56px;
+  flex-shrink: 0;
+}
+
+.campus-coming-locked-logo path {
+  fill: #0a0a0a;
 }
 
 /* Subtle shimmer on static coming-soon card */
@@ -3527,7 +3538,7 @@ button {
     height: 1px;
   }
 
-  .campus-logos-scroll {
+  .campus-cards-row {
     gap: var(--spacing-md);
   }
 
@@ -4922,7 +4933,7 @@ button {
     font-size: 1.4rem;
   }
 
-  .campus-logos-scroll {
+  .campus-cards-row {
     gap: var(--spacing-md);
   }
 
@@ -4944,6 +4955,16 @@ button {
   .campus-coming-soon-badge {
     font-size: 0.58rem;
     top: 8px;
+  }
+
+  .campus-coming-locked-logo {
+    width: 88px;
+    height: 88px;
+  }
+
+  .campus-coming-lock-icon {
+    width: 40px;
+    height: 40px;
   }
 
   .campus-coming-plus {
@@ -4975,6 +4996,16 @@ button {
   .campus-coming-static {
     width: 170px;
     height: 170px;
+  }
+
+  .campus-coming-locked-logo {
+    width: 72px;
+    height: 72px;
+  }
+
+  .campus-coming-lock-icon {
+    width: 32px;
+    height: 32px;
   }
 }
 

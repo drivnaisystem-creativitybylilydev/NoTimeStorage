@@ -310,78 +310,35 @@ export default function Home() {
       {/* Trust & Social Proof Strip - Campus logos only (stats removed for real values later) */}
       <section className="trust-strip">
         <div className="trust-strip-content">
-          {/* Campus Partner Logos - Scrolling + static Coming Soon */}
-          <div className="campus-logos-scroll-container">
-            <div className="campus-logos-scroll">
-              {/* Set 1 */}
-              <div className="campus-school-tile campus-school-tile--stonehill">
-                <Image src="/brand/school-logos/Stonehill.png" alt="Stonehill College" width={190} height={190} className="campus-school-logo" />
-                <div className="campus-school-text">
-                  <div className="campus-school-name">Stonehill College</div>
-                  <div className="campus-school-location">Easton, MA</div>
-                </div>
-              </div>
-              <div className="campus-school-tile campus-school-tile--unh">
-                <Image src="/brand/school-logos/UNH.png" alt="University of New Haven" width={190} height={190} className="campus-school-logo" />
-                <div className="campus-school-text">
-                  <div className="campus-school-name">University of New Haven</div>
-                  <div className="campus-school-location">West Haven, CT</div>
-                </div>
-              </div>
-              {/* Set 2 */}
-              <div className="campus-school-tile campus-school-tile--stonehill">
-                <Image src="/brand/school-logos/Stonehill.png" alt="Stonehill College" width={190} height={190} className="campus-school-logo" />
-                <div className="campus-school-text">
-                  <div className="campus-school-name">Stonehill College</div>
-                  <div className="campus-school-location">Easton, MA</div>
-                </div>
-              </div>
-              <div className="campus-school-tile campus-school-tile--unh">
-                <Image src="/brand/school-logos/UNH.png" alt="University of New Haven" width={190} height={190} className="campus-school-logo" />
-                <div className="campus-school-text">
-                  <div className="campus-school-name">University of New Haven</div>
-                  <div className="campus-school-location">West Haven, CT</div>
-                </div>
-              </div>
-              {/* Duplicate for seamless loop */}
-              <div className="campus-school-tile campus-school-tile--stonehill">
-                <Image src="/brand/school-logos/Stonehill.png" alt="Stonehill College" width={190} height={190} className="campus-school-logo" />
-                <div className="campus-school-text">
-                  <div className="campus-school-name">Stonehill College</div>
-                  <div className="campus-school-location">Easton, MA</div>
-                </div>
-              </div>
-              <div className="campus-school-tile campus-school-tile--unh">
-                <Image src="/brand/school-logos/UNH.png" alt="University of New Haven" width={190} height={190} className="campus-school-logo" />
-                <div className="campus-school-text">
-                  <div className="campus-school-name">University of New Haven</div>
-                  <div className="campus-school-location">West Haven, CT</div>
-                </div>
-              </div>
-              <div className="campus-school-tile campus-school-tile--stonehill">
-                <Image src="/brand/school-logos/Stonehill.png" alt="Stonehill College" width={190} height={190} className="campus-school-logo" />
-                <div className="campus-school-text">
-                  <div className="campus-school-name">Stonehill College</div>
-                  <div className="campus-school-location">Easton, MA</div>
-                </div>
-              </div>
-              <div className="campus-school-tile campus-school-tile--unh">
-                <Image src="/brand/school-logos/UNH.png" alt="University of New Haven" width={190} height={190} className="campus-school-logo" />
-                <div className="campus-school-text">
-                  <div className="campus-school-name">University of New Haven</div>
-                  <div className="campus-school-location">West Haven, CT</div>
-                </div>
+          {/* Campus Partner Logos - Static row (2 schools + Coming Soon) */}
+          <div className="campus-cards-row">
+            <div className="campus-school-tile campus-school-tile--stonehill">
+              <Image src="/brand/school-logos/Stonehill.png" alt="Stonehill College" width={190} height={190} className="campus-school-logo" />
+              <div className="campus-school-text">
+                <div className="campus-school-name">Stonehill College</div>
+                <div className="campus-school-location">Easton, MA</div>
               </div>
             </div>
-            {/* Static "Your Campus" card - 70% visible, right-edge fade */}
+            <div className="campus-school-tile campus-school-tile--unh">
+              <Image src="/brand/school-logos/UNH.png" alt="University of New Haven" width={190} height={190} className="campus-school-logo" />
+              <div className="campus-school-text">
+                <div className="campus-school-name">University of New Haven</div>
+                <div className="campus-school-location">West Haven, CT</div>
+              </div>
+            </div>
+            {/* Coming Soon - locked / tease card */}
             <div className="campus-coming-soon-holder" aria-hidden="true">
               <div className="campus-coming-soon-fade" />
               <div className="campus-school-tile campus-school-tile--coming campus-coming-static">
                 <div className="campus-coming-soon-badge">Coming Soon</div>
-                <div className="campus-school-monogram campus-coming-plus">+</div>
+                <div className="campus-coming-locked-logo" aria-hidden="true">
+                  <svg width="120" height="120" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg" className="campus-coming-lock-icon">
+                    <path d="M60 20c-11 0-20 9-20 20v12H36c-4.4 0-8 3.6-8 8v44c0 4.4 3.6 8 8 8h48c4.4 0 8-3.6 8-8V60c0-4.4-3.6-8-8-8h-4V40c0-11-9-20-20-20zm0 8c6.6 0 12 5.4 12 12v12H48V40c0-6.6 5.4-12 12-12z" fill="#0a0a0a"/>
+                  </svg>
+                </div>
                 <div className="campus-school-text">
                   <div className="campus-school-name">Your Campus</div>
-                  <div className="campus-school-location">We&apos;re expanding</div>
+                  <div className="campus-school-location">Unlock soon</div>
                 </div>
               </div>
             </div>
