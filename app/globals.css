@@ -2615,7 +2615,7 @@ button {
   color: var(--color-coffee);
 }
 
-/* Coming soon tile */
+/* Coming soon tile (in carousel - kept for any legacy use) */
 .campus-school-tile--coming {
   background: var(--color-latte-soft);
   border: 2px dashed var(--color-latte);
@@ -2632,6 +2632,128 @@ button {
 
 .campus-school-tile--coming .campus-school-location {
   color: var(--color-gray-500);
+}
+
+/* Static "Your Campus - Coming Soon" card: 70% visible, right-edge fade, no loop */
+.campus-coming-soon-holder {
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  height: 260px;
+  width: 196px; /* 70% of 280px card */
+  overflow: hidden;
+  z-index: 2;
+  pointer-events: auto;
+  transition: width 0.35s ease;
+}
+
+.campus-coming-soon-holder:hover {
+  width: 224px; /* ~80% visible on hover */
+}
+
+.campus-coming-soon-fade {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to right,
+    transparent 0%,
+    transparent 70%,
+    rgba(255, 255, 255, 0.5) 70%,
+    rgba(255, 255, 255, 1) 100%
+  );
+  pointer-events: none;
+  z-index: 1;
+}
+
+.campus-coming-static {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 280px;
+  height: 260px;
+  flex-shrink: 0;
+  /* Frosted glass + same beige/tan as other tiles */
+  background: rgba(201, 164, 126, 0.75);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  border-radius: 14px;
+  box-shadow:
+    0 0 0 1px rgba(201, 164, 126, 0.4),
+    0 8px 32px rgba(75, 46, 37, 0.12),
+    0 0 40px rgba(201, 164, 126, 0.2);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 16px 14px;
+  text-align: center;
+  z-index: 0;
+}
+
+.campus-coming-soon-holder:hover .campus-coming-static {
+  box-shadow:
+    0 0 0 1px rgba(201, 164, 126, 0.5),
+    0 12px 40px rgba(75, 46, 37, 0.15),
+    0 0 56px rgba(201, 164, 126, 0.28);
+}
+
+.campus-coming-soon-badge {
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-coffee);
+  opacity: 0.9;
+}
+
+.campus-coming-static .campus-school-name {
+  color: var(--color-coffee);
+  font-weight: 700;
+  font-size: 0.85rem;
+}
+
+.campus-coming-static .campus-school-location {
+  color: var(--color-gray-600);
+  font-size: 0.7rem;
+  font-style: italic;
+}
+
+.campus-coming-plus {
+  font-size: 2rem;
+  font-weight: 300;
+  color: var(--color-coffee);
+  opacity: 0.85;
+  letter-spacing: 0.02em;
+}
+
+/* Subtle shimmer on static coming-soon card */
+.campus-coming-static::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 14px;
+  background: linear-gradient(
+    105deg,
+    transparent 0%,
+    transparent 40%,
+    rgba(255, 255, 255, 0.2) 50%,
+    transparent 60%,
+    transparent 100%
+  );
+  pointer-events: none;
+  animation: campus-coming-shimmer 4s ease-in-out 2s infinite;
+}
+
+@keyframes campus-coming-shimmer {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 0.7; }
 }
 
 /* School logo image — natural colors on light latte background */
@@ -4803,6 +4925,30 @@ button {
   .campus-logos-scroll {
     gap: var(--spacing-md);
   }
+
+  /* Static coming-soon card: match reduced tile size */
+  .campus-coming-soon-holder {
+    height: 190px;
+    width: 140px; /* 70% of 200px */
+  }
+
+  .campus-coming-soon-holder:hover {
+    width: 160px; /* ~80% */
+  }
+
+  .campus-coming-static {
+    width: 200px;
+    height: 190px;
+  }
+
+  .campus-coming-soon-badge {
+    font-size: 0.58rem;
+    top: 8px;
+  }
+
+  .campus-coming-plus {
+    font-size: 1.5rem;
+  }
 }
 
 @media (max-width: 374px) {
@@ -4814,6 +4960,21 @@ button {
   .campus-school-logo {
     width: 100px;
     height: 100px;
+  }
+
+  /* Static coming-soon card at smallest breakpoint */
+  .campus-coming-soon-holder {
+    height: 170px;
+    width: 119px;
+  }
+
+  .campus-coming-soon-holder:hover {
+    width: 136px;
+  }
+
+  .campus-coming-static {
+    width: 170px;
+    height: 170px;
   }
 }
 

@@ -307,33 +307,12 @@ export default function Home() {
         </motion.div>
       </section>
 
-      {/* Trust & Social Proof Strip */}
+      {/* Trust & Social Proof Strip - Campus logos only (stats removed for real values later) */}
       <section className="trust-strip">
         <div className="trust-strip-content">
-          <div className="trust-stats">
-            <div className="trust-stat-item">
-              <div className="stat-label">Google Rating</div>
-              <div className="stat-value">
-                <span className="rating-stars-inline">★★★★★</span>
-                <span className="stat-number">4.9/5</span>
-              </div>
-            </div>
-            <div className="trust-stat-divider"></div>
-            <div className="trust-stat-item">
-              <div className="stat-label">Students Served</div>
-              <div className="stat-value">500+</div>
-            </div>
-            <div className="trust-stat-divider"></div>
-            <div className="trust-stat-item">
-              <div className="stat-label">Campuses</div>
-              <div className="stat-value">15+</div>
-            </div>
-          </div>
-          
-          {/* Campus Partner Logos - Scrolling */}
+          {/* Campus Partner Logos - Scrolling + static Coming Soon */}
           <div className="campus-logos-scroll-container">
             <div className="campus-logos-scroll">
-              {/* Set 1 */}
               {/* Set 1 */}
               <div className="campus-school-tile campus-school-tile--stonehill">
                 <Image src="/brand/school-logos/Stonehill.png" alt="Stonehill College" width={190} height={190} className="campus-school-logo" />
@@ -347,13 +326,6 @@ export default function Home() {
                 <div className="campus-school-text">
                   <div className="campus-school-name">University of New Haven</div>
                   <div className="campus-school-location">West Haven, CT</div>
-                </div>
-              </div>
-              <div className="campus-school-tile campus-school-tile--coming">
-                <div className="campus-school-monogram">+</div>
-                <div className="campus-school-text">
-                  <div className="campus-school-name">Your Campus</div>
-                  <div className="campus-school-location">Coming soon</div>
                 </div>
               </div>
               {/* Set 2 */}
@@ -371,14 +343,7 @@ export default function Home() {
                   <div className="campus-school-location">West Haven, CT</div>
                 </div>
               </div>
-              <div className="campus-school-tile campus-school-tile--coming">
-                <div className="campus-school-monogram">+</div>
-                <div className="campus-school-text">
-                  <div className="campus-school-name">Your Campus</div>
-                  <div className="campus-school-location">Coming soon</div>
-                </div>
-              </div>
-              {/* Duplicate set for seamless loop */}
+              {/* Duplicate for seamless loop */}
               <div className="campus-school-tile campus-school-tile--stonehill">
                 <Image src="/brand/school-logos/Stonehill.png" alt="Stonehill College" width={190} height={190} className="campus-school-logo" />
                 <div className="campus-school-text">
@@ -393,13 +358,6 @@ export default function Home() {
                   <div className="campus-school-location">West Haven, CT</div>
                 </div>
               </div>
-              <div className="campus-school-tile campus-school-tile--coming">
-                <div className="campus-school-monogram">+</div>
-                <div className="campus-school-text">
-                  <div className="campus-school-name">Your Campus</div>
-                  <div className="campus-school-location">Coming soon</div>
-                </div>
-              </div>
               <div className="campus-school-tile campus-school-tile--stonehill">
                 <Image src="/brand/school-logos/Stonehill.png" alt="Stonehill College" width={190} height={190} className="campus-school-logo" />
                 <div className="campus-school-text">
@@ -414,11 +372,16 @@ export default function Home() {
                   <div className="campus-school-location">West Haven, CT</div>
                 </div>
               </div>
-              <div className="campus-school-tile campus-school-tile--coming">
-                <div className="campus-school-monogram">+</div>
+            </div>
+            {/* Static "Your Campus" card - 70% visible, right-edge fade */}
+            <div className="campus-coming-soon-holder" aria-hidden="true">
+              <div className="campus-coming-soon-fade" />
+              <div className="campus-school-tile campus-school-tile--coming campus-coming-static">
+                <div className="campus-coming-soon-badge">Coming Soon</div>
+                <div className="campus-school-monogram campus-coming-plus">+</div>
                 <div className="campus-school-text">
                   <div className="campus-school-name">Your Campus</div>
-                  <div className="campus-school-location">Coming soon</div>
+                  <div className="campus-school-location">We&apos;re expanding</div>
                 </div>
               </div>
             </div>
@@ -647,10 +610,10 @@ export default function Home() {
               viewport={{ once: true, margin: "-100px" }}
               transition={{ duration: 0.7, delay: 0.6, ease: [0.25, 0.1, 0.25, 1] }}
             >
-              <Image src="/brand/easy-redelivery.png" alt="Easy Redelivery" width={240} height={240} className="step-image-placeholder" />
+              <Image src="/brand/easy-redelivery.png" alt="Schedule move-in" width={240} height={240} className="step-image-placeholder" />
               <div className="step-number">3</div>
-              <h3 className="step-title">Easy Redelivery</h3>
-              <p className="step-description">Request your items back anytime. We deliver them directly to your door when you need them.</p>
+              <h3 className="step-title">Schedule Move-In</h3>
+              <p className="step-description">During your booking you&apos;ll pick a move-in date and time. We deliver your items straight to your door when you&apos;re back on campus.</p>
             </motion.div>
           </div>
           <motion.div 
@@ -755,9 +718,6 @@ export default function Home() {
                 <span className="price-amount">$80</span>
                 <span className="price-period">/box/month</span>
               </div>
-              <div className="price-total">
-                <span>$80/month total</span>
-              </div>
               <ul className="features-list">
                 <li>1 large storage box</li>
                 <li>Free pickup & delivery</li>
@@ -793,10 +753,6 @@ export default function Home() {
                 <span className="price-amount">$55</span>
                 <span className="price-period">/box/month</span>
               </div>
-              <div className="price-total">
-                <span className="original-price">$160</span>
-                <span className="discounted-price">$110/month for 2 boxes</span>
-              </div>
               <ul className="features-list">
                 <li>2-3 large storage boxes</li>
                 <li>Free pickup & delivery</li>
@@ -830,9 +786,6 @@ export default function Home() {
               <div className="card-price">
                 <span className="price-amount">$60</span>
                 <span className="price-period">/box/month</span>
-              </div>
-              <div className="price-total">
-                <span>$240/month total</span>
               </div>
               <ul className="features-list">
                 <li>4 large storage boxes</li>
