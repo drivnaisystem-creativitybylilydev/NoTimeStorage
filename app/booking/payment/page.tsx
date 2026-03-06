@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef, Suspense } from 'react';
+import { useState, useEffect, useRef, useCallback, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -40,71 +40,15 @@ function PaymentPageContent() {
   const [error, setError] = useState<string | null>(null);
   const [step, setStep] = useState<'idle' | 'creating' | 'charging' | 'done'>('idle');
 
+  const [applePayInstance, setApplePayInstance] = useState<any>(null);
+  const [googlePayInstance, setGooglePayInstance] = useState<any>(null);
+
   const cardInstanceRef = useRef<any>(null);
+  const applePayRef = useRef<any>(null);
+  const googlePayRef = useRef<any>(null);
+  const paymentProcessorRef = useRef<((token: string) => Promise<void>) | null>(null);
 
-  // Load user + Square config from server
-  useEffect(() => {
-    const supabase = createClient();
-    supabase.auth.getUser().then(({ data: { user } }) => setUserId(user?.id ?? null));
-
-    // Fetch Square config from a simple API route
-    fetch('/api/square-config')
-      .then(r => r.json())
-      .then(({ applicationId, locationId: loc, isSandbox: sb }) => {
-        setAppId(applicationId);
-        setLocationId(loc);
-        setIsSandbox(sb);
-      })
-      .catch(console.error);
-  }, []);
-
-  // Init Square Web Payments SDK once we have config
-  useEffect(() => {
-    if (!appId || !locationId) return;
-    if (cardInstanceRef.current) return;
-
-    const scriptSrc = isSandbox
-      ? 'https://sandbox.web.squarecdn.com/v1/square.js'
-      : 'https://web.squarecdn.com/v1/square.js';
-
-    const existing = document.querySelector(`script[src="${scriptSrc}"]`);
-    const initSquare = async () => {
-      if (cardInstanceRef.current) return;
-      try {
-        const sq = (window as any).Square;
-        if (!sq) return;
-        const payments = sq.payments(appId, locationId);
-        const container = document.getElementById('sq-card-booking');
-        if (container) container.innerHTML = '';
-        const card = await payments.card({
-          style: {
-            input: { color: '#4B2E25', fontSize: '15px' },
-            '.input-container': { borderColor: '#C9A47E', borderRadius: '8px' },
-            '.input-container.is-focus': { borderColor: '#4B2E25' },
-          },
-        });
-        await card.attach('#sq-card-booking');
-        cardInstanceRef.current = card;
-        setSdkReady(true);
-      } catch (err: any) {
-        setError(err?.message ?? 'Could not load payment form.');
-      }
-    };
-
-    if (existing) {
-      initSquare();
-    } else {
-      const script = document.createElement('script');
-      script.src = scriptSrc;
-      script.onload = initSquare;
-      script.onerror = () => setError('Failed to load payment SDK. Please refresh.');
-      document.head.appendChild(script);
-    }
-
-    return () => { cardInstanceRef.current?.destroy?.(); cardInstanceRef.current = null; };
-  }, [appId, locationId, isSandbox]);
-
-  // URL params
+  // URL params (unchanged)
   const boxes = searchParams.get('boxes') || '0';
   const moveOutDate = searchParams.get('moveOutDate') || '';
   const moveInDate = searchParams.get('moveInDate') || '';
@@ -117,7 +61,6 @@ function PaymentPageContent() {
   const instructions = searchParams.get('instructions') || '';
   const school = searchParams.get('school') || 'Stonehill College';
 
-  // Pricing
   const storageMonths = (() => {
     if (!moveOutDate || !moveInDate) return 3;
     const diff = (new Date(moveInDate).getTime() - new Date(moveOutDate).getTime()) / (1000 * 60 * 60 * 24 * 30.44);
@@ -156,7 +99,7 @@ function PaymentPageContent() {
   const totalPrice = monthlyTotal * storageMonths;
   const totalPriceCents = Math.round(totalPrice * 100);
 
-  const buildBookingPayload = (): CreateBookingInput | null => {
+  const buildBookingPayload = useCallback((): CreateBookingInput | null => {
     if (!userId || !moveOutDate || !moveInDate || !moveOutTime || !dorm || !elevator || !stairs) return null;
     if (boxQty < 1) return null;
     const items: CreateBookingInput['items'] = [];
@@ -183,31 +126,16 @@ function PaymentPageContent() {
       monthly_total_cents: monthlyTotalCents,
       items,
     };
-  };
+  }, [userId, moveOutDate, moveInDate, moveOutTime, dorm, elevator, stairs, room, instructions, school, boxQty, monthlyTotalCents, searchParams]);
 
-  const handlePayAndConfirm = async () => {
-    if (!userId) {
-      router.push(`/auth/login?redirect=${encodeURIComponent(`/booking/payment?${searchParams.toString()}`)}`);
-      return;
-    }
-    if (!cardInstanceRef.current) { setError('Payment form not ready. Please wait.'); return; }
-
-    setError(null);
-    setProcessing(true);
-
-    // Step 1: tokenize card
-    const tokenResult = await cardInstanceRef.current.tokenize();
-    if (tokenResult.status !== 'OK') {
-      setError(tokenResult.errors?.[0]?.message ?? 'Card details invalid.');
+  const processPaymentWithToken = useCallback(async (token: string) => {
+    const payload = buildBookingPayload();
+    if (!payload) {
+      setError('Missing booking details.');
       setProcessing(false);
       return;
     }
-
-    // Step 2: create booking
     setStep('creating');
-    const payload = buildBookingPayload();
-    if (!payload) { setError('Missing booking details.'); setProcessing(false); return; }
-
     const bookingResult = await createBooking(payload);
     if (!bookingResult.success) {
       setError(bookingResult.error);
@@ -215,120 +143,344 @@ function PaymentPageContent() {
       setStep('idle');
       return;
     }
-
-    // Step 3: charge card
     setStep('charging');
-    const chargeResult = await chargeBookingPayment(
-      tokenResult.token,
-      bookingResult.bookingId,
-      totalPriceCents,
-    );
-
+    const chargeResult = await chargeBookingPayment(token, bookingResult.bookingId, totalPriceCents);
     if (!chargeResult.success) {
       setError(`Payment failed: ${chargeResult.error} — Your booking was saved but not charged. Please contact support.`);
       setProcessing(false);
       setStep('idle');
       return;
     }
-
-    // Step 4: redirect to confirmed
     setStep('done');
     window.location.href = `/booking/confirmed?moveOutDate=${moveOutDate}&school=${encodeURIComponent(school)}&boxes=${boxes}&monthlyTotal=${monthlyTotal}&totalPrice=${totalPrice}&months=${storageMonths}`;
+  }, [buildBookingPayload, totalPriceCents, moveOutDate, school, boxes, monthlyTotal, totalPrice, storageMonths]);
+
+  paymentProcessorRef.current = processPaymentWithToken;
+
+  // Load user + Square config
+  useEffect(() => {
+    const supabase = createClient();
+    supabase.auth.getUser().then(({ data: { user } }) => setUserId(user?.id ?? null));
+    fetch('/api/square-config')
+      .then(r => r.json())
+      .then(({ applicationId, locationId: loc, isSandbox: sb }) => {
+        setAppId(applicationId);
+        setLocationId(loc);
+        setIsSandbox(sb);
+      })
+      .catch(console.error);
+  }, []);
+
+  // Init Square Web Payments SDK (card + wallets), existing script pattern
+  useEffect(() => {
+    if (!appId || !locationId) return;
+    if (cardInstanceRef.current) return;
+
+    let googlePayCleanup: (() => void) | null = null;
+    const scriptSrc = isSandbox
+      ? 'https://sandbox.web.squarecdn.com/v1/square.js'
+      : 'https://web.squarecdn.com/v1/square.js';
+
+    const existing = document.querySelector(`script[src="${scriptSrc}"]`);
+    const initSquare = async () => {
+      if (cardInstanceRef.current) return;
+      try {
+        const sq = (window as any).Square;
+        if (!sq) return;
+        const payments = sq.payments(appId, locationId);
+        const container = document.getElementById('sq-card-booking');
+        if (container) container.innerHTML = '';
+
+        // Square card style: only properties Square accepts (no boxShadow, no fontSize).
+        const card = await payments.card({
+          style: {
+            input: {
+              color: '#4B2E25',
+              fontFamily: 'Helvetica Neue, sans-serif',
+            },
+            '.input-container': {
+              borderColor: '#C9A47E',
+              borderRadius: '8px',
+              borderWidth: '2px',
+            },
+            '.input-container.is-focus': {
+              borderColor: '#4B2E25',
+              borderWidth: '2px',
+            },
+            '.input-container.is-error': {
+              borderColor: '#991b1b',
+            },
+            '.message-text': { color: '#4B2E25' },
+          },
+        });
+        await card.attach('#sq-card-booking');
+        cardInstanceRef.current = card;
+        setSdkReady(true);
+
+        // PaymentRequest: amount must be decimal string for display (e.g. "393.00"), not cents
+        const totalAmountDisplay = (totalPriceCents / 100).toFixed(2);
+        const paymentRequest = payments.paymentRequest({
+          countryCode: 'US',
+          currencyCode: 'USD',
+          total: { amount: totalAmountDisplay, label: 'NoTime Storage' },
+        });
+
+        // Apple Pay: create with paymentRequest, no attach (Square docs). Custom button + tokenize on click.
+        try {
+          const applePay = await payments.applePay(paymentRequest);
+          applePayRef.current = applePay;
+          setApplePayInstance(applePay);
+        } catch (e) {
+          console.log('Apple Pay not available', e);
+        }
+
+        // Google Pay: create with paymentRequest, attach to div with button options only
+        try {
+          const googlePay = await payments.googlePay(paymentRequest);
+          await googlePay.attach('#google-pay-button', { buttonColor: 'default', buttonType: 'long' });
+          googlePayRef.current = googlePay;
+          setGooglePayInstance(googlePay);
+          const googlePayEl = document.getElementById('google-pay-button');
+          const onGooglePayClick = async () => {
+            setProcessing(true);
+            setError(null);
+            try {
+              const result = await googlePay.tokenize();
+              if (result.status === 'OK' && result.token) {
+                await paymentProcessorRef.current?.(result.token);
+              } else {
+                setError(result.errors?.[0]?.message ?? 'Google Pay failed');
+              }
+            } catch (err: any) {
+              setError(err?.message ?? 'Google Pay failed');
+            } finally {
+              setProcessing(false);
+            }
+          };
+          googlePayEl?.addEventListener('click', onGooglePayClick);
+          googlePayCleanup = () => googlePayEl?.removeEventListener('click', onGooglePayClick);
+        } catch (e) {
+          console.log('Google Pay not available', e);
+        }
+      } catch (err: any) {
+        setError(err?.message ?? 'Could not load payment form.');
+      }
+    };
+
+    if (existing) {
+      initSquare();
+    } else {
+      const script = document.createElement('script');
+      script.src = scriptSrc;
+      script.onload = initSquare;
+      script.onerror = () => setError('Failed to load payment SDK. Please refresh.');
+      document.head.appendChild(script);
+    }
+
+    return () => {
+      googlePayCleanup?.();
+      cardInstanceRef.current?.destroy?.();
+      cardInstanceRef.current = null;
+      applePayRef.current = null;
+      googlePayRef.current = null;
+      setSdkReady(false);
+      setApplePayInstance(null);
+      setGooglePayInstance(null);
+    };
+  }, [appId, locationId, isSandbox, totalPriceCents]);
+
+  const handleApplePayClick = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (!applePayRef.current) return;
+    setError(null);
+    setProcessing(true);
+    try {
+      const result = await applePayRef.current.tokenize();
+      if (result.status === 'OK' && result.token) {
+        await processPaymentWithToken(result.token);
+      } else {
+        setError(result.errors?.[0]?.message ?? 'Apple Pay failed');
+      }
+    } catch (err: any) {
+      setError(err?.message ?? 'Apple Pay failed');
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  const handlePayAndConfirm = async () => {
+    if (!userId) {
+      router.push(`/auth/login?redirect=${encodeURIComponent(`/booking/payment?${searchParams.toString()}`)}`);
+      return;
+    }
+    if (!cardInstanceRef.current) {
+      setError('Payment form not ready. Please wait.');
+      return;
+    }
+    setError(null);
+    setProcessing(true);
+    try {
+      const tokenResult = await cardInstanceRef.current.tokenize();
+      if (tokenResult.status !== 'OK') {
+        setError(tokenResult.errors?.[0]?.message ?? 'Card details invalid.');
+        setProcessing(false);
+        return;
+      }
+      await processPaymentWithToken(tokenResult.token);
+    } catch (err: any) {
+      setError(err?.message ?? 'Payment processing failed. Please try again.');
+      setProcessing(false);
+    }
   };
 
   const stepLabel = step === 'creating' ? 'Saving booking…' : step === 'charging' ? 'Processing payment…' : 'Pay & Confirm';
+  const hasWallet = applePayInstance || googlePayInstance;
 
   return (
-    <div className="auth-container">
-      <div style={{ maxWidth: '800px', width: '100%', background: 'white', borderRadius: '16px', padding: 'clamp(20px, 5vw, 48px)', boxShadow: '0 20px 60px rgba(0,0,0,0.08)' }}>
-
-        {/* Header */}
-        <div style={{ textAlign: 'center', marginBottom: '40px' }}>
+    <div className="booking-payment-page">
+      <div className="booking-payment-container">
+        <div className="booking-payment-header">
           <Link href="/">
-            <Image src="/brand/notime-storage-logo.png" alt="NoTime Storage" width={80} height={80} style={{ marginBottom: '24px' }} />
+            <Image src="/brand/notime-storage-logo.png" alt="NoTime Storage" width={80} height={80} style={{ marginBottom: '24px', display: 'block' }} />
           </Link>
-          <h1 style={{ fontSize: '2.25rem', fontWeight: '800', color: 'var(--color-coffee)', marginBottom: '12px' }}>
-            Review & Pay
-          </h1>
-          <p style={{ fontSize: '1.125rem', color: 'var(--color-gray-600)' }}>
-            Confirm your details and complete payment
-          </p>
+          <h1>Review & Pay</h1>
+          <p>Confirm your details and complete payment</p>
         </div>
 
-        {/* Booking Summary */}
-        <div style={{ padding: '28px', background: 'var(--color-paper)', borderRadius: '12px', marginBottom: '28px', border: '2px solid var(--color-latte)' }}>
-          <h2 style={{ fontSize: '1.25rem', fontWeight: '700', color: 'var(--color-coffee)', marginBottom: '20px' }}>Booking Summary</h2>
+        <div className="booking-payment-content">
+          {/* Left: Order Summary */}
+          <div className="booking-order-summary">
+            <h2>Booking Summary</h2>
 
-          <div style={{ color: 'var(--color-gray-700)', fontSize: '0.875rem', lineHeight: '2', marginBottom: '16px', paddingBottom: '16px', borderBottom: '1px solid var(--color-latte)' }}>
-            <div><strong>School:</strong> {school}</div>
-            <div><strong>Move-out:</strong> {formatDate(moveOutDate)} at {formatTime(moveOutTime)}</div>
-            {moveInDate && <div><strong>Move-in:</strong> {formatDate(moveInDate)}</div>}
-            <div><strong>Location:</strong> {dorm}{room ? `, Room ${room}` : ''}</div>
-            <div><strong>Access:</strong> {elevator === 'yes' ? 'Elevator available' : 'No elevator'}{stairs === 'yes' ? ', stairs required' : ''}</div>
-            <div><strong>Boxes:</strong> {boxQty} × ${boxPrice}/mo = ${boxesTotal}/mo</div>
-            {itemsList.length > 0 && <div><strong>Additional:</strong> {itemsList.join(', ')}</div>}
-          </div>
-
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
-            <div>
-              <div style={{ fontSize: '0.8rem', color: '#9E8E88', marginBottom: '4px' }}>{storageMonths} months storage</div>
-              {/* Crossed-out: storage total + $50 deposit (what it would cost without the deposit) */}
-              <div style={{ fontSize: '1.1rem', fontWeight: '600', color: '#C0A090', textDecoration: 'line-through', textDecorationColor: '#E53E3E', textDecorationThickness: '2px' }}>
-                ${(totalPrice + 50).toFixed(2)}
+            <div className="booking-summary-section">
+              <h3>Details</h3>
+              <div className="booking-summary-line">
+                <span>School</span>
+                <span>{school}</span>
               </div>
-              {/* Actual charge: storage total only (deposit already paid) */}
-              <div style={{ fontSize: '1.8rem', fontWeight: '800', color: 'var(--color-coffee)', lineHeight: '1.1' }}>
-                ${totalPrice.toFixed(2)}
+              <div className="booking-summary-line">
+                <span>Move-out</span>
+                <span>{formatDate(moveOutDate)} at {formatTime(moveOutTime)}</span>
               </div>
-              <div style={{ fontSize: '0.75rem', color: '#2D7D46', fontWeight: '600', marginTop: '2px' }}>$50 deposit already applied ✓</div>
+              {moveInDate && (
+                <div className="booking-summary-line">
+                  <span>Move-in</span>
+                  <span>{formatDate(moveInDate)}</span>
+                </div>
+              )}
+              <div className="booking-summary-line">
+                <span>Location</span>
+                <span>{dorm}{room ? `, Room ${room}` : ''}</span>
+              </div>
+              <div className="booking-summary-line">
+                <span>Access</span>
+                <span>{elevator === 'yes' ? 'Elevator' : 'No elevator'}{stairs === 'yes' ? ', stairs' : ''}</span>
+              </div>
             </div>
-            <div style={{ textAlign: 'right', color: '#9E8E88', fontSize: '0.8rem' }}>${monthlyTotal}/month</div>
-          </div>
-        </div>
 
-        {/* Payment section */}
-        <div style={{ padding: '28px', background: 'var(--color-paper)', borderRadius: '12px', marginBottom: '24px', border: '2px solid var(--color-latte)' }}>
-          <h2 style={{ fontSize: '1.25rem', fontWeight: '700', color: 'var(--color-coffee)', marginBottom: '6px' }}>Payment</h2>
-          <p style={{ fontSize: '0.875rem', color: '#6B5A52', marginBottom: '20px' }}>
-            Your <strong>$50 commitment deposit</strong> has been deducted. You will be charged <strong>${totalPrice.toFixed(2)}</strong> today.
-          </p>
-
-          {isSandbox && (
-            <div style={{ background: '#FEF9C3', border: '1px solid #FDE047', borderRadius: '8px', padding: '10px 14px', marginBottom: '16px', fontSize: '0.8rem', color: '#713F12' }}>
-              <strong>Sandbox mode</strong> — Test card: <code>4111 1111 1111 1111</code>, any future date, any CVV.
+            <div className="booking-summary-section">
+              <h3>Storage</h3>
+              <div className="booking-summary-line">
+                <span>{boxQty} {boxQty === 1 ? 'Box' : 'Boxes'}</span>
+                <span>${boxesTotal}/mo</span>
+              </div>
+              {itemsList.length > 0 && (
+                <div className="booking-summary-line">
+                  <span>Additional</span>
+                  <span>{itemsList.join(', ')}</span>
+                </div>
+              )}
             </div>
-          )}
 
-          <div id="sq-card-booking" style={{ minHeight: '89px', marginBottom: '8px' }} />
-        </div>
+            <div className="booking-summary-section">
+              <div className="booking-summary-line">
+                <span>Monthly total</span>
+                <span>${monthlyTotal.toFixed(2)}/month</span>
+              </div>
+              <div className="booking-summary-line">
+                <span>Duration</span>
+                <span>{storageMonths} months</span>
+              </div>
+              <div className="booking-summary-line highlight">
+                <span>Subtotal</span>
+                <span>${totalPrice.toFixed(2)}</span>
+              </div>
+              <div className="booking-summary-line" style={{ color: 'var(--color-latte)', fontSize: '14px' }}>
+                <span>Deposit (already paid)</span>
+                <span>−$50.00</span>
+              </div>
+            </div>
 
-        {error && (
-          <div style={{ padding: '12px 16px', marginBottom: '16px', background: '#FEE2E2', border: '1px solid #EF4444', borderRadius: '8px', color: '#B91C1C', fontSize: '0.875rem' }}>
-            {error}
+            <div className="booking-summary-total">
+              <span>Total due today</span>
+              <span>${totalPrice.toFixed(2)}</span>
+            </div>
           </div>
-        )}
 
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '14px' }}>
-          <button
-            type="button"
-            onClick={handlePayAndConfirm}
-            disabled={!sdkReady || processing}
-            className="button-primary"
-            style={{ width: '100%', padding: '16px', fontSize: '1.1rem', opacity: (!sdkReady || processing) ? 0.65 : 1, cursor: (!sdkReady || processing) ? 'wait' : 'pointer' }}
-          >
-            {processing ? stepLabel : `Pay $${totalPrice.toFixed(2)} & Confirm`}
-          </button>
+          {/* Right: Payment */}
+          <div className="booking-payment-card">
+            <h2>Payment</h2>
+            <div className="payment-trust-message">
+              Your $50 commitment deposit has been deducted. You will be charged <strong>${totalPrice.toFixed(2)}</strong> today.
+            </div>
 
-          <Link href={`/booking/schedule?${searchParams.toString()}`}>
-            <button type="button" className="button-secondary" style={{ padding: '10px 28px', fontSize: '0.9rem' }}>
-              ← Edit Details
+            {isSandbox && (
+              <div className="sandbox-warning">
+                Test mode — use card 4111 1111 1111 1111, any future date, any CVV. No real charges.
+              </div>
+            )}
+
+            {error && (
+              <div className="payment-error-message" role="alert">
+                {error}
+              </div>
+            )}
+
+            {/* Apple Pay: custom button (Square has no attach); Google Pay: attach renders into div */}
+            <div className="payment-digital-wallets" style={{ display: hasWallet ? 'flex' : 'none' }}>
+              {applePayInstance && (
+                <button
+                  type="button"
+                  id="apple-pay-button"
+                  className="payment-wallet-button payment-wallet-button-apple"
+                  onClick={handleApplePayClick}
+                  disabled={processing}
+                >
+                  Apple Pay
+                </button>
+              )}
+              <div id="google-pay-button" className="payment-wallet-button" />
+            </div>
+
+            {hasWallet && (
+              <div className="payment-method-divider">
+                <span>or pay with card</span>
+              </div>
+            )}
+
+            <div id="sq-card-booking" className="square-card-container" />
+
+            <button
+              type="button"
+              className="booking-payment-button"
+              onClick={handlePayAndConfirm}
+              disabled={!sdkReady || processing}
+            >
+              {processing && <span className="payment-spinner" aria-hidden />}
+              {processing ? stepLabel : `Pay $${totalPrice.toFixed(2)} & Confirm`}
             </button>
-          </Link>
+
+            <div className="payment-trust-badges">
+              <span>🔒 256-bit encrypted</span>
+              <span>✓ PCI compliant</span>
+              <span>Powered by Square</span>
+            </div>
+          </div>
         </div>
 
-        <p style={{ textAlign: 'center', marginTop: '16px', fontSize: '0.78rem', color: '#9E8E88' }}>
-          Secured by Square · $50 deposit already applied
-        </p>
+        <Link href={`/booking/schedule?${searchParams.toString()}`} className="booking-payment-back">
+          ← Edit details
+        </Link>
       </div>
     </div>
   );
@@ -336,7 +488,7 @@ function PaymentPageContent() {
 
 export default function PaymentPage() {
   return (
-    <Suspense fallback={<div className="auth-container" />}>
+    <Suspense fallback={<div className="booking-payment-page" />}>
       <PaymentPageContent />
     </Suspense>
   );

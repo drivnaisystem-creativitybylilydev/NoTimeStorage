@@ -17,55 +17,162 @@ export function DepositForm({ applicationId, locationId, isSandbox, customerName
   const cardRef = useRef<HTMLDivElement>(null);
   const paymentsRef = useRef<any>(null);
   const cardInstanceRef = useRef<any>(null);
+  const applePayRef = useRef<any>(null);
+  const googlePayRef = useRef<any>(null);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [sdkReady, setSdkReady] = useState(false);
+   const [applePayInstance, setApplePayInstance] = useState<any>(null);
+   const [googlePayInstance, setGooglePayInstance] = useState<any>(null);
 
   useEffect(() => {
+    let googlePayCleanup: (() => void) | null = null;
+
     const scriptSrc = isSandbox
       ? 'https://sandbox.web.squarecdn.com/v1/square.js'
       : 'https://web.squarecdn.com/v1/square.js';
 
+    const initSquare = async () => {
+      if (cardInstanceRef.current) return;
+      try {
+        const sq = (window as any).Square;
+        if (!sq) {
+          setError('Square SDK not available.');
+          return;
+        }
+
+        const payments = sq.payments(applicationId, locationId);
+        paymentsRef.current = payments;
+
+        const container = document.getElementById('sq-card');
+        if (container) container.innerHTML = '';
+
+        // Card element styling: only properties Square supports (no fontSize/boxShadow).
+        const card = await payments.card({
+          style: {
+            input: { color: '#4B2E25' },
+            '.input-container': {
+              borderColor: '#C9A47E',
+              borderRadius: '8px',
+            },
+            '.input-container.is-focus': {
+              borderColor: '#4B2E25',
+            },
+          },
+        });
+        await card.attach('#sq-card');
+        cardInstanceRef.current = card;
+        setSdkReady(true);
+
+        // Shared PaymentRequest for $50 deposit (display amount, not cents).
+        const paymentRequest = payments.paymentRequest({
+          countryCode: 'US',
+          currencyCode: 'USD',
+          total: {
+            amount: '50.00',
+            label: 'NoTime Storage Deposit',
+          },
+        });
+
+        // Apple Pay: create with PaymentRequest (no attach). We render our own button.
+        try {
+          const applePay = await payments.applePay(paymentRequest);
+          applePayRef.current = applePay;
+          setApplePayInstance(applePay);
+        } catch (e) {
+          console.log('Apple Pay not available for deposit', e);
+        }
+
+        // Google Pay: create with PaymentRequest and attach a button into our div.
+        try {
+          const googlePay = await payments.googlePay(paymentRequest);
+          await googlePay.attach('#google-pay-button', {
+            buttonColor: 'default',
+            buttonType: 'long',
+          });
+          googlePayRef.current = googlePay;
+          setGooglePayInstance(googlePay);
+
+          const googlePayEl = document.getElementById('google-pay-button');
+          const onGooglePayClick = async () => {
+            setError(null);
+            setLoading(true);
+            try {
+              const result = await googlePay.tokenize();
+              if (result.status === 'OK' && result.token) {
+                await processDepositWithToken(result.token);
+              } else {
+                setError(result.errors?.[0]?.message ?? 'Google Pay failed.');
+              }
+            } catch (err: any) {
+              setError(err?.message ?? 'Google Pay failed.');
+            } finally {
+              setLoading(false);
+            }
+          };
+
+          googlePayEl?.addEventListener('click', onGooglePayClick);
+          googlePayCleanup = () => {
+            googlePayEl?.removeEventListener('click', onGooglePayClick);
+          };
+        } catch (e) {
+          console.log('Google Pay not available for deposit', e);
+        }
+      } catch (err: any) {
+        setError(err?.message ?? 'Could not initialize payment form.');
+      }
+    };
+
     const existing = document.querySelector(`script[src="${scriptSrc}"]`);
     if (existing) {
       initSquare();
-      return;
+    } else {
+      const script = document.createElement('script');
+      script.src = scriptSrc;
+      script.onload = initSquare;
+      script.onerror = () =>
+        setError('Failed to load payment SDK. Please refresh.');
+      document.head.appendChild(script);
     }
 
-    const script = document.createElement('script');
-    script.src = scriptSrc;
-    script.onload = initSquare;
-    script.onerror = () => setError('Failed to load payment SDK. Please refresh.');
-    document.head.appendChild(script);
-
     return () => {
+      googlePayCleanup?.();
       cardInstanceRef.current?.destroy?.();
       cardInstanceRef.current = null;
+      applePayRef.current = null;
+      googlePayRef.current = null;
+      setSdkReady(false);
+      setApplePayInstance(null);
+      setGooglePayInstance(null);
     };
-  }, []);
+  }, [applicationId, locationId, isSandbox]);
 
-  async function initSquare() {
-    if (cardInstanceRef.current) return;
+  async function processDepositWithToken(token: string) {
+    const res = await chargeDeposit(token);
+    if (!res.success) {
+      setError(res.error);
+      return;
+    }
+    window.location.href = '/booking/configure';
+  }
+
+  async function handleApplePayClick(e: any) {
+    e.preventDefault();
+    if (!applePayRef.current) return;
+    setError(null);
+    setLoading(true);
     try {
-      const sq = (window as any).Square;
-      if (!sq) { setError('Square SDK not available.'); return; }
-      const payments = sq.payments(applicationId, locationId);
-      paymentsRef.current = payments;
-      const container = document.getElementById('sq-card');
-      if (container) container.innerHTML = '';
-      const card = await payments.card({
-        style: {
-          input: { color: '#4B2E25', fontSize: '15px' },
-          '.input-container': { borderColor: '#C9A47E', borderRadius: '8px' },
-          '.input-container.is-focus': { borderColor: '#4B2E25' },
-        },
-      });
-      await card.attach('#sq-card');
-      cardInstanceRef.current = card;
-      setSdkReady(true);
+      const result = await applePayRef.current.tokenize();
+      if (result.status === 'OK' && result.token) {
+        await processDepositWithToken(result.token);
+      } else {
+        setError(result.errors?.[0]?.message ?? 'Apple Pay failed.');
+      }
     } catch (err: any) {
-      setError(err?.message ?? 'Could not initialize payment form.');
+      setError(err?.message ?? 'Apple Pay failed.');
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -75,20 +182,14 @@ export function DepositForm({ applicationId, locationId, isSandbox, customerName
     setLoading(true);
     try {
       const result = await cardInstanceRef.current.tokenize();
-      if (result.status !== 'OK') {
+      if (result.status !== 'OK' || !result.token) {
         setError(result.errors?.[0]?.message ?? 'Card tokenization failed.');
-        setLoading(false);
         return;
       }
-      const res = await chargeDeposit(result.token);
-      if (!res.success) {
-        setError(res.error);
-        setLoading(false);
-        return;
-      }
-      window.location.href = '/booking/configure';
+      await processDepositWithToken(result.token);
     } catch (err: any) {
       setError(err?.message ?? 'Unexpected error. Please try again.');
+    } finally {
       setLoading(false);
     }
   }
@@ -234,6 +335,31 @@ export function DepositForm({ applicationId, locationId, isSandbox, customerName
               color: '#713F12',
             }}>
               <strong>Sandbox</strong> — Test card: <code>4111 1111 1111 1111</code>, any future date, any CVV.
+            </div>
+          )}
+
+          {/* Digital wallets for deposit */}
+          <div
+            className="payment-digital-wallets"
+            style={{ display: (applePayInstance || googlePayInstance) ? 'flex' : 'none' }}
+          >
+            {applePayInstance && (
+              <button
+                type="button"
+                id="apple-pay-button"
+                className="payment-wallet-button payment-wallet-button-apple"
+                onClick={handleApplePayClick}
+                disabled={loading}
+              >
+                Apple Pay
+              </button>
+            )}
+            <div id="google-pay-button" className="payment-wallet-button" />
+          </div>
+
+          {(applePayInstance || googlePayInstance) && (
+            <div className="payment-method-divider" style={{ marginBottom: '16px' }}>
+              <span>or pay with card</span>
             </div>
           )}
 

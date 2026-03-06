@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import { submitContactForm } from '@/lib/contact/submit';
 import { submitReminderSignup } from '@/lib/reminder/signup';
+import { SCHOOLS } from '@/lib/schools/config';
 
 export default function Home() {
   const [user, setUser] = useState<any>(null);
@@ -307,43 +308,72 @@ export default function Home() {
         </motion.div>
       </section>
 
-      {/* Trust & Social Proof Strip - Campus logos only (stats removed for real values later) */}
+      {/* Trust & Social Proof Strip - Campus logos from lib/schools/config */}
       <section className="trust-strip">
         <div className="trust-strip-content">
-          {/* Campus Partner Logos - Static row (2 schools + Coming Soon) */}
+          <div className="trust-heading-wrapper">
+            <motion.p
+              className="trust-heading"
+              initial={{ opacity: 0, x: -40 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true, margin: '-60px' }}
+              transition={{ duration: 0.7, ease: [0.25, 0.1, 0.25, 1] }}
+            >
+              Official Moving Partners of:
+            </motion.p>
+            <motion.span
+              className="trust-heading-underline"
+              initial={{ scaleX: 0, opacity: 0 }}
+              whileInView={{ scaleX: 1, opacity: 1 }}
+              viewport={{ once: true, margin: '-60px' }}
+              transition={{ duration: 0.7, delay: 0.5, ease: [0.25, 0.1, 0.25, 1] }}
+            />
+          </div>
+          <motion.div
+            className="trust-social-proof"
+            initial={{ opacity: 0, y: 16 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: '-60px' }}
+            transition={{ duration: 0.6, delay: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
+          >
+            <div className="trust-social-proof-item">
+              <span className="trust-social-stars">★★★★★</span>
+              <span className="trust-social-value">4.7</span>
+              <span className="trust-social-label">Student Rating</span>
+            </div>
+            <div className="trust-social-divider" />
+            <div className="trust-social-proof-item">
+              <span className="trust-social-value">300+</span>
+              <span className="trust-social-label">Students Served</span>
+            </div>
+          </motion.div>
           <div className="campus-cards-row">
-            <div className="campus-school-tile campus-school-tile--stonehill">
-              <Image src="/brand/school-logos/Stonehill.png" alt="Stonehill College" width={190} height={190} className="campus-school-logo" />
-              <div className="campus-school-text">
-                <div className="campus-school-name">Stonehill College</div>
-                <div className="campus-school-location">Easton, MA</div>
-              </div>
-            </div>
-            <div className="campus-school-tile campus-school-tile--unh">
-              <Image src="/brand/school-logos/UNH.png" alt="University of New Haven" width={190} height={190} className="campus-school-logo" />
-              <div className="campus-school-text">
-                <div className="campus-school-name">University of New Haven</div>
-                <div className="campus-school-location">West Haven, CT</div>
-              </div>
-            </div>
-            {/* Coming Soon - locked / tease card */}
-            <div className="campus-coming-soon-holder" aria-hidden="true">
-              <div className="campus-coming-soon-fade" />
-              <div className="campus-school-tile campus-school-tile--coming campus-coming-static">
-                <div className="campus-coming-soon-badge">Coming Soon</div>
-                <div className="campus-coming-locked-logo" aria-hidden="true">
-                  <svg width="120" height="120" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg" className="campus-coming-lock-icon">
-                    <path d="M60 20c-11 0-20 9-20 20v12H36c-4.4 0-8 3.6-8 8v44c0 4.4 3.6 8 8 8h48c4.4 0 8-3.6 8-8V60c0-4.4-3.6-8-8-8h-4V40c0-11-9-20-20-20zm0 8c6.6 0 12 5.4 12 12v12H48V40c0-6.6 5.4-12 12-12z" fill="#0a0a0a"/>
-                  </svg>
-                </div>
-                <div className="campus-school-text">
-                  <div className="campus-school-name">Your Campus</div>
-                  <div className="campus-school-location">Unlock soon</div>
-                </div>
-              </div>
+            <div>
+              {[...SCHOOLS, ...SCHOOLS].map((school, idx) => {
+                const logoSlug = school.logoSlug ?? school.shortName;
+                return (
+                  <div
+                    key={`${school.name}-${idx}`}
+                    aria-hidden={idx >= SCHOOLS.length}
+                    className={`campus-school-tile campus-school-tile--${logoSlug.toLowerCase().replace(/\s+/g, '-')}`}
+                  >
+                    <Image
+                      src={`/brand/school-logos/${logoSlug}.png?v=2`}
+                      alt={school.name}
+                      width={190}
+                      height={190}
+                      className="campus-school-logo"
+                      unoptimized
+                    />
+                    <div className="campus-school-text">
+                      <div className="campus-school-name">{school.name}</div>
+                      <div className="campus-school-location">{school.location ?? ''}</div>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
-          <p className="trust-note">Serving students at partner campuses</p>
         </div>
       </section>
 
@@ -916,7 +946,7 @@ export default function Home() {
             <div className="cv2-row">
               <div className="cv2-feature-cell">Pickup &amp; Delivery</div>
               <div className="cv2-notime-cell"><span className="cv2-check">✓</span><span>Included</span></div>
-              <div className="cv2-diy-cell"><span className="cv2-x">✗</span><div className="cv2-cost"><span className="cv2-cost-amount">$320 min</span><span className="cv2-cost-source">Move.org</span></div></div>
+              <div className="cv2-diy-cell"><span className="cv2-x">✗</span><div className="cv2-cost"><span className="cv2-cost-amount">$800+</span><span className="cv2-cost-source">Move.org</span></div></div>
             </div>
 
             <div className="cv2-row">

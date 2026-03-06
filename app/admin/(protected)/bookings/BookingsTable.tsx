@@ -19,6 +19,8 @@ type BookingsTableProps = {
 };
 
 import { formatDateShort } from '@/lib/utils/date';
+import { SCHOOL_DORMS, SCHOOL_NAMES } from '@/lib/schools/config';
+
 function formatDate(d: string) { return formatDateShort(d); }
 
 function formatTimeSlot(s: string) {
@@ -40,54 +42,11 @@ function BookingsTableContent({ initialBookings, total, currentPage, filters, so
   const [selectedBooking, setSelectedBooking] = useState<BookingWithCustomer | null>(null);
   const [actionPending, setActionPending] = useState(false);
 
-  // For now we only have Stonehill, but structure is ready for multiple schools
-  const SCHOOL_DORMS: Record<string, string[]> = useMemo(
-    () => ({
-      'Stonehill College': [
-        'Boland Hall',
-        'Corning Hall',
-        'Cushing-Martin Hall',
-        'Duffy Hall',
-        'Gate House',
-        'Holy Cross Hall',
-        'Joseph Martin Institute',
-        'New Hall',
-        "O'Hara Hall",
-        'Pilgrim Heights',
-        'Shields Science Center',
-        'Southeast & Southwest Quadrangles',
-        'Stucker House',
-        'The Knoll',
-        'Townhouses',
-        'Off-Campus Housing',
-      ],
-      'University of New Haven': [
-        'Bergami Hall',
-        'Bethel Hall',
-        'Bixler Hall',
-        'Gerber Hall',
-        'Westside Hall',
-        'Celentano Hall',
-        'Dunham Hall',
-        'Sheffield Hall',
-        'Winchester Hall',
-        'The Atwood',
-        'Campbell Houses',
-        'Forest Hills Apartments',
-        'Park View',
-        'Ruden Street Apartments',
-        'Savin Court Townhouses',
-        'Off-Campus Housing',
-      ],
-    }),
-    []
-  );
-
-  const schools = useMemo(() => Object.keys(SCHOOL_DORMS), [SCHOOL_DORMS]);
+  const schools = SCHOOL_NAMES;
   const dormOptions = useMemo(() => {
     if (!filters.school) return [];
     return SCHOOL_DORMS[filters.school] || [];
-  }, [SCHOOL_DORMS, filters.school]);
+  }, [filters.school]);
 
   const updateFilters = (updates: Partial<BookingsFilters & { sortBy?: string; sortOrder?: string; page?: number }>) => {
     const params = new URLSearchParams(searchParams.toString());

@@ -2527,16 +2527,135 @@ button {
   background-color: var(--color-latte-soft);
 }
 
-/* Campus cards - static row (no scroll) */
-.campus-cards-row {
+@keyframes trust-heading-glow-pulse {
+  0%, 100% {
+    text-shadow:
+      0 0 6px  rgba(201, 164, 126, 0.7),
+      0 0 18px rgba(180, 120, 60, 0.5),
+      0 0 36px rgba(180, 120, 60, 0.25);
+  }
+  50% {
+    text-shadow:
+      0 0 10px rgba(201, 164, 126, 1),
+      0 0 28px rgba(180, 120, 60, 0.75),
+      0 0 56px rgba(180, 120, 60, 0.45);
+  }
+}
+
+.trust-social-proof {
   display: flex;
   align-items: center;
-  justify-content: center;
-  flex-wrap: wrap;
-  gap: var(--spacing-lg);
+  gap: 40px;
+  margin-top: 4px;
+}
+
+.trust-social-proof-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.trust-social-stars {
+  color: #D4A017;
+  font-size: 0.85rem;
+  letter-spacing: 3px;
+  text-shadow:
+    0 0 6px  rgba(212, 160, 23, 0.9),
+    0 0 14px rgba(212, 160, 23, 0.65),
+    0 0 28px rgba(212, 160, 23, 0.35);
+}
+
+.trust-social-value {
+  font-size: 1.05rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-coffee);
+}
+
+.trust-social-label {
+  font-size: 0.65rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--color-gray-600);
+}
+
+.trust-social-divider {
+  width: 1px;
+  height: 36px;
+  background: linear-gradient(to bottom, transparent, #C9A47E, transparent);
+}
+
+.trust-heading-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.trust-heading {
+  font-size: clamp(1.4rem, 2.8vw, 2rem);
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-align: center;
+  color: var(--color-coffee);
+  margin: 0;
+  animation: trust-heading-glow-pulse 2.5s ease-in-out infinite;
+}
+
+.trust-heading-underline {
+  display: block;
+  height: 2px;
   width: 100%;
-  padding: var(--spacing-md) 0;
+  border-radius: 2px;
+  background-color: #C9A47E;
+  box-shadow: 0 0 10px rgba(201, 164, 126, 0.8), 0 0 20px rgba(180, 120, 60, 0.4);
+  transform-origin: left center;
+}
+
+/* ─── Infinite-scroll campus strip ─────────────────────────────────── */
+@keyframes campus-scroll {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+
+/* Outer container: masks overflow so the track scrolls under the edge fades */
+.campus-cards-row {
   position: relative;
+  width: 100%;
+  overflow: hidden;
+  padding: var(--spacing-md) 0;
+  /* Left/right edge fade */
+  mask-image: linear-gradient(
+    to right,
+    transparent 0%,
+    black 80px,
+    black calc(100% - 80px),
+    transparent 100%
+  );
+  -webkit-mask-image: linear-gradient(
+    to right,
+    transparent 0%,
+    black 80px,
+    black calc(100% - 80px),
+    transparent 100%
+  );
+}
+
+/* Scrolling track — contains the doubled set of cards */
+.campus-cards-row > div {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-lg);
+  width: max-content;
+  animation: campus-scroll 10s linear infinite;
+}
+
+.campus-cards-row:hover > div {
+  animation-play-state: paused;
 }
 
 .campus-placeholder-tile {
@@ -2548,7 +2667,8 @@ button {
   flex-shrink: 0;
 }
 
-/* Campus school logo tiles */
+/* ── Subtle tile glow (shared by all school tiles) ── */
+/* Matches the soft ambient style used in the How It Works step images */
 .campus-school-tile {
   width: 280px;
   height: 260px;
@@ -2561,64 +2681,38 @@ button {
   gap: 6px;
   padding: 8px 16px 14px;
   text-align: center;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  background: var(--color-latte-soft);
+  border: 1px solid var(--color-latte);
+  box-shadow:
+    0 0 0 1.5px rgba(201, 164, 126, 0.55),
+    0 0 14px 4px rgba(201, 164, 126, 0.18),
+    0 0 28px 8px rgba(180, 120, 60, 0.08);
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
 }
 
 .campus-school-tile:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  transform: translateY(-3px);
+  box-shadow:
+    0 0 0 2px rgba(201, 164, 126, 0.7),
+    0 0 20px 6px rgba(201, 164, 126, 0.28),
+    0 0 40px 12px rgba(180, 120, 60, 0.14);
 }
 
-/* Stonehill College — light latte brown */
-.campus-school-tile--stonehill {
-  background: var(--color-latte-soft);
-  box-shadow: 0 0 0 2px #C9A47E, 0 0 22px 8px rgba(201, 164, 126, 0.55), 0 0 48px 14px rgba(180, 120, 60, 0.25);
-  border: 1px solid var(--color-latte);
+/* All school tiles share the same latte style — per-tile overrides below if needed */
+.campus-school-tile--stonehill,
+.campus-school-tile--unh,
+.campus-school-tile--dayton,
+.campus-school-tile--umass-amherst,
+.campus-school-tile--ccsu,
+.campus-school-tile--brevard,
+.campus-school-tile--gordon {
+  /* Inherits .campus-school-tile base; no per-school overrides needed */
 }
 
-.campus-school-tile--stonehill .campus-school-monogram {
+.campus-school-tile .campus-school-monogram,
+.campus-school-tile .campus-school-name,
+.campus-school-tile .campus-school-location {
   color: var(--color-coffee);
-}
-
-.campus-school-tile--stonehill .campus-school-name,
-.campus-school-tile--stonehill .campus-school-location {
-  color: var(--color-coffee);
-}
-
-/* University of New Haven — light latte brown */
-.campus-school-tile--unh {
-  background: var(--color-latte-soft);
-  box-shadow: 0 0 0 2px #C9A47E, 0 0 22px 8px rgba(201, 164, 126, 0.55), 0 0 48px 14px rgba(180, 120, 60, 0.25);
-  border: 1px solid var(--color-latte);
-}
-
-.campus-school-tile--unh .campus-school-monogram {
-  color: var(--color-coffee);
-}
-
-.campus-school-tile--unh .campus-school-name,
-.campus-school-tile--unh .campus-school-location {
-  color: var(--color-coffee);
-}
-
-/* Coming soon tile (in carousel - kept for any legacy use) */
-.campus-school-tile--coming {
-  background: var(--color-latte-soft);
-  border: 2px dashed var(--color-latte);
-  box-shadow: none;
-}
-
-.campus-school-tile--coming .campus-school-monogram {
-  color: var(--color-latte);
-}
-
-.campus-school-tile--coming .campus-school-name {
-  color: var(--color-coffee);
-}
-
-.campus-school-tile--coming .campus-school-location {
-  color: var(--color-gray-500);
 }
 
 /* Static "Your Campus - Coming Soon" card: 70% visible, right-edge fade, locked-character style */
@@ -5231,6 +5325,359 @@ button {
     width: 56px;
     height: 56px;
     font-size: 2rem;
+  }
+}
+
+/* ============================================
+   BOOKING PAYMENT PAGE - PREMIUM UPGRADE
+   ============================================ */
+
+/* Main container */
+.booking-payment-page {
+  min-height: 100vh;
+  background: var(--color-paper);
+  padding-top: 100px;
+  padding-bottom: 80px;
+}
+
+.booking-payment-container {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+/* Header */
+.booking-payment-header {
+  text-align: center;
+  margin-bottom: 48px;
+}
+
+.booking-payment-header h1 {
+  color: var(--color-coffee);
+  font-size: 36px;
+  font-weight: 700;
+  margin-bottom: 8px;
+  letter-spacing: -0.02em;
+}
+
+.booking-payment-header p {
+  color: var(--color-latte);
+  font-size: 16px;
+}
+
+/* Main content layout - two columns on desktop */
+.booking-payment-content {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 32px;
+}
+
+@media (min-width: 768px) {
+  .booking-payment-content {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+/* Order Summary Card */
+.booking-order-summary {
+  background: white;
+  border: 2px solid var(--color-latte);
+  border-radius: 12px;
+  padding: 32px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  height: fit-content;
+}
+
+.booking-order-summary h2 {
+  color: var(--color-coffee);
+  font-size: 20px;
+  font-weight: 600;
+  margin-bottom: 24px;
+}
+
+.booking-summary-section {
+  margin-bottom: 24px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid var(--color-latte-soft);
+}
+
+.booking-summary-section:last-child {
+  margin-bottom: 0;
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
+.booking-summary-section h3 {
+  color: var(--color-coffee);
+  font-size: 14px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 12px;
+}
+
+.booking-summary-line {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  color: var(--color-ink);
+  font-size: 15px;
+}
+
+.booking-summary-line.highlight {
+  font-weight: 600;
+  color: var(--color-coffee);
+  font-size: 16px;
+}
+
+.booking-summary-total {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 0 0 0;
+  margin-top: 16px;
+  border-top: 2px solid var(--color-latte);
+  font-weight: 700;
+  font-size: 24px;
+  color: var(--color-coffee);
+}
+
+/* Payment Card */
+.booking-payment-card {
+  background: white;
+  border: 2px solid var(--color-latte);
+  border-radius: 12px;
+  padding: 32px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  height: fit-content;
+}
+
+.booking-payment-card h2 {
+  color: var(--color-coffee);
+  font-size: 20px;
+  font-weight: 600;
+  margin-bottom: 16px;
+}
+
+/* Trust message */
+.payment-trust-message {
+  background: rgba(201, 164, 126, 0.1);
+  border-left: 3px solid var(--color-latte);
+  padding: 12px 16px;
+  border-radius: 6px;
+  margin-bottom: 24px;
+  font-size: 14px;
+  color: var(--color-coffee);
+  line-height: 1.5;
+}
+
+/* Sandbox warning */
+.sandbox-warning {
+  background: #FFF7ED;
+  border: 1px solid #c2410c;
+  color: #c2410c;
+  padding: 12px 16px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+/* Digital Wallets */
+.payment-digital-wallets {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.payment-wallet-button {
+  min-height: 48px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.payment-wallet-button-apple {
+  background: #000;
+  color: #fff;
+  border: none;
+  font-size: 1rem;
+  font-weight: 500;
+  padding: 0 20px;
+}
+
+.payment-wallet-button-apple:hover:not(:disabled) {
+  background: #333;
+}
+
+.payment-wallet-button-apple:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Payment divider */
+.payment-method-divider {
+  display: flex;
+  align-items: center;
+  text-align: center;
+  margin: 20px 0;
+}
+
+.payment-method-divider::before,
+.payment-method-divider::after {
+  content: '';
+  flex: 1;
+  border-bottom: 1px solid var(--color-latte-soft);
+}
+
+.payment-method-divider span {
+  padding: 0 16px;
+  color: var(--color-latte);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+/* Square card container */
+.square-card-container {
+  margin-bottom: 20px;
+  min-height: 89px;
+}
+
+/* Error message */
+.payment-error-message {
+  background: #FEF2F2;
+  border: 1px solid #991b1b;
+  color: #991b1b;
+  padding: 12px 16px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  font-size: 14px;
+}
+
+/* Payment button */
+.booking-payment-button {
+  width: 100%;
+  background: var(--color-coffee);
+  color: var(--color-latte-soft);
+  border: 2px solid var(--color-coffee);
+  border-radius: 8px;
+  padding: 16px 32px;
+  font-size: 18px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  margin-bottom: 20px;
+  min-height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.booking-payment-button:hover:not(:disabled) {
+  background: var(--color-coffee-dark);
+  box-shadow: 0 8px 20px rgba(75, 46, 37, 0.3);
+  transform: translateY(-2px);
+}
+
+.booking-payment-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.booking-payment-button:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+/* Loading spinner */
+.payment-spinner {
+  border: 2px solid var(--color-latte-soft);
+  border-top: 2px solid var(--color-coffee);
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  animation: booking-payment-spin 0.8s linear infinite;
+}
+
+@keyframes booking-payment-spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Trust badges */
+.payment-trust-badges {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  font-size: 13px;
+  color: var(--color-latte);
+  padding-top: 8px;
+}
+
+.payment-trust-badges span {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Booking payment back link */
+.booking-payment-back {
+  display: block;
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+  .booking-payment-page {
+    padding-top: 80px;
+    padding-bottom: 40px;
+  }
+
+  .booking-payment-container {
+    padding: 0 20px;
+  }
+
+  .booking-payment-header h1 {
+    font-size: 28px;
+  }
+
+  .booking-order-summary,
+  .booking-payment-card {
+    padding: 24px 20px;
+  }
+
+  .booking-summary-total {
+    font-size: 20px;
+  }
+
+  .booking-payment-button {
+    font-size: 16px;
+    padding: 14px 24px;
+  }
+}
+
+@media (max-width: 480px) {
+  .booking-payment-header {
+    margin-bottom: 32px;
+  }
+
+  .booking-order-summary,
+  .booking-payment-card {
+    padding: 20px 16px;
+  }
+
+  .booking-summary-line {
+    font-size: 14px;
+  }
+
+  .payment-trust-badges {
+    flex-direction: column;
+    gap: 8px;
   }
 }
 

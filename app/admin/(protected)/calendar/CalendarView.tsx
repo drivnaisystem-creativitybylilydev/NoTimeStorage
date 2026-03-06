@@ -4,8 +4,9 @@ import { useState, useMemo } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import type { BookingWithCustomer } from '@/lib/admin/actions';
 import { formatDate } from '@/lib/utils/date';
+import { SCHOOL_NAMES } from '@/lib/schools/config';
 
-const SCHOOLS = ['All Schools', 'Stonehill College', 'University of New Haven'];
+const SCHOOLS = ['All Schools', ...SCHOOL_NAMES];
 
 const BOX_RANGES = [
   { label: 'All Boxes', min: 0, max: Infinity },

@@ -510,6 +510,11 @@ function SchedulePageContent() {
           <label id="dorm-label" style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: 'var(--color-coffee)' }}>
             Residence Hall / Location *
           </label>
+          {school && dorms.length === 0 && (
+            <p style={{ marginBottom: '10px', fontSize: '0.9rem', color: 'var(--color-latte)', fontWeight: 500 }}>
+              Residence halls for {school} are being added. Please check back soon or contact us.
+            </p>
+          )}
           <div style={{ position: 'relative' }}>
             <button
               type="button"

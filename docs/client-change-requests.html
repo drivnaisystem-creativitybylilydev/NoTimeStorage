@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>NoTime Storage – Client Change Requests</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root {
+      --bg: #1f1511;
+      --card: #2a1b16;
+      --coffee: #f8ede5;
+      --latte: #e1b582;
+      --muted: #c3a89b;
+      --border-subtle: #3b2720;
+      --pill-bg: #3a2620;
+      --accent: #f1c38a;
+      --accent-soft: rgba(241, 195, 138, 0.16);
+      --completed: rgba(54, 179, 126, 0.18);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      min-height: 100vh;
+      padding: 32px 20px 40px;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background:
+        radial-gradient(circle at top left, #3b2417 0%, transparent 55%),
+        radial-gradient(circle at bottom right, #1c120e 0%, transparent 60%),
+        var(--bg);
+      color: var(--coffee);
+      display: flex;
+      justify-content: center;
+    }
+
+    .page {
+      width: 100%;
+      max-width: 1120px;
+    }
+
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+
+    .title-block {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .eyebrow {
+      font-size: 0.78rem;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--muted);
+      font-weight: 700;
+    }
+
+    h1 {
+      font-size: 1.8rem;
+      letter-spacing: 0.02em;
+    }
+
+    .subtitle {
+      font-size: 0.95rem;
+      color: var(--muted);
+    }
+
+    .meta-pill {
+      padding: 8px 12px;
+      border-radius: 999px;
+      background: rgba(26, 16, 12, 0.9);
+      border: 1px solid var(--border-subtle);
+      font-size: 0.8rem;
+      color: var(--muted);
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      white-space: nowrap;
+    }
+
+    .meta-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      background: #22c55e;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+      gap: 20px;
+      align-items: flex-start;
+    }
+
+    .card {
+      background: var(--card);
+      border-radius: 18px;
+      border: 1px solid var(--border-subtle);
+      box-shadow: 0 22px 60px rgba(0, 0, 0, 0.45);
+      padding: 20px 22px 18px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .card::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at top right, rgba(241, 195, 138, 0.3) 0%, transparent 60%);
+      opacity: 0.6;
+      pointer-events: none;
+    }
+
+    .card-header {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+
+    .card-title {
+      font-size: 1.05rem;
+      font-weight: 700;
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+      color: var(--accent);
+    }
+
+    .card-tag {
+      font-size: 0.78rem;
+      padding: 4px 9px;
+      border-radius: 999px;
+      border: 1px solid rgba(241, 195, 138, 0.7);
+      color: var(--accent);
+      background: var(--accent-soft);
+      white-space: nowrap;
+    }
+
+    .section-label {
+      position: relative;
+      z-index: 1;
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.16em;
+      color: var(--muted);
+      margin-bottom: 10px;
+    }
+
+    ol,
+    ul {
+      position: relative;
+      z-index: 1;
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      font-size: 0.9rem;
+    }
+
+    .item {
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+      padding: 9px 11px;
+      border-radius: 10px;
+      background: rgba(24, 15, 11, 0.8);
+      border: 1px solid rgba(87, 58, 45, 0.9);
+      transition: background 0.18s ease, border-color 0.18s ease, transform 0.1s ease;
+    }
+
+    .item:hover {
+      background: rgba(33, 22, 17, 0.96);
+      border-color: rgba(241, 195, 138, 0.5);
+      transform: translateY(-1px);
+    }
+
+    .item.completed {
+      background: var(--completed);
+      border-color: rgba(34, 197, 94, 0.65);
+      opacity: 0.9;
+    }
+
+    .item-badge {
+      min-width: 18px;
+      height: 18px;
+      border-radius: 999px;
+      border: 1px solid rgba(248, 237, 229, 0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.7rem;
+      font-weight: 500;
+      color: var(--coffee);
+      background: rgba(248, 237, 229, 0.92);
+      margin-top: 3px;
+    }
+
+    .item-checkbox {
+      width: 16px;
+      height: 16px;
+      border-radius: 4px;
+      border: 1px solid rgba(196, 181, 170, 0.9);
+      background: rgba(18, 10, 7, 0.8);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-top: 3px;
+      cursor: pointer;
+      flex-shrink: 0;
+      position: relative;
+    }
+
+    .item-checkbox input {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      cursor: pointer;
+      margin: 0;
+    }
+
+    .item-checkbox-icon {
+      width: 10px;
+      height: 10px;
+      border-radius: 3px;
+      background: transparent;
+      transition: background 0.15s ease;
+    }
+
+    .item.completed .item-checkbox {
+      border-color: #22c55e;
+      background: rgba(22, 163, 74, 0.2);
+    }
+
+    .item.completed .item-checkbox-icon {
+      background: #22c55e;
+    }
+
+    .item-body {
+      flex: 1;
+    }
+
+    .item-title {
+      font-weight: 600;
+      margin-bottom: 2px;
+    }
+
+    .item-note {
+      color: var(--muted);
+      font-size: 0.83rem;
+      line-height: 1.45;
+    }
+
+    .item.completed .item-title {
+      text-decoration: line-through;
+      opacity: 0.9;
+    }
+
+    .item.completed .item-note {
+      opacity: 0.8;
+    }
+
+    .pill-row {
+      margin-top: 8px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .pill {
+      padding: 3px 8px;
+      border-radius: 999px;
+      background: var(--pill-bg);
+      border: 1px solid rgba(201, 164, 126, 0.65);
+      font-size: 0.75rem;
+      color: var(--muted);
+    }
+
+    .footer-note {
+      margin-top: 18px;
+      font-size: 0.8rem;
+      color: var(--muted);
+      text-align: right;
+    }
+
+    @media (max-width: 900px) {
+      .grid {
+        grid-template-columns: minmax(0, 1fr);
+      }
+
+      .card {
+        box-shadow: 0 12px 32px rgba(85, 53, 37, 0.16);
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <header class="header">
+      <div class="title-block">
+        <div class="eyebrow">Client change requests</div>
+        <h1>NoTime Storage – Website TODOs</h1>
+        <p class="subtitle">
+          We have Square account access; payment production can be completed by us. Right column = items that still need Jermaine’s decisions or data.
+        </p>
+      </div>
+      <div class="meta-pill">
+        <span class="meta-dot"></span>
+        Square access ✓ · Updated from email – Mar 3, 2026
+      </div>
+    </header>
+
+    <section class="grid">
+      <!-- Left: We can implement now -->
+      <article class="card">
+        <div class="card-header">
+          <h2 class="card-title">We can implement autonomously</h2>
+          <span class="card-tag">Low–medium complexity</span>
+        </div>
+
+        <div class="section-label">Marketing & homepage</div>
+        <ol>
+          <li class="item" data-task-id="auto-1">
+            <label class="item-checkbox">
+              <input type="checkbox" />
+              <span class="item-checkbox-icon"></span>
+            </label>
+            <div class="item-badge">1</div>
+            <div class="item-body">
+              <div class="item-title">Add new schools</div>
+              <div class="item-note">
+                Add Dayton, UMass, Brevard (NC), Gordon, and CCSU wherever schools are selectable and in marketing copy.
+              </div>
+              <div class="pill-row">
+                <span class="pill">School select</span>
+                <span class="pill">Config</span>
+              </div>
+            </div>
+          </li>
+
+          <li class="item" data-task-id="auto-2">
+            <label class="item-checkbox">
+              <input type="checkbox" />
+              <span class="item-checkbox-icon"></span>
+            </label>
+            <div class="item-badge">2</div>
+            <div class="item-body">
+              <div class="item-title">Restore social proof under partnership logo</div>
+              <div class="item-note">
+                Bring back “4.7 ★ rating” and “300+ students served” line below the partnership/press area on the homepage.
+              </div>
+              <div class="pill-row">
+                <span class="pill">Copy</span>
+                <span class="pill">Homepage</span>
+              </div>
+            </div>
+          </li>
+
+          <li class="item" data-task-id="auto-3">
+            <label class="item-checkbox">
+              <input type="checkbox" />
+              <span class="item-checkbox-icon"></span>
+            </label>
+            <div class="item-badge">3</div>
+            <div class="item-body">
+              <div class="item-title">DIY storage comparison price</div>
+              <div class="item-note">
+                Update the competitor callout from “$320 min” to “$800+” to better reflect real-world pricing.
+              </div>
+              <div class="pill-row">
+                <span class="pill">Copy</span>
+                <span class="pill">Pricing section</span>
+              </div>
+            </div>
+          </li>
+
+          <li class="item" data-task-id="auto-4">
+            <label class="item-checkbox">
+              <input type="checkbox" />
+              <span class="item-checkbox-icon"></span>
+            </label>
+            <div class="item-badge">4</div>
+            <div class="item-body">
+              <div class="item-title">Replace sample reviews</div>
+              <div class="item-note">
+                Swap in the three real customer reviews Jermaine provided, keeping layout and styling consistent.
+              </div>
+              <div class="pill-row">
+                <span class="pill">Testimonials</span>
+              </div>
+            </div>
+          </li>
+        </ol>
+
+        <div class="section-label" style="margin-top:16px;">Booking & UX</div>
+        <ol start="5">
+          <li class="item" data-task-id="auto-5">
+            <label class="item-checkbox">
+              <input type="checkbox" />
+              <span class="item-checkbox-icon"></span>
+            </label>
+            <div class="item-badge">5</div>
+            <div class="item-body">
+              <div class="item-title">Per‑school dorm list</div>
+              <div class="item-note">
+                Filter residence hall options so students only see halls for their selected school, not all schools at once.
+              </div>
+              <div class="pill-row">
+                <span class="pill">Booking flow</span>
+                <span class="pill">School filter</span>
+              </div>
+            </div>
+          </li>
+
+          <li class="item" data-task-id="auto-6">
+            <label class="item-checkbox">
+              <input type="checkbox" />
+              <span class="item-checkbox-icon"></span>
+            </label>
+            <div class="item-badge">6</div>
+            <div class="item-body">
+              <div class="item-title">Box description + photos</div>
+              <div class="item-note">
+                Add a clear description of the storage box (40×30×30&quot;, up to 225&nbsp;lbs, fits ~4 mini fridges) and display provided box photos.
+              </div>
+              <div class="pill-row">
+                <span class="pill">Box info</span>
+                <span class="pill">Assets</span>
+              </div>
+            </div>
+          </li>
+
+          <li class="item" data-task-id="auto-7">
+            <label class="item-checkbox">
+              <input type="checkbox" />
+              <span class="item-checkbox-icon"></span>
+            </label>
+            <div class="item-badge">7</div>
+            <div class="item-body">
+              <div class="item-title">Overpacking & liquids disclaimer</div>
+              <div class="item-note">
+                Add a strong notice near box details: flaps must close and be taped shut; overpacking may incur a fee; absolutely no liquids.
+              </div>
+              <div class="pill-row">
+                <span class="pill">Policy copy</span>
+              </div>
+            </div>
+          </li>
+
+          <li class="item" data-task-id="auto-8">
+            <label class="item-checkbox">
+              <input type="checkbox" />
+              <span class="item-checkbox-icon"></span>
+            </label>
+            <div class="item-badge">8</div>
+            <div class="item-body">
+              <div class="item-title">Spam‑folder reminder</div>
+              <div class="item-note">
+                On the signup/activation confirmation screen, add a note telling users to check junk/spam if the email doesn’t arrive in the inbox.
+              </div>
+              <div class="pill-row">
+                <span class="pill">Auth UX</span>
+              </div>
+            </div>
+          </li>
+        </ol>
+
+        <div class="section-label" style="margin-top:16px;">Payments (Square account access)</div>
+        <ol start="9">
+          <li class="item" data-task-id="client-D">
+            <label class="item-checkbox">
+              <input type="checkbox" />
+              <span class="item-checkbox-icon"></span>
+            </label>
+            <div class="item-badge">9</div>
+            <div class="item-body">
+              <div class="item-title">Apple Pay & Google Pay in production</div>
+              <div class="item-note">
+                With Square access we can complete production setup: switch to production SDK, register the live domain for Apple Pay in the Square dashboard, and confirm wallets work on the live site.
+              </div>
+              <div class="pill-row">
+                <span class="pill">Square dashboard</span>
+                <span class="pill">Domain setup</span>
+              </div>
+            </div>
+          </li>
+        </ol>
+      </article>
+
+      <!-- Right: Needs client input / access -->
+      <article class="card">
+        <div class="card-header">
+          <h2 class="card-title">Needs client input / access</h2>
+          <span class="card-tag">Business & advanced features</span>
+        </div>
+
+        <div class="section-label">Booking rules & pricing</div>
+        <ol>
+          <li class="item" data-task-id="client-A">
+            <label class="item-checkbox">
+              <input type="checkbox" />
+              <span class="item-checkbox-icon"></span>
+            </label>
+            <div class="item-badge">A</div>
+            <div class="item-body">
+              <div class="item-title">0‑box bookings & item limits</div>
+              <div class="item-note">
+                Allow 0 boxes so students can store up to 4 loose items (e.g. just a mini fridge). Keep the 4‑item cap for &ldquo;no box&rdquo;
+                bookings and clarify whether there should be any limit when at least one box is purchased.
+              </div>
+              <div class="pill-row">
+                <span class="pill">Pricing rules</span>
+                <span class="pill">UX</span>
+              </div>
+            </div>
+          </li>
+
+          <li class="item" data-task-id="client-B">
+            <label class="item-checkbox">
+              <input type="checkbox" />
+              <span class="item-checkbox-icon"></span>
+            </label>
+            <div class="item-badge">B</div>
+            <div class="item-body">
+              <div class="item-title">Per‑school move‑out / move‑in calendars</div>
+              <div class="item-note">
+                Restrict booking dates to the official move‑out and move‑in days for each school, and add a disclaimer that move‑in dates and
+                room numbers will be reconfirmed in summer if rooms change.
+              </div>
+              <div class="pill-row">
+                <span class="pill">Needs school date ranges</span>
+              </div>
+            </div>
+          </li>
+
+          <li class="item" data-task-id="client-C">
+            <label class="item-checkbox">
+              <input type="checkbox" />
+              <span class="item-checkbox-icon"></span>
+            </label>
+            <div class="item-badge">C</div>
+            <div class="item-body">
+              <div class="item-title">Monthly payment option</div>
+              <div class="item-note">
+                Offer students a choice between paying in full or paying monthly. Requires decisions on deposit handling, number of installments,
+                schedule of charges, and how this appears in admin reporting.
+              </div>
+              <div class="pill-row">
+                <span class="pill">Square payments</span>
+                <span class="pill">Finance policy</span>
+              </div>
+            </div>
+          </li>
+        </ol>
+
+        <div class="section-label" style="margin-top:16px;">Payments & email</div>
+        <ol start="4">
+          <li class="item" data-task-id="client-E">
+            <label class="item-checkbox">
+              <input type="checkbox" />
+              <span class="item-checkbox-icon"></span>
+            </label>
+            <div class="item-badge">E</div>
+            <div class="item-body">
+              <div class="item-title">Improve email deliverability</div>
+              <div class="item-note">
+                Reduce signup emails going to spam by configuring SPF/DKIM/DMARC for the final sender domain and tuning the email provider setup.
+              </div>
+              <div class="pill-row">
+                <span class="pill">DNS access</span>
+                <span class="pill">Email provider</span>
+              </div>
+            </div>
+          </li>
+        </ol>
+
+        <div class="section-label" style="margin-top:16px;">Ops & reporting</div>
+        <ol start="6">
+          <li class="item" data-task-id="client-F">
+            <label class="item-checkbox">
+              <input type="checkbox" />
+              <span class="item-checkbox-icon"></span>
+            </label>
+            <div class="item-badge">F</div>
+            <div class="item-body">
+              <div class="item-title">Manager dashboard per school</div>
+              <div class="item-note">
+                Build a manager‑facing dashboard so Jermaine or local partners can see signups and key stats per school. Needs a decision on what
+                managers can see (counts vs. full bookings), permissions, and which metrics matter most.
+              </div>
+              <div class="pill-row">
+                <span class="pill">Admin UX</span>
+                <span class="pill">Roles & permissions</span>
+              </div>
+            </div>
+          </li>
+        </ol>
+
+        <p class="footer-note">
+          This document is for internal planning only and reflects the latest client email as of Mar&nbsp;3,&nbsp;2026.
+        </p>
+      </article>
+    </section>
+  </main>
+  <script>
+    (function () {
+      const STORAGE_KEY = 'notime-client-change-tasks';
+      let state = {};
+
+      try {
+        const raw = window.localStorage.getItem(STORAGE_KEY);
+        if (raw) state = JSON.parse(raw) || {};
+      } catch {
+        state = {};
+      }
+
+      const items = document.querySelectorAll('.item[data-task-id]');
+
+      items.forEach((item) => {
+        const id = item.getAttribute('data-task-id') || '';
+        const checkbox = item.querySelector('input[type="checkbox"]');
+        if (!checkbox || !id) return;
+
+        const checked = Boolean(state[id]);
+        checkbox.checked = checked;
+        if (checked) {
+          item.classList.add('completed');
+        }
+
+        checkbox.addEventListener('change', () => {
+          const isChecked = checkbox.checked;
+          state[id] = isChecked;
+          if (isChecked) {
+            item.classList.add('completed');
+          } else {
+            item.classList.remove('completed');
+          }
+          try {
+            window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+          } catch {
+            // ignore storage errors
+          }
+        });
+      });
+    })();
+  </script>
+</body>
+</html>
+
