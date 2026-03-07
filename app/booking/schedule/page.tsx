@@ -311,8 +311,12 @@ function SchedulePageContent() {
             📦 Your Order
           </h3>
           <div style={{ fontSize: '0.875rem', color: 'var(--color-gray-700)' }}>
-            {boxes} box{boxes > 1 ? 'es' : ''}
-            {Object.values(additionalItems).some(v => v > 0) && (
+            {boxes === 0
+              ? (Object.values(additionalItems).some(v => v > 0)
+                  ? `${Object.values(additionalItems).reduce((a, b) => a + b, 0)} item(s) only (no boxes)`
+                  : '0 boxes')
+              : `${boxes} box${boxes !== 1 ? 'es' : ''}`}
+            {boxes > 0 && Object.values(additionalItems).some(v => v > 0) && (
               <span> + {Object.values(additionalItems).reduce((a, b) => a + b, 0)} additional item(s)</span>
             )}
           </div>

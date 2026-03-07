@@ -11,7 +11,7 @@ function BookingConfirmedContent() {
   const searchParams = useSearchParams();
   const moveOutDate = searchParams.get('moveOutDate') || '';
   const school = searchParams.get('school') || '';
-  const boxes = searchParams.get('boxes') || '1';
+  const boxes = searchParams.get('boxes') || '0';
   const monthlyTotal = searchParams.get('monthlyTotal') || '';
   const totalPrice = searchParams.get('totalPrice') || '';
   const months = searchParams.get('months') || '';
@@ -84,10 +84,12 @@ function BookingConfirmedContent() {
                   <span style={{ color: 'var(--color-coffee)', fontWeight: '600', fontSize: '0.875rem' }}>{formattedDate}</span>
                 </div>
               )}
-              {boxes && (
+              {(boxes !== undefined && boxes !== null) && (
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
                   <span style={{ color: '#6B5A52', fontSize: '0.875rem' }}>Boxes</span>
-                  <span style={{ color: 'var(--color-coffee)', fontWeight: '600', fontSize: '0.875rem' }}>{boxes} box{parseInt(boxes) > 1 ? 'es' : ''}</span>
+                  <span style={{ color: 'var(--color-coffee)', fontWeight: '600', fontSize: '0.875rem' }}>
+                    {parseInt(boxes) === 0 ? '0 (items only)' : `${boxes} box${parseInt(boxes) !== 1 ? 'es' : ''}`}
+                  </span>
                 </div>
               )}
               {(totalPrice || monthlyTotal) && (

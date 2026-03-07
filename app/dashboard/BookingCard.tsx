@@ -233,7 +233,7 @@ export function BookingCard({ booking: b }: { booking: BookingRow }) {
 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px', paddingTop: '16px', borderTop: '1px solid var(--color-latte-soft)' }}>
         <span style={{ fontSize: '0.875rem', color: 'var(--color-gray-600)' }}>
-          {b.storage_months} month{b.storage_months !== 1 ? 's' : ''} · {b.box_quantity ?? 0} box{b.box_quantity !== 1 ? 'es' : ''}
+          {b.storage_months} month{b.storage_months !== 1 ? 's' : ''} · {(b.box_quantity ?? 0) === 0 ? '0 boxes (items only)' : `${b.box_quantity} box${(b.box_quantity ?? 0) !== 1 ? 'es' : ''}`}
         </span>
         <span style={{ fontSize: '1.125rem', fontWeight: '700', color: 'var(--color-coffee)' }}>
           ${(b.total_price ?? b.total_monthly_rate * (b.storage_months || 1)).toFixed(2)} total

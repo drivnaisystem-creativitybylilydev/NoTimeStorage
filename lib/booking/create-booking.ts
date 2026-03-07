@@ -37,7 +37,7 @@ export async function createBooking(input: CreateBookingInput): Promise<CreateBo
   }
 
   if (!input.items?.length) {
-    return { success: false, error: 'At least one item (e.g. boxes) is required.' };
+    return { success: false, error: 'At least one item (boxes or additional items) is required.' };
   }
 
   const slotCheck = await isTimeSlotAvailable(

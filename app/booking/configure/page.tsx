@@ -22,13 +22,15 @@ function ConfigurePageContent() {
 
   // Set initial box quantity based on plan
   useEffect(() => {
-    if (plan === '1box') setBoxQuantity(1);
+    if (plan === '0box') setBoxQuantity(0);
+    else if (plan === '1box') setBoxQuantity(1);
     else if (plan === '2boxes') setBoxQuantity(2);
     else if (plan === '4boxes') setBoxQuantity(4);
   }, [plan]);
 
-  // Pricing logic
+  // Pricing logic (0 boxes = $0; no box required)
   const getBoxPrice = (qty: number) => {
+    if (qty === 0) return 0;
     if (qty === 1) return 80;
     if (qty === 2 || qty === 3) return 55;
     if (qty >= 4) return 60;
@@ -68,7 +70,12 @@ function ConfigurePageContent() {
     });
   };
 
+  const canContinue = boxQuantity >= 1 || totalAdditionalItems >= 1;
+  const zeroBoxesWithItems = boxQuantity === 0 && totalAdditionalItems >= 1 && totalAdditionalItems <= 4;
+
   const handleContinue = () => {
+    if (!canContinue) return;
+    if (boxQuantity === 0 && (totalAdditionalItems < 1 || totalAdditionalItems > 4)) return;
     // Navigate to schedule page with configuration in URL
     const params = new URLSearchParams({
       boxes: boxQuantity.toString(),
@@ -99,14 +106,14 @@ function ConfigurePageContent() {
             Configure Your Storage
           </h1>
           <p style={{ fontSize: '1.125rem', color: 'var(--color-gray-600)' }}>
-            Customize your boxes and add any additional items
+            Choose boxes (optional) and/or additional items — up to 4 items if you skip boxes
           </p>
         </div>
 
         {/* Box Selection */}
         <div style={{ marginBottom: '40px', padding: 'clamp(16px, 4vw, 32px)', background: 'var(--color-paper)', borderRadius: '12px', border: '2px solid var(--color-latte)' }}>
           <h2 style={{ fontSize: 'clamp(1.2rem, 4vw, 1.5rem)', fontWeight: '700', color: 'var(--color-coffee)', marginBottom: '24px' }}>
-            📦 Storage Boxes
+            📦 Storage Boxes (optional)
           </h2>
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
             <label style={{ fontSize: '1rem', fontWeight: '600', color: 'var(--color-gray-700)' }}>
@@ -114,7 +121,7 @@ function ConfigurePageContent() {
             </label>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
               <button
-                onClick={() => setBoxQuantity(Math.max(1, boxQuantity - 1))}
+                onClick={() => setBoxQuantity(Math.max(0, boxQuantity - 1))}
                 className="button-secondary"
                 style={{ padding: '8px 20px', fontSize: '1.25rem', minWidth: '50px' }}
               >
@@ -132,12 +139,21 @@ function ConfigurePageContent() {
               </button>
             </div>
             <div style={{ marginLeft: 'auto', textAlign: 'right' }}>
-              <div style={{ fontSize: '0.875rem', color: 'var(--color-gray-600)' }}>
-                ${boxPrice}/box/month
-              </div>
-              <div style={{ fontSize: '1.25rem', fontWeight: '700', color: 'var(--color-coffee)' }}>
-                ${boxesTotal}/month
-              </div>
+              {boxQuantity > 0 && (
+                <>
+                  <div style={{ fontSize: '0.875rem', color: 'var(--color-gray-600)' }}>
+                    ${boxPrice}/box/month
+                  </div>
+                  <div style={{ fontSize: '1.25rem', fontWeight: '700', color: 'var(--color-coffee)' }}>
+                    ${boxesTotal}/month
+                  </div>
+                </>
+              )}
+              {boxQuantity === 0 && (
+                <div style={{ fontSize: '0.875rem', color: 'var(--color-gray-600)' }}>
+                  Add items only below
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -159,7 +175,10 @@ function ConfigurePageContent() {
             </span>
           </div>
           <p style={{ fontSize: '0.875rem', color: 'var(--color-gray-600)', marginBottom: '24px' }}>
-            Add items that don&apos;t fit in boxes — max {MAX_ADDITIONAL_ITEMS} additional items total
+            {boxQuantity === 0
+              ? `Store up to ${MAX_ADDITIONAL_ITEMS} loose items without boxes (e.g. mini fridge, lamp).`
+              : `Items that don't fit in boxes — max ${MAX_ADDITIONAL_ITEMS} additional items.`
+            }
           </p>
 
           {/* Small Items */}
@@ -230,7 +249,12 @@ function ConfigurePageContent() {
               ${monthlyTotal}/month
             </div>
           </div>
-          <button onClick={handleContinue} className="button-primary" style={{ padding: '16px 32px', fontSize: '1.125rem', flexShrink: 0 }}>
+          <button
+            onClick={handleContinue}
+            disabled={!canContinue || (boxQuantity === 0 && (totalAdditionalItems < 1 || totalAdditionalItems > 4))}
+            className="button-primary"
+            style={{ padding: '16px 32px', fontSize: '1.125rem', flexShrink: 0, opacity: canContinue && (boxQuantity >= 1 || (totalAdditionalItems >= 1 && totalAdditionalItems <= 4)) ? 1 : 0.6 }}
+          >
             Continue to Schedule →
           </button>
         </div>

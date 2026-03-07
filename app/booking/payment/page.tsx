@@ -68,6 +68,7 @@ function PaymentPageContent() {
   })();
 
   const getBoxPrice = (qty: number) => {
+    if (qty === 0) return 0;
     if (qty === 1) return 80;
     if (qty === 2 || qty === 3) return 55;
     if (qty >= 4) return 60;
@@ -101,9 +102,14 @@ function PaymentPageContent() {
 
   const buildBookingPayload = useCallback((): CreateBookingInput | null => {
     if (!userId || !moveOutDate || !moveInDate || !moveOutTime || !dorm || !elevator || !stairs) return null;
-    if (boxQty < 1) return null;
+    const additionalQty = ['smallWithBox', 'smallWithoutBox', 'mediumWithBox', 'mediumWithoutBox', 'large']
+      .reduce((sum, key) => sum + parseInt(searchParams.get(key) || '0'), 0);
+    if (boxQty < 1 && additionalQty < 1) return null;
+    if (boxQty === 0 && (additionalQty < 1 || additionalQty > 4)) return null;
     const items: CreateBookingInput['items'] = [];
-    items.push({ item_type: 'box', quantity: boxQty, unit_price_cents: getBoxPriceCents(boxQty) });
+    if (boxQty > 0) {
+      items.push({ item_type: 'box', quantity: boxQty, unit_price_cents: getBoxPriceCents(boxQty) });
+    }
     ['smallWithBox', 'smallWithoutBox', 'mediumWithBox', 'mediumWithoutBox', 'large'].forEach(key => {
       const qty = parseInt(searchParams.get(key) || '0');
       if (qty > 0) {
@@ -380,13 +386,21 @@ function PaymentPageContent() {
 
             <div className="booking-summary-section">
               <h3>Storage</h3>
-              <div className="booking-summary-line">
-                <span>{boxQty} {boxQty === 1 ? 'Box' : 'Boxes'}</span>
-                <span>${boxesTotal}/mo</span>
-              </div>
+              {boxQty > 0 && (
+                <div className="booking-summary-line">
+                  <span>{boxQty} {boxQty === 1 ? 'Box' : 'Boxes'}</span>
+                  <span>${boxesTotal}/mo</span>
+                </div>
+              )}
+              {boxQty === 0 && itemsList.length > 0 && (
+                <div className="booking-summary-line">
+                  <span>Items only (no boxes)</span>
+                  <span>${itemsTotal.toFixed(2)}/mo</span>
+                </div>
+              )}
               {itemsList.length > 0 && (
                 <div className="booking-summary-line">
-                  <span>Additional</span>
+                  <span>{boxQty === 0 ? 'Items' : 'Additional'}</span>
                   <span>{itemsList.join(', ')}</span>
                 </div>
               )}

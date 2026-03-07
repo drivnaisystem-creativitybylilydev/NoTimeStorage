@@ -140,7 +140,7 @@ export async function updateBookingItems(bookingId: string, items: BookingItemIn
   const authClient = await createClient();
   const check = await getUnpaidBookingOwnership(authClient, bookingId);
   if (!check.ok) return { success: false, error: check.error };
-  if (!items?.length) return { success: false, error: 'At least one item (e.g. boxes) is required.' };
+  if (!items?.length) return { success: false, error: 'At least one item (boxes or additional items) is required.' };
 
   const supabase = createAdminClient();
 
