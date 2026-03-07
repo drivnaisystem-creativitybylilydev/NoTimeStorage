@@ -50,6 +50,9 @@ export default function ResetPasswordPage() {
             <h1>Check your email</h1>
             <p>We've sent password reset instructions to <strong>{email}</strong></p>
             <p>Click the link in the email to reset your password.</p>
+            <p style={{ fontSize: '0.8rem', color: '#9B8880', marginTop: '8px', padding: '8px 12px', background: 'var(--color-paper)', borderRadius: '8px', border: '1px solid var(--color-latte)' }}>
+              📬 Don&apos;t see it? Check your <strong>junk or spam folder</strong> — it may have landed there.
+            </p>
             <Link href="/auth/login" className="button-primary">
               Back to Login
             </Link>

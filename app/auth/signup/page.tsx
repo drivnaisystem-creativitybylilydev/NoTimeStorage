@@ -149,6 +149,9 @@ export default function SignUpPage() {
             <p style={{ color: '#6B5A52', fontSize: '0.9rem' }}>
               Click the link in the email to activate your account.
             </p>
+            <p style={{ color: '#9B8880', fontSize: '0.8rem', marginTop: '12px', padding: '8px 12px', background: 'var(--color-paper)', borderRadius: '8px', border: '1px solid var(--color-latte)' }}>
+              📬 Don&apos;t see it? Check your <strong>junk or spam folder</strong> — it may have landed there.
+            </p>
           </div>
         </div>
       </div>

@@ -56,7 +56,10 @@ function BookingConfirmedContent() {
           </motion.h1>
           <motion.p custom={0.22} variants={childVar} initial="hidden" animate="visible"
             style={{ color: '#4A3A34', fontSize: '1rem', marginBottom: '24px', lineHeight: '1.6' }}>
-            Your storage is booked. A confirmation is on its way to your inbox — check your email.
+            Your storage is booked. A confirmation is on its way to your inbox — check your email.{' '}
+            <span style={{ display: 'block', marginTop: '8px', fontSize: '0.85rem', color: '#9B8880', padding: '8px 12px', background: 'var(--color-paper)', borderRadius: '8px', border: '1px solid var(--color-latte)' }}>
+              📬 Don&apos;t see it? Check your <strong>junk or spam folder</strong> — it may have landed there.
+            </span>
           </motion.p>
 
           {(formattedDate || school || boxes || monthlyTotal) && (
