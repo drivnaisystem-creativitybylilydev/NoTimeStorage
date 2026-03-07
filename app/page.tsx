@@ -1,13 +1,150 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { useState, useEffect, useRef } from 'react';
+import { motion, AnimatePresence, useInView } from 'framer-motion';
 import Image from 'next/image';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import { submitContactForm } from '@/lib/contact/submit';
 import { submitReminderSignup } from '@/lib/reminder/signup';
 import { SCHOOLS } from '@/lib/schools/config';
+
+const BOX_IMAGES = [
+  { src: '/brand/box-3d-view.png', alt: '3D isometric view of NoTime Storage box', label: 'Isometric View' },
+  { src: '/brand/box-birdseye-view.png', alt: "Bird's-eye view of NoTime Storage box", label: "Bird's-Eye View" },
+];
+
+function BoxCarousel() {
+  const [current, setCurrent] = useState(0);
+  return (
+    <motion.div
+      className="box-carousel"
+      initial={{ opacity: 0, x: -40 }}
+      whileInView={{ opacity: 1, x: 0 }}
+      viewport={{ once: true, margin: '-80px' }}
+      transition={{ duration: 0.8, ease: [0.25, 0.1, 0.25, 1] }}
+    >
+      <div className="box-carousel-frame">
+        <AnimatePresence mode="wait">
+          <motion.img
+            key={current}
+            src={BOX_IMAGES[current].src}
+            alt={BOX_IMAGES[current].alt}
+            className="box-carousel-img"
+            initial={{ opacity: 0, scale: 0.97 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.97 }}
+            transition={{ duration: 0.4, ease: [0.25, 0.1, 0.25, 1] }}
+          />
+        </AnimatePresence>
+      </div>
+      <div className="box-carousel-nav">
+        {BOX_IMAGES.map((_, i) => (
+          <button key={i} className={`box-carousel-dot${i === current ? ' active' : ''}`}
+            onClick={() => setCurrent(i)} aria-label={`View ${BOX_IMAGES[i].label}`} />
+        ))}
+      </div>
+      <p className="box-carousel-label">{BOX_IMAGES[current].label}</p>
+    </motion.div>
+  );
+}
+
+function BoxShowcase() {
+  const sectionRef = useRef<HTMLDivElement>(null);
+  const isInView = useInView(sectionRef, { once: true, margin: '-100px' });
+  const [boxOpen, setBoxOpen] = useState(false);
+
+  useEffect(() => {
+    if (isInView && !boxOpen) {
+      const t = setTimeout(() => setBoxOpen(true), 500);
+      return () => clearTimeout(t);
+    }
+  }, [isInView]);
+
+  return (
+    <section className="box-showcase-section" ref={sectionRef}>
+      <button
+        className={`box-showcase-trigger${boxOpen ? ' open' : ''}`}
+        onClick={() => setBoxOpen(o => !o)}
+        aria-expanded={boxOpen}
+      >
+        <div className="box-trigger-inner">
+          <div className="box-trigger-text">
+            <p className="box-trigger-eyebrow">Storage Specifications</p>
+            <h2 className="box-trigger-headline">How Big Is My Box?</h2>
+            <p className="box-trigger-body">Tap to explore dimensions, capacity &amp; what fits inside</p>
+          </div>
+          <motion.div
+            className="box-trigger-arrow-block"
+            animate={{ rotate: boxOpen ? 180 : 0 }}
+            transition={{ duration: 0.45, ease: [0.25, 0.1, 0.25, 1] }}
+          >
+            {!boxOpen ? (
+              <motion.svg width="22" height="22" viewBox="0 0 22 22" fill="none"
+                animate={{ y: [0, 5, 0] }}
+                transition={{ repeat: Infinity, duration: 1.2, ease: 'easeInOut' }}>
+                <path d="M4 8l7 7 7-7" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
+              </motion.svg>
+            ) : (
+              <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+                <path d="M4 8l7 7 7-7" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            )}
+          </motion.div>
+        </div>
+      </button>
+
+      <AnimatePresence initial={false}>
+        {boxOpen && (
+          <motion.div
+            key="box-content"
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.6, ease: [0.25, 0.1, 0.25, 1] }}
+            style={{ overflow: 'hidden', background: 'var(--color-white)' }}
+          >
+            <div className="box-content-inner">
+              <div className="box-showcase-content">
+                <BoxCarousel />
+                <motion.div className="box-specs-content"
+                  initial={{ opacity: 0, x: 36 }} animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.65, delay: 0.2, ease: [0.25, 0.1, 0.25, 1] }}>
+                  <h3 className="box-specs-headline">Your Stuff, Secured &amp; Stored</h3>
+                  <p className="box-specs-subheadline">No flimsy cardboard here. Our boxes are built to handle a full dorm room&apos;s worth of belongings.</p>
+                  <div className="box-specs-grid">
+                    <div className="spec-item">
+                      <div className="spec-icon">📏</div>
+                      <div><div className="spec-label">Dimensions</div><div className="spec-value">40″ × 30″ × 30″</div></div>
+                    </div>
+                    <div className="spec-item">
+                      <div className="spec-icon">⚖️</div>
+                      <div><div className="spec-label">Max Weight</div><div className="spec-value">Up to 225 lbs</div></div>
+                    </div>
+                    <div className="spec-item">
+                      <div className="spec-icon">🧊</div>
+                      <div><div className="spec-label">Volume</div><div className="spec-value">≈ 4 mini fridges</div></div>
+                    </div>
+                  </div>
+                  <div className="box-fits-wrapper">
+                    <div className="box-fits-section">
+                      <h3>What fits inside</h3>
+                      <p>Bedding, pillows, clothes, shoes, books, school supplies, small appliances, wall decor, and more — everything you need packed in one secure box.</p>
+                    </div>
+                    <div className="box-disclaimer">
+                      <span className="box-disclaimer-icon">⚠️</span>
+                      <div><strong>Important:</strong> No liquids allowed &bull; All flaps must be taped shut &bull; Overpacking may result in additional fees</div>
+                    </div>
+                  </div>
+                </motion.div>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </section>
+  );
+}
 
 export default function Home() {
   const [user, setUser] = useState<any>(null);
@@ -618,6 +755,9 @@ export default function Home() {
           </motion.div>
         </div>
       </section>
+
+      {/* Storage Box Showcase */}
+      <BoxShowcase />
 
       {/* Pricing Section */}
       <section className="pricing" id="pricing" data-section="pricing">
