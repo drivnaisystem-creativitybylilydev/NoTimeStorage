@@ -8,6 +8,9 @@ import { createClient } from '@/lib/supabase/client';
 import { submitContactForm } from '@/lib/contact/submit';
 import { submitReminderSignup } from '@/lib/reminder/signup';
 import { SCHOOLS } from '@/lib/schools/config';
+// #region agent log
+const DEBUG_LOG = (data: Record<string, unknown>) => { fetch('http://127.0.0.1:7791/ingest/e0f7eab6-ff14-43bf-bf05-6812e1535afb', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '104cb8' }, body: JSON.stringify({ sessionId: '104cb8', location: 'page.tsx', timestamp: Date.now(), ...data }) }).catch(() => {}); };
+// #endregion
 
 const BOX_IMAGES = [
   { src: '/brand/box-3d-view.png', alt: '3D isometric view of NoTime Storage box', label: 'Isometric View' },
@@ -55,10 +58,7 @@ function BoxShowcase() {
   const [boxOpen, setBoxOpen] = useState(false);
 
   useEffect(() => {
-    if (isInView && !boxOpen) {
-      const t = setTimeout(() => setBoxOpen(true), 500);
-      return () => clearTimeout(t);
-    }
+    // Auto-open disabled: section now only opens on user click
   }, [isInView]);
 
   return (
@@ -149,6 +149,11 @@ function BoxShowcase() {
 export default function Home() {
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  // #region agent log
+  const renderCountRef = useRef(0);
+  renderCountRef.current += 1;
+  if (typeof window !== 'undefined' && (renderCountRef.current <= 3 || renderCountRef.current % 25 === 0)) { DEBUG_LOG({ message: 'Home render', data: { count: renderCountRef.current }, hypothesisId: 'rerender', runId: 'init' }); }
+  // #endregion
 
   // Check authentication status (never block the page: timeout + show content)
   useEffect(() => {
@@ -173,6 +178,9 @@ export default function Home() {
       .finally(() => clearTimeout(timeout));
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      // #region agent log
+      DEBUG_LOG({ message: 'onAuthStateChange', data: { event: _event, hasSession: !!session }, hypothesisId: 'auth', runId: 'init' });
+      // #endregion
       if (!cancelled) setUser(session?.user ?? null);
     });
 
