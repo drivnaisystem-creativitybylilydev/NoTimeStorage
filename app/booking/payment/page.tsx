@@ -98,7 +98,7 @@ function PaymentPageContent() {
   const monthlyTotal = boxesTotal + itemsTotal;
   const monthlyTotalCents = Math.round(monthlyTotal * 100);
   const totalPrice = monthlyTotal * storageMonths;
-  const totalPriceCents = Math.round(totalPrice * 100);
+  const totalPriceCents = Math.round((totalPrice - 50) * 100);
 
   const buildBookingPayload = useCallback((): CreateBookingInput | null => {
     if (!userId || !moveOutDate || !moveInDate || !moveOutTime || !dorm || !elevator || !stairs) return null;
@@ -415,19 +415,26 @@ function PaymentPageContent() {
                 <span>Duration</span>
                 <span>{storageMonths} months</span>
               </div>
-              <div className="booking-summary-line highlight">
+              {/* Original subtotal — crossed out, deposit not yet deducted */}
+              <div className="booking-summary-line" style={{ opacity: 0.55 }}>
                 <span>Subtotal</span>
-                <span>${totalPrice.toFixed(2)}</span>
+                <span style={{ textDecoration: 'line-through' }}>${totalPrice.toFixed(2)}</span>
               </div>
+              {/* Deposit deduction */}
               <div className="booking-summary-line" style={{ color: 'var(--color-latte)', fontSize: '14px' }}>
                 <span>Deposit (already paid)</span>
-                <span>−$50.00</span>
+                <span style={{ color: '#2e7d32', fontWeight: '600' }}>−$50.00</span>
+              </div>
+              {/* Discounted subtotal */}
+              <div className="booking-summary-line highlight">
+                <span>Subtotal after deposit</span>
+                <span>${(totalPrice - 50).toFixed(2)}</span>
               </div>
             </div>
 
             <div className="booking-summary-total">
               <span>Total due today</span>
-              <span>${totalPrice.toFixed(2)}</span>
+              <span>${(totalPrice - 50).toFixed(2)}</span>
             </div>
           </div>
 
@@ -435,7 +442,7 @@ function PaymentPageContent() {
           <div className="booking-payment-card">
             <h2>Payment</h2>
             <div className="payment-trust-message">
-              Your $50 commitment deposit has been deducted. You will be charged <strong>${totalPrice.toFixed(2)}</strong> today.
+              Your $50 commitment deposit has been deducted. You will be charged <strong>${(totalPrice - 50).toFixed(2)}</strong> today.
             </div>
 
             {isSandbox && (
