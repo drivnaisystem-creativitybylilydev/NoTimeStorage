@@ -201,6 +201,76 @@ export default async function DashboardPage() {
             )}
           </div>
 
+          {/* How to Pack Your Box */}
+          <div style={{ marginBottom: '40px', padding: 'clamp(16px, 4vw, 32px)', background: 'var(--color-paper)', borderRadius: '12px', border: '2px solid var(--color-latte)' }}>
+            <h2 style={{ fontSize: '1.5rem', fontWeight: '700', color: 'var(--color-coffee)', marginBottom: '8px' }}>
+              📦 How to Pack Your Box
+            </h2>
+            <p style={{ fontSize: '0.9rem', color: 'var(--color-gray-600)', marginBottom: '24px' }}>
+              Follow these guidelines so your pickup goes smoothly and nothing gets damaged in storage.
+            </p>
+
+            {/* Box specs */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '12px', marginBottom: '24px' }}>
+              {[
+                { icon: '📏', label: 'Dimensions', value: '40″ × 30″ × 30″' },
+                { icon: '⚖️', label: 'Max Weight', value: 'Up to 225 lbs' },
+                { icon: '🧊', label: 'Volume', value: '≈ 4 mini fridges' },
+              ].map(({ icon, label, value }) => (
+                <div key={label} style={{ background: 'white', borderRadius: '10px', padding: '16px', border: '1px solid var(--color-latte-soft)', display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <span style={{ fontSize: '1.5rem' }}>{icon}</span>
+                  <div>
+                    <div style={{ fontSize: '0.75rem', fontWeight: '600', color: 'var(--color-gray-600)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{label}</div>
+                    <div style={{ fontSize: '1rem', fontWeight: '700', color: 'var(--color-coffee)' }}>{value}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Packing tips */}
+            <div style={{ background: 'white', borderRadius: '10px', padding: '20px', border: '1px solid var(--color-latte-soft)', marginBottom: '16px' }}>
+              <p style={{ fontSize: '0.9rem', fontWeight: '700', color: 'var(--color-coffee)', marginBottom: '12px' }}>✅ What fits inside</p>
+              <p style={{ fontSize: '0.9rem', color: 'var(--color-gray-700)', lineHeight: '1.6', margin: 0 }}>
+                Bedding, pillows, clothes, shoes, books, school supplies, small appliances, wall decor, and more — everything you need packed into one secure box.
+              </p>
+            </div>
+
+            {/* Packing steps */}
+            <div style={{ background: 'white', borderRadius: '10px', padding: '20px', border: '1px solid var(--color-latte-soft)', marginBottom: '16px' }}>
+              <p style={{ fontSize: '0.9rem', fontWeight: '700', color: 'var(--color-coffee)', marginBottom: '12px' }}>🗂️ Packing steps</p>
+              <ol style={{ margin: 0, paddingLeft: '20px', fontSize: '0.9rem', color: 'var(--color-gray-700)', lineHeight: '2' }}>
+                <li>Place heavier items (books, shoes) at the <strong>bottom</strong>.</li>
+                <li>Fill gaps with soft items (clothes, bedding) to prevent shifting.</li>
+                <li>Do <strong>not</strong> exceed the <strong>225 lb weight limit</strong> — overstuffed boxes may be refused.</li>
+                <li>Keep contents below the rim so the lid sits flat — no bulging lids.</li>
+                <li>Tape <strong>all flaps securely shut</strong> with strong packing tape before pickup.</li>
+              </ol>
+            </div>
+
+            {/* Warning disclaimer */}
+            <div style={{
+              background: '#FFF8E1',
+              border: '1.5px solid #F5C842',
+              borderRadius: '10px',
+              padding: '16px 20px',
+              display: 'flex',
+              gap: '12px',
+              alignItems: 'flex-start',
+            }}>
+              <span style={{ fontSize: '1.25rem', flexShrink: 0, marginTop: '1px' }}>⚠️</span>
+              <div style={{ fontSize: '0.875rem', color: '#5A4A00', lineHeight: '1.65' }}>
+                <strong>Important reminders:</strong>
+                <ul style={{ margin: '6px 0 0', paddingLeft: '18px' }}>
+                  <li><strong>No liquids</strong> of any kind inside the box.</li>
+                  <li><strong>All flaps must be taped shut</strong> before our team arrives — untaped boxes may not be accepted.</li>
+                  <li><strong>Do not overpack.</strong> If the box cannot close properly or exceeds 225 lbs, additional fees may apply.</li>
+                  <li>Fragile items should be individually wrapped in bubble wrap or clothing.</li>
+                  <li>Label your box with your name if you have multiple boxes.</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
           {/* Quick Actions */}
           <div style={{ padding: 'clamp(16px, 4vw, 32px)', background: 'var(--color-paper)', borderRadius: '12px', border: '2px solid var(--color-latte)' }}>
             <h2 style={{ fontSize: '1.5rem', fontWeight: '700', color: 'var(--color-coffee)', marginBottom: '24px' }}>
