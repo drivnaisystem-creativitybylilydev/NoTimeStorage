@@ -79,17 +79,9 @@ function BoxShowcase() {
             animate={{ rotate: boxOpen ? 180 : 0 }}
             transition={{ duration: 0.45, ease: [0.25, 0.1, 0.25, 1] }}
           >
-            {!boxOpen ? (
-              <motion.svg width="22" height="22" viewBox="0 0 22 22" fill="none"
-                animate={{ y: [0, 5, 0] }}
-                transition={{ repeat: Infinity, duration: 1.2, ease: 'easeInOut' }}>
-                <path d="M4 8l7 7 7-7" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
-              </motion.svg>
-            ) : (
-              <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
-                <path d="M4 8l7 7 7-7" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-            )}
+            <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+              <path d="M4 8l7 7 7-7" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
           </motion.div>
         </div>
       </button>
