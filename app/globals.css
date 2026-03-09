@@ -5487,28 +5487,25 @@ button {
 /* Digital Wallets */
 .payment-digital-wallets {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   gap: 12px;
   margin-bottom: 16px;
 }
 
 .payment-wallet-button {
+  flex: 1;
   min-height: 48px;
   border-radius: 8px;
   cursor: pointer;
 }
 
 .payment-wallet-button-apple {
-  background: #000;
-  color: #fff;
+  -webkit-appearance: -apple-pay-button;
+  -apple-pay-button-type: buy;
+  -apple-pay-button-style: black;
   border: none;
-  font-size: 1rem;
-  font-weight: 500;
-  padding: 0 20px;
-}
-
-.payment-wallet-button-apple:hover:not(:disabled) {
-  background: #333;
+  display: block;
+  width: 100%;
 }
 
 .payment-wallet-button-apple:disabled {

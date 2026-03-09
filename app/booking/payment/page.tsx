@@ -466,9 +466,8 @@ function PaymentPageContent() {
                   className="payment-wallet-button payment-wallet-button-apple"
                   onClick={handleApplePayClick}
                   disabled={processing}
-                >
-                  Apple Pay
-                </button>
+                  aria-label="Pay with Apple Pay"
+                />
               )}
               <div id="google-pay-button" className="payment-wallet-button" />
             </div>
