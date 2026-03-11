@@ -15,6 +15,8 @@ const DEBUG_LOG = (data: Record<string, unknown>) => { fetch('http://127.0.0.1:7
 const BOX_IMAGES = [
   { src: '/brand/box-3d-view.png', alt: '3D isometric view of NoTime Storage box', label: 'Isometric View' },
   { src: '/brand/box-birdseye-view.png', alt: "Bird's-eye view of NoTime Storage box", label: "Bird's-Eye View" },
+  { src: '/brand/box-scale-side.png', alt: 'Person standing next to NoTime Storage box showing scale', label: 'Real Size – Side View' },
+  { src: '/brand/box-scale-inside.png', alt: 'Person standing inside NoTime Storage box showing scale', label: 'Real Size – Inside View' },
 ];
 
 function BoxCarousel() {
