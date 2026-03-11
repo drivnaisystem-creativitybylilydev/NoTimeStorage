@@ -12,131 +12,257 @@ import { SCHOOLS } from '@/lib/schools/config';
 const DEBUG_LOG = (data: Record<string, unknown>) => { fetch('http://127.0.0.1:7791/ingest/e0f7eab6-ff14-43bf-bf05-6812e1535afb', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '104cb8' }, body: JSON.stringify({ sessionId: '104cb8', location: 'page.tsx', timestamp: Date.now(), ...data }) }).catch(() => {}); };
 // #endregion
 
-const BOX_IMAGES = [
-  { src: '/brand/box-scale-side.png', alt: 'Person standing next to NoTime Storage box showing scale', label: 'Real Size – Side View' },
-  { src: '/brand/box-scale-inside.png', alt: 'Person standing inside NoTime Storage box showing scale', label: 'Real Size – Inside View' },
-  { src: '/brand/box-3d-view.png', alt: '3D isometric view of NoTime Storage box', label: 'Isometric View' },
-  { src: '/brand/box-birdseye-view.png', alt: "Bird's-eye view of NoTime Storage box", label: "Bird's-Eye View" },
-];
-
-function BoxCarousel() {
+function FixedCarousel({ images, title, fullHeight = false }: { images: { src: string; alt: string; objectPosition?: string }[]; title: string; fullHeight?: boolean }) {
   const [current, setCurrent] = useState(0);
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => { setLoaded(false); }, [current]);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'ArrowLeft') setCurrent(p => (p === 0 ? images.length - 1 : p - 1));
+      if (e.key === 'ArrowRight') setCurrent(p => (p === images.length - 1 ? 0 : p + 1));
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [images.length]);
+
   return (
-    <motion.div
-      className="box-carousel"
-      initial={{ opacity: 0, x: -40 }}
-      whileInView={{ opacity: 1, x: 0 }}
-      viewport={{ once: true, margin: '-80px' }}
-      transition={{ duration: 0.8, ease: [0.25, 0.1, 0.25, 1] }}
-    >
-      <div className="box-carousel-frame">
+    <div className={`carousel-section${fullHeight ? ' carousel-section--full' : ''}`} role="region" aria-label={title}>
+      {title && <p className="carousel-title">{title}</p>}
+      <div className={`carousel-container${fullHeight ? ' carousel-container--full' : ''}${loaded ? '' : ' loading'}`} role="img" aria-label={images[current].alt}>
         <AnimatePresence mode="wait">
           <motion.img
             key={current}
-            src={BOX_IMAGES[current].src}
-            alt={BOX_IMAGES[current].alt}
-            className="box-carousel-img"
+            src={images[current].src}
+            alt={images[current].alt}
+            className={`carousel-image${fullHeight ? ' carousel-image--full' : ''}`}
+            style={images[current].objectPosition ? { objectPosition: images[current].objectPosition } : undefined}
+            loading="lazy"
+            decoding="async"
+            onLoad={() => setLoaded(true)}
             initial={{ opacity: 0, scale: 0.97 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.97 }}
             transition={{ duration: 0.4, ease: [0.25, 0.1, 0.25, 1] }}
           />
         </AnimatePresence>
-        <div className="box-carousel-overlay">
-          <p className="box-carousel-label">{BOX_IMAGES[current].label}</p>
-          <div className="box-carousel-nav">
-            {BOX_IMAGES.map((_, i) => (
-              <button key={i} className={`box-carousel-dot${i === current ? ' active' : ''}`}
-                onClick={() => setCurrent(i)} aria-label={`View ${BOX_IMAGES[i].label}`} />
-            ))}
-          </div>
-        </div>
+        {/* Dark brown vignette overlay for full-height real-life images */}
+        {fullHeight && <div className="carousel-vignette" aria-hidden="true" />}
       </div>
-    </motion.div>
+      {images.length > 1 && (
+        <div className="carousel-dots" role="tablist" aria-label={`${title} image selector`}>
+          {images.map((_, i) => (
+            <button
+              key={i}
+              role="tab"
+              aria-selected={i === current}
+              className={`carousel-dot${i === current ? ' active' : ''}`}
+              onClick={() => setCurrent(i)}
+              aria-label={`View image ${i + 1} of ${images.length}`}
+            />
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
 
 function BoxShowcase() {
-  const sectionRef = useRef<HTMLDivElement>(null);
-  const isInView = useInView(sectionRef, { once: true, margin: '-100px' });
-  const [boxOpen, setBoxOpen] = useState(false);
-
-  useEffect(() => {
-    // Auto-open disabled: section now only opens on user click
-  }, [isInView]);
+  const [isOpen, setIsOpen] = useState(false);
 
   return (
-    <section className="box-showcase-section" ref={sectionRef}>
+    <section className="box-showcase-section">
+      {/* ── Trigger ── */}
       <button
-        className={`box-showcase-trigger${boxOpen ? ' open' : ''}`}
-        onClick={() => setBoxOpen(o => !o)}
-        aria-expanded={boxOpen}
+        className={`box-showcase-trigger${isOpen ? ' open' : ''}`}
+        onClick={() => setIsOpen(o => !o)}
+        aria-expanded={isOpen}
       >
-        <div className="box-trigger-inner">
-          <div className="box-trigger-text">
-            <p className="box-trigger-eyebrow">Storage Specifications</p>
-            <h2 className="box-trigger-headline">How Big Is My Box?</h2>
-            <p className="box-trigger-body">Tap to explore dimensions, capacity &amp; what fits inside</p>
-          </div>
-          <motion.div
-            className="box-trigger-arrow-block"
-            animate={{ rotate: boxOpen ? 180 : 0 }}
-            transition={{ duration: 0.45, ease: [0.25, 0.1, 0.25, 1] }}
-          >
-            <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
-              <path d="M4 8l7 7 7-7" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-          </motion.div>
-        </div>
+        {/* Decorative top rule */}
+        <motion.div
+          className="trigger-rule"
+          animate={{ scaleX: isOpen ? 0.3 : 1, opacity: isOpen ? 0 : 1 }}
+          transition={{ duration: 0.45, ease: [0.25, 0.1, 0.25, 1] }}
+        />
+
+        {/* Box icon — fades out when open */}
+        <AnimatePresence>
+          {!isOpen && (
+            <motion.div
+              className="trigger-icon"
+              initial={{ opacity: 0, scale: 0.7 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.6 }}
+              transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
+            >
+              <svg width="38" height="38" viewBox="0 0 40 40" fill="none" aria-hidden="true">
+                <rect x="4" y="14" width="32" height="22" rx="3" stroke="#C9A47E" strokeWidth="2" fill="none"/>
+                <path d="M4 14l5-8h22l5 8" stroke="#C9A47E" strokeWidth="2" strokeLinejoin="round" fill="none"/>
+                <path d="M14 14v5a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-5" stroke="#C9A47E" strokeWidth="2" strokeLinecap="round"/>
+              </svg>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        <motion.span
+          className="box-showcase-trigger-text"
+          animate={isOpen ? {
+            fontSize: '11px',
+            letterSpacing: '2.9px',
+            fontWeight: 600,
+            color: '#C9A47E',
+          } : {
+            fontSize: 'clamp(2.2rem, 4.5vw, 3.2rem)',
+            letterSpacing: '-0.5px',
+            fontWeight: 800,
+            color: '#4B2E25',
+          }}
+          transition={{ duration: 0.52, ease: [0.25, 0.1, 0.25, 1] }}
+          style={{ textTransform: isOpen ? 'uppercase' : 'none', display: 'block', textAlign: 'center' }}
+        >
+          Box Specifications
+        </motion.span>
+
+        {/* Teaser specs — visible only when closed */}
+        <AnimatePresence>
+          {!isOpen && (
+            <motion.p
+              className="trigger-teaser"
+              initial={{ opacity: 0, y: -6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -4 }}
+              transition={{ duration: 0.3, delay: 0.05 }}
+            >
+              40″ × 30″ × 30″ &nbsp;·&nbsp; 225 lbs max &nbsp;·&nbsp; 20.8 ft³
+            </motion.p>
+          )}
+        </AnimatePresence>
+
+        <motion.div
+          className="box-showcase-trigger-arrow"
+          animate={{ rotate: isOpen ? 180 : 0 }}
+          transition={{ duration: 0.42, ease: [0.25, 0.1, 0.25, 1] }}
+        >
+          <svg width="22" height="22" viewBox="0 0 20 20" fill="none">
+            <path d="M4 7l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        </motion.div>
       </button>
 
+      {/* ── Expanded content ── */}
       <AnimatePresence initial={false}>
-        {boxOpen && (
+        {isOpen && (
           <motion.div
             key="box-content"
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.6, ease: [0.25, 0.1, 0.25, 1] }}
-            style={{ overflow: 'hidden', background: 'var(--color-white)' }}
+            transition={{ duration: 0.58, ease: [0.25, 0.1, 0.25, 1] }}
+            style={{ overflow: 'hidden' }}
           >
-            <div className="box-content-inner">
+            <div className="box-showcase-inner">
+              <div className="box-showcase-header">
+                <h2 className="box-showcase-title">Premium Storage Boxes, Built for Students</h2>
+              </div>
+
               <div className="box-showcase-content">
-                <BoxCarousel />
-                <motion.div className="box-specs-content"
-                  initial={{ opacity: 0, x: -80, clipPath: 'inset(0 0 0 55% round 20px)' }}
-                  animate={{ opacity: 1, x: 0, clipPath: 'inset(0 0 0 0% round 20px)' }}
-                  transition={{ duration: 0.75, delay: 0.25, ease: [0.22, 1, 0.36, 1] }}>
-                  <h3 className="box-specs-headline">Your Stuff, Secured &amp; Stored</h3>
-                  <p className="box-specs-subheadline">No flimsy cardboard here. Our boxes are built to handle a full dorm room&apos;s worth of belongings.</p>
-                  <div className="box-specs-grid">
-                    <div className="spec-item">
-                      <div className="spec-icon">📏</div>
-                      <div><div className="spec-label">Dimensions</div><div className="spec-value">40″ × 30″ × 30″</div></div>
-                    </div>
-                    <div className="spec-item">
-                      <div className="spec-icon">⚖️</div>
-                      <div><div className="spec-label">Max Weight</div><div className="spec-value">Up to 225 lbs</div></div>
-                    </div>
-                    <div className="spec-item">
-                      <div className="spec-icon">🧊</div>
-                      <div>
-                        <div className="spec-label">Volume</div>
-                        <div className="spec-value">20.8 cu ft</div>
-                        <div className="spec-subvalue">≈ 4 mini fridges</div>
-                      </div>
+
+                {/* LEFT BOX: anchors in place — right panel slides out from behind it */}
+                <motion.div
+                  className="box-carousels-left"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ duration: 0.45, delay: 0.05 }}
+                >
+                  <FixedCarousel
+                    title="Our Boxes in Action"
+                    fullHeight
+                    images={[
+                      { src: '/brand/box-scale-side.png', alt: 'Person standing next to NoTime Storage box showing scale', objectPosition: 'center center' },
+                      { src: '/brand/box-scale-inside.png', alt: 'Person standing inside NoTime Storage box showing depth', objectPosition: 'center 38%' },
+                    ]}
+                  />
+                  <div className="box-left-divider" />
+                  <FixedCarousel
+                    title="Technical Specs"
+                    images={[
+                      { src: '/brand/box-3d-view.png', alt: '3D isometric view showing 40×30×30 inch dimensions' },
+                      { src: '/brand/box-birdseye-view.png', alt: "Bird's-eye view showing 40×30 inch floor area" },
+                    ]}
+                  />
+                </motion.div>
+
+                {/* RIGHT BOX: slides out from behind the left box */}
+                <motion.div
+                  className="box-specs-panel"
+                  initial={{ x: '-100%' }}
+                  animate={{ x: 0 }}
+                  transition={{ duration: 0.72, delay: 0.12, ease: [0.22, 1, 0.36, 1] }}
+                >
+                  <p className="box-specs-intro" style={{
+                    fontSize: 'clamp(1.2rem, 2vw, 1.5rem)',
+                    fontWeight: 700,
+                    textAlign: 'center',
+                    lineHeight: 1.5,
+                    color: 'var(--color-coffee)',
+                    textShadow: '0 0 18px rgba(201,164,126,0.22), 0 0 40px rgba(201,164,126,0.10)',
+                    margin: 0,
+                  }}>
+                    Each box handles a full dorm room&apos;s worth of belongings — from bedding and clothes to books and small appliances.
+                  </p>
+
+                  <div className="box-specs-quick">
+                    <p className="box-section-label">Box Metrics</p>
+                    <div className="specs-badges-row">
+                      <span className="spec-badge"><span className="spec-badge-icon">📏</span>40″ × 30″ × 30″</span>
+                      <span className="spec-badge"><span className="spec-badge-icon">⚖️</span>225 lbs max</span>
+                      <span className="spec-badge"><span className="spec-badge-icon">📦</span>20.8 ft<sup className="spec-sup">3</sup></span>
                     </div>
                   </div>
-                  <div className="box-fits-wrapper">
-                    <div className="box-fits-section">
-                      <h3>What fits inside</h3>
-                      <p>Bedding, pillows, clothes, shoes, books, school supplies, small appliances, wall decor, and more — everything you need packed in one secure box.</p>
-                    </div>
-                    <div className="box-disclaimer">
-                      <span className="box-disclaimer-icon">⚠️</span>
-                      <div><strong>Important:</strong> No liquids allowed &bull; All flaps must be taped shut &bull; Overpacking may result in additional fees</div>
+
+                  <div className="box-fits-section">
+                    <p className="box-section-label">What Fits Inside</p>
+                    <div className="items-grid">
+                      {[
+                        { icon: '🛏️', label: 'Bedding',    tip: 'Sheets, blankets & pillows' },
+                        { icon: '👔', label: 'Clothes',    tip: 'Jackets, shirts, pants, shoes' },
+                        { icon: '📚', label: 'Books',      tip: 'Textbooks, notebooks, binders' },
+                        { icon: '🎒', label: 'Supplies',   tip: 'Pens, folders, school gear' },
+                        { icon: '💡', label: 'Appliances', tip: 'Fans, lamps, mini fridges' },
+                        { icon: '🖼️', label: 'Decor',      tip: 'Posters, photos, wall art' },
+                      ].map(({ icon, label, tip }) => (
+                        <div key={label} className="item-card" data-tooltip={tip}>
+                          <div className="item-icon">{icon}</div>
+                          <span className="item-label">{label}</span>
+                        </div>
+                      ))}
                     </div>
                   </div>
+
+                  <div className="box-rules-card">
+                    <div className="rules-row">
+                      <div className="rule-item"><span>❌</span>No liquids</div>
+                      <div className="rule-item"><span>✅</span>Tape all flaps shut</div>
+                      <div className="rule-item"><span>⚠️</span>Don&apos;t overpack</div>
+                    </div>
+                  </div>
+
+                  <Link href="/booking/configure" style={{ display: 'block', textDecoration: 'none' }}>
+                    <motion.button
+                      type="button"
+                      className="box-section-cta"
+                      whileHover={{ scale: 1.015 }}
+                      whileTap={{ scale: 0.985 }}
+                      transition={{ type: 'spring', stiffness: 400, damping: 22 }}
+                    >
+                      Reserve Your Boxes
+                      <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
+                        <path d="M4 10h12m0 0l-4-4m4 4l-4 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                      </svg>
+                    </motion.button>
+                  </Link>
+
                 </motion.div>
               </div>
             </div>
@@ -1661,7 +1787,7 @@ export default function Home() {
             <div className="footer-column">
               <h4 className="footer-heading">Contact</h4>
               <ul className="footer-contact">
-                <li>support@notimestorage.co</li>
+                <li>notimestorage@gmail.com</li>
                 <li>(555) 123-4567</li>
                 <li>Mon-Fri: 8am - 8pm</li>
                 <li>Sat-Sun: 9am - 6pm</li>
