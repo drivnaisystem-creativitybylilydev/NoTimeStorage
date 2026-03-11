@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAppModal } from '@/app/components/AppModalProvider';
 import { deleteBooking, updateBookingDates } from '@/lib/booking/update-booking';
-import { getBoxDistributionDate } from '@/lib/schools/config';
+import { getMoveOutWindow } from '@/lib/schools/config';
 
 type BookingItem = { item_type: string; quantity: number; monthly_rate: number; subtotal: number };
 export type BookingRow = {
@@ -69,10 +69,8 @@ export function BookingCard({ booking: b }: { booking: BookingRow }) {
 
   const isUnpaid = b.payment_status !== 'paid';
 
-  const boxDay = b.school ? getBoxDistributionDate(b.school) : null;
-  const fmtBoxDay = boxDay
-    ? boxDay.toLocaleDateString('en-US', { month: 'long', day: 'numeric', timeZone: 'America/New_York' })
-    : null;
+  const moveOutWindow = b.school ? getMoveOutWindow(b.school) : null;
+  const showBoxNotice = !!moveOutWindow;
 
   const handleSaveDates = async () => {
     if (!moveOutDate || !moveInDate || !moveOutTime) {
@@ -157,7 +155,7 @@ export function BookingCard({ booking: b }: { booking: BookingRow }) {
         </span>
       </div>
 
-      {fmtBoxDay && (
+      {showBoxNotice && (
         <div style={{
           display: 'flex',
           gap: '10px',
@@ -172,8 +170,8 @@ export function BookingCard({ booking: b }: { booking: BookingRow }) {
         }}>
           <span style={{ fontSize: '1rem', lineHeight: 1, flexShrink: 0 }}>📦</span>
           <div>
-            <strong>Box delivery: {fmtBoxDay}</strong>
-            <span style={{ marginLeft: '4px' }}>— we&apos;ll drop off empty boxes at your dorm and contact you beforehand.</span>
+            <strong>Box delivery incoming</strong>
+            <span style={{ marginLeft: '4px' }}>— empty boxes will be dropped off at your dorm 2–3 days before move-out. We&apos;ll contact you with the exact date.</span>
           </div>
         </div>
       )}

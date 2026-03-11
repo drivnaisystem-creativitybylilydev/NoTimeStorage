@@ -6,7 +6,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { getAvailableTimeSlots } from '@/lib/booking/availability';
 import { getDefaultTimeSlots } from '@/lib/booking/time-slots';
-import { SCHOOL_NAMES, getDormsForSchool, getMoveOutWindow, getBoxDistributionDate } from '@/lib/schools/config';
+import { SCHOOL_NAMES, getDormsForSchool, getMoveOutWindow } from '@/lib/schools/config';
 import { createClient } from '@/lib/supabase/client';
 
 // Configuration: Minimum storage duration in months
@@ -378,19 +378,16 @@ function SchedulePageContent() {
 
           {selectingMoveOut && school && (() => {
             const w = getMoveOutWindow(school);
-            const boxDay = getBoxDistributionDate(school);
             if (!w) return null;
             const fmt = (d: Date) => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'America/New_York' });
             return (
               <div style={{ padding: '12px 14px', background: 'var(--color-latte-soft)', border: '1px solid var(--color-latte)', borderRadius: '8px', color: 'var(--color-coffee)', fontSize: '0.875rem', marginBottom: '16px' }}>
-                <div style={{ fontWeight: 600, marginBottom: boxDay ? '6px' : 0 }}>
+                <div style={{ fontWeight: 600, marginBottom: '6px' }}>
                   📅 Move-out pickup window: <strong>{fmt(w.start)} – {fmt(w.end)}</strong>
                 </div>
-                {boxDay && (
-                  <div style={{ color: '#7C5C40', fontSize: '0.8125rem' }}>
-                    📦 Boxes delivered to your dorm around <strong>{fmt(boxDay)}</strong> — we&apos;ll contact you beforehand so you&apos;re ready.
-                  </div>
-                )}
+                <div style={{ color: '#7C5C40', fontSize: '0.8125rem' }}>
+                  📦 Empty boxes will be delivered to your dorm 2–3 days before move-out begins — we&apos;ll contact you with the exact date.
+                </div>
               </div>
             );
           })()}

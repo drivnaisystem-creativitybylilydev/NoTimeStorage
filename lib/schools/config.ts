@@ -18,8 +18,6 @@ export type School = {
   location?: string;
   /** Move-out pickup window for this school (YYYY-MM-DD, inclusive). Students can only select dates within this range. */
   moveOutWindow?: { start: string; end: string };
-  /** Box distribution day — approx. 2 days before move-out window opens. Students receive empty boxes on this date. */
-  boxDistributionDate?: string;
 };
 
 export const SCHOOLS: School[] = [
@@ -29,7 +27,6 @@ export const SCHOOLS: School[] = [
     location: 'Easton, MA',
     logoSlug: 'Stonehill',
     moveOutWindow: { start: '2026-05-04', end: '2026-05-09' },
-    boxDistributionDate: '2026-05-02',
     dorms: [
       'Bogan Hall',
       'Boland Hall',
@@ -51,7 +48,6 @@ export const SCHOOLS: School[] = [
     location: 'West Haven, CT',
     logoSlug: 'UNH',
     moveOutWindow: { start: '2026-05-06', end: '2026-05-13' },
-    boxDistributionDate: '2026-05-04',
     dorms: [
       'Bergami Hall',
       'Bethel Hall',
@@ -78,7 +74,6 @@ export const SCHOOLS: School[] = [
     location: 'Dayton, OH',
     logoSlug: 'Dayton',
     moveOutWindow: { start: '2026-05-04', end: '2026-05-09' },
-    boxDistributionDate: '2026-05-02',
     dorms: [
       'Marianist Hall',
       'Marycrest Complex',
@@ -108,7 +103,6 @@ export const SCHOOLS: School[] = [
     location: 'Massachusetts',
     logoSlug: 'UMass-Amherst',
     moveOutWindow: { start: '2026-05-08', end: '2026-05-16' },
-    boxDistributionDate: '2026-05-06',
     dorms: [
       'Baker Hall (Central)',
       'Birch Hall (Commonwealth Honors College)',
@@ -169,7 +163,6 @@ export const SCHOOLS: School[] = [
     location: 'Brevard, NC',
     logoSlug: 'Brevard',
     moveOutWindow: { start: '2026-05-01', end: '2026-05-07' },
-    boxDistributionDate: '2026-04-29',
     dorms: [
       'Beam Residence Hall',
       'Jones Hall',
@@ -186,7 +179,6 @@ export const SCHOOLS: School[] = [
     location: 'Wenham, MA',
     logoSlug: 'Gordon',
     moveOutWindow: { start: '2026-05-08', end: '2026-05-14' },
-    boxDistributionDate: '2026-05-06',
     dorms: [
       'Nyland Hall',
       'Fulton Hall',
@@ -210,7 +202,6 @@ export const SCHOOLS: School[] = [
     location: 'New Britain, CT',
     logoSlug: 'CCSU',
     moveOutWindow: { start: '2026-05-11', end: '2026-05-18' },
-    boxDistributionDate: '2026-05-09',
     dorms: [
       'Mildred Barrows Hall',
       'Catharine Beecher Hall',
@@ -231,7 +222,6 @@ export const SCHOOLS: School[] = [
     location: 'Fairfield, CT',
     logoSlug: 'Sacred Heart University (SHU)',
     moveOutWindow: { start: '2026-04-28', end: '2026-05-05' },
-    boxDistributionDate: '2026-04-26',
     dorms: [
       'Elizabeth Ann Seton Hall',
       'Thomas Merton Hall',
@@ -264,7 +254,6 @@ export const SCHOOLS: School[] = [
     location: 'Towson, MD',
     logoSlug: 'Towson',
     moveOutWindow: { start: '2026-05-12', end: '2026-05-20' },
-    boxDistributionDate: '2026-05-10',
     dorms: [
       'Barton House',
       'Douglass House',
@@ -294,7 +283,6 @@ export const SCHOOLS: School[] = [
     location: 'Notre Dame, IN',
     logoSlug: 'Notre Dame',
     moveOutWindow: { start: '2026-04-30', end: '2026-05-08' },
-    boxDistributionDate: '2026-04-28',
     dorms: [
       'Alumni Hall',
       'Baumer Hall',
@@ -337,7 +325,6 @@ export const SCHOOLS: School[] = [
     location: 'Harrisonburg, VA',
     logoSlug: 'James Madison University',
     moveOutWindow: { start: '2026-05-06', end: '2026-05-16' },
-    boxDistributionDate: '2026-05-04',
     dorms: [
       'Alger Hall',
       'Apartments on Grace',
@@ -382,7 +369,6 @@ export const SCHOOLS: School[] = [
     location: 'Bridgewater, MA',
     logoSlug: 'Bridgewater',
     moveOutWindow: { start: '2026-05-04', end: '2026-05-12' },
-    boxDistributionDate: '2026-05-02',
     dorms: [
       'Miles Hall',
       'DiNardo Hall',
@@ -422,9 +408,3 @@ export function getMoveOutWindow(schoolName: string): { start: Date; end: Date }
   return { start, end };
 }
 
-/** Get the box distribution date for a given school name, or null if not set */
-export function getBoxDistributionDate(schoolName: string): Date | null {
-  const school = SCHOOLS.find((s) => s.name === schoolName);
-  if (!school?.boxDistributionDate) return null;
-  return new Date(school.boxDistributionDate + 'T00:00:00');
-}

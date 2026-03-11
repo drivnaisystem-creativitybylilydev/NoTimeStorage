@@ -6,7 +6,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { formatDate } from '@/lib/utils/date';
-import { getMoveOutWindow, getBoxDistributionDate } from '@/lib/schools/config';
+import { getMoveOutWindow } from '@/lib/schools/config';
 
 function BookingConfirmedContent() {
   const searchParams = useSearchParams();
@@ -19,9 +19,7 @@ function BookingConfirmedContent() {
 
   const formattedDate = moveOutDate ? formatDate(moveOutDate) : '';
 
-  const boxDay = school ? getBoxDistributionDate(school) : null;
   const moveOutWindow = school ? getMoveOutWindow(school) : null;
-  const fmtDate = (d: Date) => d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', timeZone: 'America/New_York' });
 
   const childVar = {
     hidden: { opacity: 0, y: 14 },
@@ -117,48 +115,44 @@ function BookingConfirmedContent() {
             </motion.div>
           )}
 
-          {(boxDay || moveOutWindow) && (
-            <motion.div custom={0.36} variants={childVar} initial="hidden" animate="visible"
-              style={{
-                background: 'var(--color-paper)',
-                border: '1px solid var(--color-latte)',
-                borderRadius: '12px',
-                padding: '18px 20px',
-                marginBottom: '24px',
-                textAlign: 'left',
-              }}>
-              <div style={{ fontSize: '0.8125rem', fontWeight: '700', color: 'var(--color-gray-500)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '12px' }}>
-                What happens next
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                {boxDay && (
-                  <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
-                    <span style={{ fontSize: '1rem', lineHeight: 1 }}>📦</span>
-                    <div>
-                      <div style={{ fontSize: '0.875rem', fontWeight: '600', color: 'var(--color-coffee)' }}>Box delivery — {fmtDate(boxDay)}</div>
-                      <div style={{ fontSize: '0.8125rem', color: '#6B5A52', marginTop: '2px' }}>We&apos;ll drop off empty boxes at your dorm. We&apos;ll contact you beforehand so you&apos;re ready.</div>
-                    </div>
-                  </div>
-                )}
-                {moveOutWindow && (
-                  <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
-                    <span style={{ fontSize: '1rem', lineHeight: 1 }}>🚚</span>
-                    <div>
-                      <div style={{ fontSize: '0.875rem', fontWeight: '600', color: 'var(--color-coffee)' }}>Move-out pickup — {formattedDate}</div>
-                      <div style={{ fontSize: '0.8125rem', color: '#6B5A52', marginTop: '2px' }}>Our team picks up your packed boxes and items from your dorm.</div>
-                    </div>
-                  </div>
-                )}
-                <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
-                  <span style={{ fontSize: '1rem', lineHeight: 1 }}>🏠</span>
-                  <div>
-                    <div style={{ fontSize: '0.875rem', fontWeight: '600', color: 'var(--color-coffee)' }}>Move-in delivery</div>
-                    <div style={{ fontSize: '0.8125rem', color: '#6B5A52', marginTop: '2px' }}>We deliver everything back to you at the start of next semester.</div>
-                  </div>
+          <motion.div custom={0.36} variants={childVar} initial="hidden" animate="visible"
+            style={{
+              background: 'var(--color-paper)',
+              border: '1px solid var(--color-latte)',
+              borderRadius: '12px',
+              padding: '18px 20px',
+              marginBottom: '24px',
+              textAlign: 'left',
+            }}>
+            <div style={{ fontSize: '0.8125rem', fontWeight: '700', color: 'var(--color-gray-500)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '12px' }}>
+              What happens next
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
+                <span style={{ fontSize: '1rem', lineHeight: 1 }}>📦</span>
+                <div>
+                  <div style={{ fontSize: '0.875rem', fontWeight: '600', color: 'var(--color-coffee)' }}>Box delivery — 2–3 days before move-out</div>
+                  <div style={{ fontSize: '0.8125rem', color: '#6B5A52', marginTop: '2px' }}>We&apos;ll drop off empty boxes at your dorm and contact you beforehand with the exact date.</div>
                 </div>
               </div>
-            </motion.div>
-          )}
+              <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
+                <span style={{ fontSize: '1rem', lineHeight: 1 }}>🚚</span>
+                <div>
+                  <div style={{ fontSize: '0.875rem', fontWeight: '600', color: 'var(--color-coffee)' }}>
+                    Move-out pickup{formattedDate ? ` — ${formattedDate}` : ''}
+                  </div>
+                  <div style={{ fontSize: '0.8125rem', color: '#6B5A52', marginTop: '2px' }}>Our team picks up your packed boxes and items from your dorm.</div>
+                </div>
+              </div>
+              <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
+                <span style={{ fontSize: '1rem', lineHeight: 1 }}>🏠</span>
+                <div>
+                  <div style={{ fontSize: '0.875rem', fontWeight: '600', color: 'var(--color-coffee)' }}>Move-in delivery</div>
+                  <div style={{ fontSize: '0.8125rem', color: '#6B5A52', marginTop: '2px' }}>We deliver everything back to you at the start of next semester.</div>
+                </div>
+              </div>
+            </div>
+          </motion.div>
 
           <motion.div custom={0.38} variants={childVar} initial="hidden" animate="visible">
             <Link href="/dashboard">
