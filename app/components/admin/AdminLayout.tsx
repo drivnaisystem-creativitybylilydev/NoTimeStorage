@@ -3,142 +3,122 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
-import { LayoutList, Users, Calendar, BarChart2, Settings } from 'lucide-react';
 
 const navItems = [
-  { href: '/admin/bookings',   label: 'Bookings',  icon: LayoutList },
-  { href: '/admin/customers',  label: 'Customers', icon: Users },
-  { href: '/admin/calendar',   label: 'Calendar',  icon: Calendar },
-  { href: '/admin/analytics',  label: 'Analytics', icon: BarChart2 },
-];
-
-const comingSoonItems = [
-  { label: 'Settings', icon: Settings },
+  { href: '/admin/bookings',   label: 'Bookings' },
+  { href: '/admin/customers',  label: 'Customers' },
+  { href: '/admin/calendar',   label: 'Calendar' },
+  { href: '/admin/analytics',  label: 'Analytics' },
 ];
 
 export function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--color-gray-50)', display: 'flex', flexDirection: 'column' }}>
-      {/* Top bar */}
-      <header className="header">
-        <div className="header-container">
-          <Link href="/" className="header-logo">
-            <Image
-              src="/brand/notime-storage-logo.png"
-              alt="NoTime Storage"
-              width={40}
-              height={40}
-              className="header-logo-image"
-            />
-            <span className="header-logo-text">NoTime Storage Admin</span>
-          </Link>
-
-          <nav className="header-nav">
-            <Link href="/admin/bookings"  style={{ fontWeight: pathname?.startsWith('/admin/bookings')  ? 700 : undefined }}>Bookings</Link>
-            <Link href="/admin/customers" style={{ fontWeight: pathname?.startsWith('/admin/customers') ? 700 : undefined }}>Customers</Link>
-            <Link href="/admin/calendar"  style={{ fontWeight: pathname?.startsWith('/admin/calendar')  ? 700 : undefined }}>Calendar</Link>
-            <Link href="/admin/analytics" style={{ fontWeight: pathname?.startsWith('/admin/analytics') ? 700 : undefined }}>Analytics</Link>
-          </nav>
-        </div>
-      </header>
-
-      <div style={{ display: 'flex', flex: 1 }}>
-        {/* Sidebar */}
-        <aside
+    <div style={{ minHeight: '100vh', background: 'var(--color-paper)', display: 'flex', flexDirection: 'column' }}>
+      {/* Header: logo + title above nav */}
+      <header
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          gap: '20px',
+          padding: '32px 24px 24px',
+        }}
+      >
+        <Link
+          href="/"
           style={{
-            width: '240px',
-            flexShrink: 0,
-            padding: '40px 20px',
-            borderRight: '1px solid var(--color-latte-soft)',
-            background: 'var(--color-white)',
             display: 'flex',
             flexDirection: 'column',
-            gap: '4px',
+            alignItems: 'center',
+            gap: '12px',
+            textDecoration: 'none',
           }}
         >
-          <div style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--color-gray-400)', marginBottom: '12px', paddingLeft: '12px' }}>
-            Navigation
-          </div>
+          <Image
+            src="/brand/notime-storage-logo.png"
+            alt="NoTime Storage"
+            width={56}
+            height={56}
+          />
+          <span
+            style={{
+              fontSize: '1.5rem',
+              fontWeight: 800,
+              fontStyle: 'italic',
+              textTransform: 'uppercase',
+              letterSpacing: '0.2em',
+              color: '#4B2E25',
+              textShadow:
+                '0 0 20px rgba(201, 164, 126, 0.6), 0 0 40px rgba(201, 164, 126, 0.35), 0 2px 4px rgba(75, 46, 37, 0.15)',
+            }}
+          >
+            No Time Storage Admin
+          </span>
+        </Link>
 
-          {navItems.map(({ href, label, icon: Icon }) => {
+        {/* Floating pill nav */}
+        <nav
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 0,
+            background: '#4B2E25',
+            borderRadius: '9999px',
+            padding: '6px 8px',
+            boxShadow: '0 4px 24px rgba(75, 46, 37, 0.35), 0 2px 8px rgba(75, 46, 37, 0.2)',
+          }}
+        >
+          {navItems.map(({ href, label }) => {
             const isActive = pathname?.startsWith(href);
             return (
               <Link
                 key={href}
                 href={href}
                 style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '10px',
-                  padding: '10px 12px',
-                  borderRadius: '8px',
+                  padding: '10px 20px',
+                  borderRadius: '9999px',
                   fontSize: '0.9rem',
-                  fontWeight: isActive ? 600 : 400,
-                  color: isActive ? 'var(--color-coffee)' : 'var(--color-gray-700)',
-                  background: isActive ? 'var(--color-latte-soft)' : 'transparent',
+                  fontWeight: isActive ? 700 : 500,
+                  color: isActive ? '#4B2E25' : 'rgba(255, 248, 240, 0.9)',
+                  background: isActive ? '#C9A47E' : 'transparent',
                   textDecoration: 'none',
-                  transition: 'background 0.15s ease, color 0.15s ease',
+                  transition: 'background 0.2s ease, color 0.2s ease',
                 }}
                 onMouseEnter={(e) => {
                   if (!isActive) {
-                    (e.currentTarget as HTMLElement).style.background = 'var(--color-paper)';
+                    (e.currentTarget as HTMLElement).style.background = 'rgba(201, 164, 126, 0.25)';
+                    (e.currentTarget as HTMLElement).style.color = '#FFF8F0';
                   }
                 }}
                 onMouseLeave={(e) => {
                   if (!isActive) {
                     (e.currentTarget as HTMLElement).style.background = 'transparent';
+                    (e.currentTarget as HTMLElement).style.color = 'rgba(255, 248, 240, 0.9)';
                   }
                 }}
               >
-                <Icon size={16} />
                 {label}
               </Link>
             );
           })}
+        </nav>
+      </header>
 
-          <div style={{ margin: '20px 0 12px', borderTop: '1px solid var(--color-latte-soft)' }} />
-
-          <div style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--color-gray-400)', marginBottom: '8px', paddingLeft: '12px' }}>
-            Coming Soon
-          </div>
-
-          {comingSoonItems.map(({ label, icon: Icon }) => (
-            <div
-              key={label}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '10px',
-                padding: '10px 12px',
-                borderRadius: '8px',
-                fontSize: '0.9rem',
-                color: 'var(--color-gray-400)',
-                cursor: 'not-allowed',
-                userSelect: 'none',
-              }}
-            >
-              <Icon size={16} />
-              {label}
-            </div>
-          ))}
-        </aside>
-
-        {/* Main content */}
-        <main
-          style={{
-            flex: 1,
-            padding: '80px 96px',
-            maxWidth: '1400px',
-            width: '100%',
-            background: 'var(--color-gray-50)',
-            minWidth: 0,
-          }}
-        >
-          {children}
-        </main>
-      </div>
+      {/* Main content */}
+      <main
+        style={{
+          flex: 1,
+          padding: '32px 64px 64px',
+          maxWidth: '1400px',
+          width: '100%',
+          margin: '0 auto',
+          minWidth: 0,
+        }}
+      >
+        {children}
+      </main>
     </div>
   );
 }

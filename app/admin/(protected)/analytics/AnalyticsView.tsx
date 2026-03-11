@@ -1,6 +1,16 @@
 'use client';
 
+import { useState } from 'react';
 import type { AnalyticsData } from '@/lib/admin/actions';
+import { SCHOOLS } from '@/lib/schools/config';
+
+const SCHOOL_PALETTE = [
+  '#4B2E25', '#1B4F72', '#7C4A30', '#2D5A3D', '#5C4033', '#3D5A80',
+  '#8B6914', '#4A6B6B', '#6B4423', '#2C5282', '#744210', '#1A365D',
+];
+function schoolColor(school: string, index: number): string {
+  return SCHOOL_PALETTE[index % SCHOOL_PALETTE.length];
+}
 
 const SCHOOL_COLORS: Record<string, string> = {
   'Stonehill College':       '#4B2E25',
@@ -16,6 +26,9 @@ const STATUS_META: Record<string, { label: string; color: string; bg: string }> 
 
 function fmt(n: number) {
   return '$' + n.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+}
+function fmtTooltip(n: number) {
+  return '$' + Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
 }
 
 function delta(current: number, prev: number) {
@@ -74,72 +87,148 @@ function BarChart({ data, valueKey, labelKey, colorFn, formatValue }: {
   );
 }
 
-function TrendChart({ data }: { data: { month: string; revenue: number; bookings: number }[] }) {
-  const maxRev = Math.max(...data.map(d => d.revenue), 1);
-  const maxBook = Math.max(...data.map(d => d.bookings), 1);
-  const CHART_H = 120;
+function smoothCurve(pts: { x: number; y: number }[], maxY: number): string {
+  if (pts.length < 2) return '';
+  let d = `M ${pts[0].x.toFixed(2)} ${pts[0].y.toFixed(2)}`;
+  for (let i = 1; i < pts.length; i++) {
+    const prev = pts[i - 1];
+    const curr = pts[i];
+    const pp   = pts[Math.max(0, i - 2)];
+    const next = pts[Math.min(pts.length - 1, i + 1)];
+    let cp1x = prev.x + (curr.x - pp.x) / 6;
+    let cp1y = prev.y + (curr.y - pp.y) / 6;
+    let cp2x = curr.x - (next.x - prev.x) / 6;
+    let cp2y = curr.y - (next.y - prev.y) / 6;
+    cp1y = Math.min(cp1y, maxY);
+    cp2y = Math.min(cp2y, maxY);
+    d += ` C ${cp1x.toFixed(2)} ${cp1y.toFixed(2)}, ${cp2x.toFixed(2)} ${cp2y.toFixed(2)}, ${curr.x.toFixed(2)} ${curr.y.toFixed(2)}`;
+  }
+  return d;
+}
 
-  const revenuePoints = data.map((d, i) => {
-    const x = (i / (data.length - 1)) * 100;
-    const y = 100 - (d.revenue / maxRev) * 100;
-    return `${x},${y}`;
-  }).join(' ');
+type MonthlyRow = { month: string; revenue: number; bookings: number; schoolData: Record<string, { revenue: number; bookings: number }> };
+
+function TrendChart({ data, filterSchool, onFilterSchool }: { data: MonthlyRow[]; filterSchool: string | null; onFilterSchool: (school: string | null) => void }) {
+  const allSchools = [...SCHOOLS.map(s => s.name)];
+  const hasOther = data.some(d => 'Other' in (d.schoolData || {}));
+  if (hasOther) allSchools.push('Other');
+
+  const W = 600, H = 320;
+  const PAD = { top: 24, right: 24, bottom: 40, left: 56 };
+  const cW = W - PAD.left - PAD.right;
+  const cH = H - PAD.top - PAD.bottom;
+
+  const maxRev = Math.max(
+    1,
+    ...data.flatMap(d => Object.values(d.schoolData || {}).map(v => v.revenue))
+  );
+  const gridMax = Math.ceil(maxRev / 100) * 100 || 100;
+  const gridLines = [0, 0.25, 0.5, 0.75, 1].map(f => ({ val: gridMax * f, y: PAD.top + cH - f * cH }));
+  const baselineY = PAD.top + cH;
+
+  const schoolLines = allSchools.map((school, schoolIdx) => {
+    const pts = data.map((d, i) => {
+      const sd = d.schoolData?.[school] ?? { revenue: 0, bookings: 0 };
+      return {
+        x: PAD.left + (data.length === 1 ? cW / 2 : (i / Math.max(1, data.length - 1)) * cW),
+        y: PAD.top + cH - (sd.revenue / gridMax) * cH,
+        month: d.month,
+        revenue: sd.revenue,
+        bookings: sd.bookings,
+      };
+    });
+    const path = smoothCurve(pts, baselineY);
+    return { school, pts, path, color: schoolColor(school, schoolIdx) };
+  });
 
   return (
-    <div>
-      <div style={{ position: 'relative', height: `${CHART_H}px`, marginBottom: '8px' }}>
-        <svg viewBox={`0 0 100 100`} preserveAspectRatio="none" style={{ width: '100%', height: '100%' }}>
+    <div style={{ width: '100%', flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+      <div style={{ width: '100%', flex: 1, minHeight: 180, overflowX: 'auto' }}>
+        <svg
+          viewBox={`0 0 ${W} ${H}`}
+          preserveAspectRatio="xMidYMid meet"
+          style={{ width: '100%', height: '100%', minHeight: 180, display: 'block', minWidth: '300px' }}
+          role="img"
+          aria-label="Revenue trend chart by school"
+        >
           <defs>
-            <linearGradient id="revGrad" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#4B2E25" stopOpacity="0.3" />
-              <stop offset="100%" stopColor="#4B2E25" stopOpacity="0" />
-            </linearGradient>
+            <clipPath id="chartClip">
+              <rect x={PAD.left} y={PAD.top} width={cW} height={cH} />
+            </clipPath>
+            <filter id="lineGlow" x="-10%" y="-50%" width="120%" height="200%">
+              <feGaussianBlur in="SourceGraphic" stdDeviation="3" result="blur" />
+              <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+            </filter>
           </defs>
-          <polygon
-            points={`0,100 ${revenuePoints} 100,100`}
-            fill="url(#revGrad)"
-          />
-          <polyline
-            points={revenuePoints}
-            fill="none"
-            stroke="#4B2E25"
-            strokeWidth="2"
-            vectorEffect="non-scaling-stroke"
-          />
+
+          {gridLines.map(({ val, y }) => (
+            <g key={val}>
+              <line x1={PAD.left} y1={y} x2={PAD.left + cW} y2={y} stroke="#E7D3BF" strokeWidth="0.75" strokeDasharray={val === 0 ? undefined : '4 4'} />
+              <text x={PAD.left - 8} y={y + 4} textAnchor="end" fontSize="10" fill="#bbb" fontFamily="inherit" fontWeight={600}>
+                {val === 0 ? '$0' : `$${(val / 1000).toFixed(val >= 1000 ? 1 : 0)}${val >= 1000 ? 'k' : ''}`}
+              </text>
+            </g>
+          ))}
+
+          <g clipPath="url(#chartClip)">
+            {schoolLines.map(({ school, path, pts, color }) => {
+              const isHighlighted = filterSchool === null || filterSchool === school;
+              const opacity = isHighlighted ? 1 : 0.4;
+              const showGlow = filterSchool === school;
+              return (
+                <g key={school}>
+                  {showGlow && path && (
+                    <path d={path} fill="none" stroke={color} strokeWidth="5" strokeLinecap="round" strokeLinejoin="round" opacity="0.35" filter="url(#lineGlow)" />
+                  )}
+                  {path && (
+                    <path
+                      d={path}
+                      fill="none"
+                      stroke={color}
+                      strokeWidth="2.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      opacity={opacity}
+                    />
+                  )}
+                  {pts.map((p, i) => (
+                    <g key={i}>
+                      <circle cx={p.x} cy={p.y} r="3.5" fill="white" stroke={color} strokeWidth="1.5" opacity={opacity} />
+                      <title>{`${school} · ${p.month}: ${fmtTooltip(p.revenue)} · ${p.bookings} booking${p.bookings !== 1 ? 's' : ''}`}</title>
+                    </g>
+                  ))}
+                </g>
+              );
+            })}
+          </g>
+
           {data.map((d, i) => {
-            const x = (i / (data.length - 1)) * 100;
-            const y = 100 - (d.revenue / maxRev) * 100;
+            const x = PAD.left + (data.length === 1 ? cW / 2 : (i / Math.max(1, data.length - 1)) * cW);
             return (
-              <circle key={i} cx={x} cy={y} r="2.5" fill="#4B2E25" vectorEffect="non-scaling-stroke">
-                <title>{d.month}: {fmt(d.revenue)}</title>
-              </circle>
+              <text key={i} x={x} y={PAD.top + cH + 20} textAnchor="middle" fontSize="10.5" fill="#aaa" fontFamily="inherit" fontWeight={600}>
+                {d.month}
+              </text>
             );
           })}
         </svg>
-      </div>
-      {/* X-axis labels */}
-      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-        {data.map((d, i) => (
-          <div key={i} style={{ fontSize: '0.68rem', color: '#aaa', fontWeight: 600, textAlign: 'center', flex: 1 }}>{d.month}</div>
-        ))}
-      </div>
-      {/* Booking dots legend */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '8px' }}>
-        {data.map((d, i) => (
-          <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px' }}>
-            <div style={{ width: `${Math.max(6, (d.bookings / maxBook) * 22)}px`, height: `${Math.max(6, (d.bookings / maxBook) * 22)}px`, borderRadius: '50%', background: '#C9A47E', opacity: 0.8, margin: '0 auto' }} />
-            <span style={{ fontSize: '0.65rem', color: '#bbb' }}>{d.bookings}b</span>
-          </div>
-        ))}
       </div>
     </div>
   );
 }
 
+function schoolShortName(school: string): string {
+  const s = SCHOOLS.find(x => x.name === school);
+  return s?.shortName ?? school;
+}
+
 export function AnalyticsView({ data }: { data: AnalyticsData }) {
+  const [filterSchool, setFilterSchool] = useState<string | null>(null);
   const revDelta  = delta(data.revenueThisMonth, data.revenueLastMonth);
   const bookDelta = delta(data.bookingsThisMonth, data.bookingsLastMonth);
   const totalBoxAll = data.bySchool.reduce((s, x) => s + x.boxes, 0);
+
+  const bySchoolMap = Object.fromEntries(data.bySchool.map(s => [s.school, s]));
+  const allSchools = [...new Set([...SCHOOLS.map(s => s.name), ...Object.keys(bySchoolMap)])];
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
@@ -157,13 +246,15 @@ export function AnalyticsView({ data }: { data: AnalyticsData }) {
       <div style={{ display: 'grid', gridTemplateColumns: '1.6fr 1fr', gap: '20px' }}>
 
         {/* Trend chart */}
-        <div style={{ background: '#fff', border: '1px solid #E7D3BF', borderRadius: '14px', padding: '28px' }}>
-          <div style={{ marginBottom: '20px' }}>
+        <div style={{ background: '#fff', border: '1px solid #E7D3BF', borderRadius: '14px', padding: '28px', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+          <div style={{ marginBottom: '16px', flexShrink: 0 }}>
             <div style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#999', marginBottom: '4px' }}>Revenue Trend</div>
             <div style={{ fontSize: '1.1rem', fontWeight: 700, color: '#4B2E25' }}>Last 6 months</div>
           </div>
-          <TrendChart data={data.monthlyRevenue} />
-          <div style={{ display: 'flex', gap: '16px', marginTop: '16px', paddingTop: '16px', borderTop: '1px solid #F0E8DE' }}>
+          <div style={{ flex: 1, minHeight: 240, display: 'flex', flexDirection: 'column' }}>
+            <TrendChart data={data.monthlyRevenue} filterSchool={filterSchool} onFilterSchool={setFilterSchool} />
+          </div>
+          <div style={{ display: 'flex', gap: '16px', marginTop: '12px', paddingTop: '12px', borderTop: '1px solid #F0E8DE', flexShrink: 0 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
               <div style={{ width: '12px', height: '3px', background: '#4B2E25', borderRadius: '2px' }} />
               <span style={{ fontSize: '0.72rem', color: '#888' }}>Revenue</span>
@@ -175,44 +266,55 @@ export function AnalyticsView({ data }: { data: AnalyticsData }) {
           </div>
         </div>
 
-        {/* School breakdown */}
+        {/* School breakdown — all schools, click to filter chart */}
         <div style={{ background: '#fff', border: '1px solid #E7D3BF', borderRadius: '14px', padding: '28px' }}>
           <div style={{ marginBottom: '20px' }}>
             <div style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#999', marginBottom: '4px' }}>By Campus</div>
             <div style={{ fontSize: '1.1rem', fontWeight: 700, color: '#4B2E25' }}>School breakdown</div>
           </div>
-          {data.bySchool.length === 0 ? (
-            <p style={{ color: '#ccc', fontSize: '0.85rem' }}>No data yet</p>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-              {data.bySchool.map(s => {
-                const color = SCHOOL_COLORS[s.school] || '#888';
-                const bookingPct = data.totalBookings ? Math.round((s.bookings / data.totalBookings) * 100) : 0;
-                const revPct = data.totalRevenue ? Math.round((s.revenue / data.totalRevenue) * 100) : 0;
-                return (
-                  <div key={s.school}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: color, flexShrink: 0 }} />
-                        <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#333' }}>
-                          {s.school === 'Stonehill College' ? 'Stonehill' : s.school === 'University of New Haven' ? 'UNH' : s.school}
-                        </span>
-                      </div>
-                      <span style={{ fontSize: '0.8rem', fontWeight: 700, color }}>{bookingPct}%</span>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', maxHeight: '400px', overflowY: 'auto' }}>
+            {allSchools.map((school, i) => {
+              const s = bySchoolMap[school] ?? { school, bookings: 0, revenue: 0, boxes: 0 };
+              const color = SCHOOL_COLORS[school] ?? schoolColor(school, i);
+              const bookingPct = data.totalBookings ? Math.round((s.bookings / data.totalBookings) * 100) : 0;
+              const isSelected = filterSchool === school;
+              return (
+                <button
+                  key={school}
+                  type="button"
+                  onClick={() => setFilterSchool(isSelected ? null : school)}
+                  style={{
+                    display: 'block',
+                    width: '100%',
+                    textAlign: 'left',
+                    padding: '12px',
+                    border: 'none',
+                    background: isSelected ? '#F5EFE7' : 'transparent',
+                    borderRadius: '8px',
+                    cursor: 'pointer',
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: color, flexShrink: 0 }} />
+                      <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#333' }}>
+                        {schoolShortName(school)}
+                      </span>
                     </div>
-                    <div style={{ background: '#F5EFE7', borderRadius: '6px', height: '8px', overflow: 'hidden', marginBottom: '6px' }}>
-                      <div style={{ width: `${bookingPct}%`, height: '100%', background: color, borderRadius: '6px' }} />
-                    </div>
-                    <div style={{ display: 'flex', gap: '16px', fontSize: '0.72rem', color: '#aaa' }}>
-                      <span>{s.bookings} booking{s.bookings !== 1 ? 's' : ''}</span>
-                      <span>{fmt(s.revenue)} revenue</span>
-                      <span>{s.boxes} boxes</span>
-                    </div>
+                    <span style={{ fontSize: '0.8rem', fontWeight: 700, color }}>{bookingPct}%</span>
                   </div>
-                );
-              })}
-            </div>
-          )}
+                  <div style={{ background: '#F5EFE7', borderRadius: '6px', height: '8px', overflow: 'hidden', marginBottom: '6px' }}>
+                    <div style={{ width: `${bookingPct}%`, height: '100%', background: color, borderRadius: '6px' }} />
+                  </div>
+                  <div style={{ display: 'flex', gap: '16px', fontSize: '0.72rem', color: '#aaa' }}>
+                    <span>{s.bookings} booking{s.bookings !== 1 ? 's' : ''}</span>
+                    <span>{fmt(s.revenue)} revenue</span>
+                    <span>{s.boxes} boxes</span>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
         </div>
       </div>
 

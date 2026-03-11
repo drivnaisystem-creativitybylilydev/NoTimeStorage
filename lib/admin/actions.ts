@@ -1,6 +1,7 @@
 'use server';
 
 import { createClient } from '@/lib/supabase/server';
+import { SCHOOLS } from '@/lib/schools/config';
 
 export type DashboardStats = {
   totalBookings: number;
@@ -503,8 +504,8 @@ export type AnalyticsData = {
   // Breakdown by school
   bySchool: { school: string; bookings: number; revenue: number; boxes: number }[];
 
-  // Monthly revenue trend (last 6 months)
-  monthlyRevenue: { month: string; revenue: number; bookings: number }[];
+  // Monthly revenue trend (last 6 months) — per-school, all schools included
+  monthlyRevenue: { month: string; revenue: number; bookings: number; schoolData: Record<string, { revenue: number; bookings: number }> }[];
 
   // Booking status breakdown
   byStatus: { status: string; count: number }[];
@@ -547,7 +548,8 @@ export async function getAnalyticsData(): Promise<AnalyticsData> {
     bookings = withPaidAt || [];
   }
 
-  if (!bookings.length) return emptyAnalytics();
+  const allSchoolNames = SCHOOLS.map(s => s.name);
+  if (!bookings.length) return emptyAnalytics(allSchoolNames);
 
   const now = new Date();
   const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -595,21 +597,38 @@ export async function getAnalyticsData(): Promise<AnalyticsData> {
     .sort((a, b) => b.bookings - a.bookings);
 
   // Monthly revenue — last 6 months (revenue = paid only, bookings = all active)
-  const monthlyRevenue: { month: string; revenue: number; bookings: number }[] = [];
+  // Include ALL schools from config, with 0 for months with no data
+  const monthlyRevenue: { month: string; revenue: number; bookings: number; schoolData: Record<string, { revenue: number; bookings: number }> }[] = [];
   for (let i = 5; i >= 0; i--) {
     const start = new Date(now.getFullYear(), now.getMonth() - i, 1);
     const end   = new Date(now.getFullYear(), now.getMonth() - i + 1, 0, 23, 59, 59);
     const label = start.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
-    const allInRange = bookings.filter((b: any) => {
+
+    const schoolData: Record<string, { revenue: number; bookings: number }> = {};
+    allSchoolNames.forEach(name => { schoolData[name] = { revenue: 0, bookings: 0 }; });
+
+    const schoolSet = new Set(allSchoolNames);
+    bookings.forEach((b: any) => {
       const d = b.created_at ? new Date(b.created_at) : new Date(0);
-      return d >= start && d <= end;
+      if (d >= start && d <= end) {
+        const s = schoolSet.has(b.school) ? b.school : 'Other';
+        if (!schoolData[s]) schoolData[s] = { revenue: 0, bookings: 0 };
+        schoolData[s].bookings++;
+      }
     });
-    const paidInRange = paidBookings.filter((b: any) => {
-      const d = getRevenueDate(b); return d >= start && d <= end;
+    paidBookings.forEach((b: any) => {
+      const d = getRevenueDate(b);
+      if (d >= start && d <= end) {
+        const s = schoolSet.has(b.school) ? b.school : 'Other';
+        const price = typeof b.total_price === 'number' ? b.total_price : parseFloat(b.total_price || '0');
+        if (!schoolData[s]) schoolData[s] = { revenue: 0, bookings: 0 };
+        schoolData[s].revenue += price;
+      }
     });
-    const revenue = paidInRange.reduce((sum: number, b: any) =>
-      sum + (typeof b.total_price === 'number' ? b.total_price : parseFloat(b.total_price || '0')), 0);
-    monthlyRevenue.push({ month: label, revenue, bookings: allInRange.length });
+
+    const revenue = Object.values(schoolData).reduce((sum, v) => sum + v.revenue, 0);
+    const totalBookingsInMonth = Object.values(schoolData).reduce((sum, v) => sum + v.bookings, 0);
+    monthlyRevenue.push({ month: label, revenue, bookings: totalBookingsInMonth, schoolData });
   }
 
   // By status
@@ -640,12 +659,22 @@ export async function getAnalyticsData(): Promise<AnalyticsData> {
   };
 }
 
-function emptyAnalytics(): AnalyticsData {
+function emptyAnalytics(allSchoolNames?: string[]): AnalyticsData {
+  const now = new Date();
+  const schoolList = allSchoolNames ?? SCHOOLS.map(s => s.name);
+  const monthlyRevenue = [];
+  for (let i = 5; i >= 0; i--) {
+    const start = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const label = start.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
+    const schoolData: Record<string, { revenue: number; bookings: number }> = {};
+    schoolList.forEach(name => { schoolData[name] = { revenue: 0, bookings: 0 }; });
+    monthlyRevenue.push({ month: label, revenue: 0, bookings: 0, schoolData });
+  }
   return {
     totalRevenue: 0, revenueThisMonth: 0, revenueLastMonth: 0,
     totalBookings: 0, bookingsThisMonth: 0, bookingsLastMonth: 0,
     avgBoxesPerBooking: 0, totalBoxes: 0,
-    bySchool: [], monthlyRevenue: [], byStatus: [], boxDistribution: [],
+    bySchool: [], monthlyRevenue, byStatus: [], boxDistribution: [],
   };
 }
 
