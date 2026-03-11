@@ -220,7 +220,7 @@ export const SCHOOLS: School[] = [
     name: 'Sacred Heart University',
     shortName: 'SHU',
     location: 'Fairfield, CT',
-    logoSlug: 'SHU',
+    logoSlug: 'Sacred Heart University (SHU)',
     moveOutWindow: { start: '2026-04-28', end: '2026-05-05' },
     dorms: [
       'Elizabeth Ann Seton Hall',
@@ -281,7 +281,7 @@ export const SCHOOLS: School[] = [
     name: 'University of Notre Dame',
     shortName: 'Notre Dame',
     location: 'Notre Dame, IN',
-    logoSlug: 'Notre-Dame',
+    logoSlug: 'Notre Dame',
     moveOutWindow: { start: '2026-04-30', end: '2026-05-08' },
     dorms: [
       'Alumni Hall',
@@ -323,7 +323,7 @@ export const SCHOOLS: School[] = [
     name: 'James Madison University',
     shortName: 'JMU',
     location: 'Harrisonburg, VA',
-    logoSlug: 'JMU',
+    logoSlug: 'James Madison University',
     moveOutWindow: { start: '2026-05-06', end: '2026-05-16' },
     dorms: [
       'Alger Hall',
