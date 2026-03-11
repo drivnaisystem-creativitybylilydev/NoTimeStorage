@@ -15,13 +15,18 @@ CREATE TABLE IF NOT EXISTS public.schools (
 
 -- 2. Insert all schools (ON CONFLICT so re-run is safe)
 INSERT INTO public.schools (name, short_name, location) VALUES
-  ('Stonehill College',                    'Stonehill', 'Easton, MA'),
-  ('University of New Haven',              'UNH',       'West Haven, CT'),
-  ('University of Dayton',                 'Dayton',    'Dayton, OH'),
-  ('University of Massachusetts',          'UMass',     'Massachusetts'),
-  ('Brevard College',                      'Brevard',   'Brevard, NC'),
-  ('Gordon College',                       'Gordon',    'Wenham, MA'),
-  ('Central Connecticut State University', 'CCSU',      'New Britain, CT')
+  ('Stonehill College',                    'Stonehill',   'Easton, MA'),
+  ('University of New Haven',              'UNH',         'West Haven, CT'),
+  ('University of Dayton',                 'Dayton',      'Dayton, OH'),
+  ('University of Massachusetts',          'UMass',       'Massachusetts'),
+  ('Brevard College',                      'Brevard',     'Brevard, NC'),
+  ('Gordon College',                       'Gordon',      'Wenham, MA'),
+  ('Central Connecticut State University', 'CCSU',        'New Britain, CT'),
+  ('Sacred Heart University',              'SHU',         'Fairfield, CT'),
+  ('Towson University',                    'Towson',      'Towson, MD'),
+  ('University of Notre Dame',             'Notre Dame',  'Notre Dame, IN'),
+  ('James Madison University',             'JMU',         'Harrisonburg, VA'),
+  ('Bridgewater State University',         'Bridgewater', 'Bridgewater, MA')
 ON CONFLICT (name) DO NOTHING;
 
 -- ============================================================
@@ -37,7 +42,12 @@ WHERE school IN (
   'University of Massachusetts',
   'Brevard College',
   'Gordon College',
-  'Central Connecticut State University'
+  'Central Connecticut State University',
+  'Sacred Heart University',
+  'Towson University',
+  'University of Notre Dame',
+  'James Madison University',
+  'Bridgewater State University'
 );
 
 -- ============================================================
@@ -193,7 +203,146 @@ INSERT INTO public.dorms (school, name) VALUES
   ('Central Connecticut State University', 'Robert Sheridan Hall'),
   ('Central Connecticut State University', 'Robert Vance Hall'),
   ('Central Connecticut State University', 'Sam May Hall'),
-  ('Central Connecticut State University', 'Carroll Hall');
+  ('Central Connecticut State University', 'Carroll Hall'),
+  ('Central Connecticut State University', 'Off-Campus Housing');
+
+-- Sacred Heart University
+INSERT INTO public.dorms (school, name) VALUES
+  ('Sacred Heart University', 'Elizabeth Ann Seton Hall'),
+  ('Sacred Heart University', 'Thomas Merton Hall'),
+  ('Sacred Heart University', 'Angelo Roncalli Hall'),
+  ('Sacred Heart University', 'Toussaint Hall'),
+  ('Sacred Heart University', 'Mother Teresa Hall'),
+  ('Sacred Heart University', 'Catherine of Siena Hall & Michael McGivney Hall'),
+  ('Sacred Heart University', 'Scholars Commons'),
+  ('Sacred Heart University', 'Augustine Hall'),
+  ('Sacred Heart University', 'Thomas Aquinas Hall'),
+  ('Sacred Heart University', 'Teresa of Avila Hall'),
+  ('Sacred Heart University', 'John Henry Newman Hall'),
+  ('Sacred Heart University', 'Christian Witness Commons'),
+  ('Sacred Heart University', 'Jean Donovan Hall'),
+  ('Sacred Heart University', 'Oscar Romero Hall'),
+  ('Sacred Heart University', 'Dorothy Day Hall'),
+  ('Sacred Heart University', 'Elie Wiesel Hall & Pier Giorgio Frassati Hall'),
+  ('Sacred Heart University', 'Frances Xavier Cabrini Hall'),
+  ('Sacred Heart University', 'Thea Bowman Hall'),
+  ('Sacred Heart University', 'Jorge Bergoglio Hall'),
+  ('Sacred Heart University', 'Oakwood Gardens'),
+  ('Sacred Heart University', 'The Ridge Townhouses & Apartments'),
+  ('Sacred Heart University', 'Pioneer Gardens Apartments'),
+  ('Sacred Heart University', 'Off-Campus Housing');
+
+-- Towson University
+INSERT INTO public.dorms (school, name) VALUES
+  ('Towson University', 'Barton House'),
+  ('Towson University', 'Douglass House'),
+  ('Towson University', 'Harris Hall'),
+  ('Towson University', 'Tubman House'),
+  ('Towson University', 'Barnes Hall'),
+  ('Towson University', 'Marshall Hall'),
+  ('Towson University', 'Towson Run'),
+  ('Towson University', 'Millennium Hall'),
+  ('Towson University', 'Glen Complex'),
+  ('Towson University', 'Tower A'),
+  ('Towson University', 'Tower B'),
+  ('Towson University', 'Tower C'),
+  ('Towson University', 'Tower D'),
+  ('Towson University', 'Newell Hall'),
+  ('Towson University', 'Richmond Hall'),
+  ('Towson University', 'Prettyman Hall'),
+  ('Towson University', 'Scarborough Hall'),
+  ('Towson University', 'Residence Tower'),
+  ('Towson University', '10 West'),
+  ('Towson University', 'Off-Campus Housing');
+
+-- University of Notre Dame
+INSERT INTO public.dorms (school, name) VALUES
+  ('University of Notre Dame', 'Alumni Hall'),
+  ('University of Notre Dame', 'Baumer Hall'),
+  ('University of Notre Dame', 'Carroll Hall'),
+  ('University of Notre Dame', 'Coyle Community in Zahm Hall'),
+  ('University of Notre Dame', 'Dillon Hall'),
+  ('University of Notre Dame', 'Duncan Hall'),
+  ('University of Notre Dame', 'Dunne Hall'),
+  ('University of Notre Dame', 'Graham Family Hall'),
+  ('University of Notre Dame', 'Keenan Hall'),
+  ('University of Notre Dame', 'Keough Hall'),
+  ('University of Notre Dame', 'Knott Hall'),
+  ('University of Notre Dame', 'Morrissey Hall'),
+  ('University of Notre Dame', 'O''Neill Family Hall'),
+  ('University of Notre Dame', 'Siegfried Hall'),
+  ('University of Notre Dame', 'Sorin Hall'),
+  ('University of Notre Dame', 'Stanford Hall'),
+  ('University of Notre Dame', 'St. Edward''s Hall'),
+  ('University of Notre Dame', 'Badin Hall'),
+  ('University of Notre Dame', 'Breen-Phillips Hall'),
+  ('University of Notre Dame', 'Cavanaugh Hall'),
+  ('University of Notre Dame', 'Farley Hall'),
+  ('University of Notre Dame', 'Flaherty Hall'),
+  ('University of Notre Dame', 'Howard Hall'),
+  ('University of Notre Dame', 'Johnson Family Hall'),
+  ('University of Notre Dame', 'Lewis Hall'),
+  ('University of Notre Dame', 'Lyons Hall'),
+  ('University of Notre Dame', 'McGlinn Hall'),
+  ('University of Notre Dame', 'Pasquerilla East Hall'),
+  ('University of Notre Dame', 'Pasquerilla West Hall'),
+  ('University of Notre Dame', 'Ryan Hall'),
+  ('University of Notre Dame', 'Walsh Hall'),
+  ('University of Notre Dame', 'Welsh Family Hall'),
+  ('University of Notre Dame', 'Off-Campus Housing');
+
+-- James Madison University
+INSERT INTO public.dorms (school, name) VALUES
+  ('James Madison University', 'Alger Hall'),
+  ('James Madison University', 'Apartments on Grace'),
+  ('James Madison University', 'Ashby Hall'),
+  ('James Madison University', 'Bell Hall'),
+  ('James Madison University', 'Chesapeake Hall'),
+  ('James Madison University', 'Chappelear Hall'),
+  ('James Madison University', 'Chandler Hall'),
+  ('James Madison University', 'Cedar'),
+  ('James Madison University', 'Converse Hall'),
+  ('James Madison University', 'Dingledine Hall'),
+  ('James Madison University', 'Dogwood'),
+  ('James Madison University', 'Eagle Hall'),
+  ('James Madison University', 'Frederikson Hall'),
+  ('James Madison University', 'Garber Hall'),
+  ('James Madison University', 'Gifford Hall'),
+  ('James Madison University', 'Greek Row'),
+  ('James Madison University', 'Hanson Hall'),
+  ('James Madison University', 'Hillside Hall'),
+  ('James Madison University', 'Hoffman Hall'),
+  ('James Madison University', 'Huffman Hall'),
+  ('James Madison University', 'Logan Hall'),
+  ('James Madison University', 'Magnolia'),
+  ('James Madison University', 'McGraw-Long Hall'),
+  ('James Madison University', 'Oak'),
+  ('James Madison University', 'Paul Jennings Hall'),
+  ('James Madison University', 'Potomac Hall'),
+  ('James Madison University', 'Shenandoah Hall'),
+  ('James Madison University', 'Shorts Hall'),
+  ('James Madison University', 'Spotswood Hall'),
+  ('James Madison University', 'Wampler Hall'),
+  ('James Madison University', 'Wayland Hall'),
+  ('James Madison University', 'Weaver Hall'),
+  ('James Madison University', 'White Hall'),
+  ('James Madison University', 'Willow'),
+  ('James Madison University', 'Off-Campus Housing');
+
+-- Bridgewater State University
+INSERT INTO public.dorms (school, name) VALUES
+  ('Bridgewater State University', 'Miles Hall'),
+  ('Bridgewater State University', 'DiNardo Hall'),
+  ('Bridgewater State University', 'Crimson Hall'),
+  ('Bridgewater State University', 'Stonehouse Hall'),
+  ('Bridgewater State University', 'Weygand Hall'),
+  ('Bridgewater State University', 'Scott Hall'),
+  ('Bridgewater State University', 'Woodward Hall'),
+  ('Bridgewater State University', 'Pope Hall'),
+  ('Bridgewater State University', 'Shea Hall'),
+  ('Bridgewater State University', 'Durgin Hall'),
+  ('Bridgewater State University', 'Great Hill Student Apartments'),
+  ('Bridgewater State University', 'Off-Campus Housing');
 
 -- ============================================================
 -- Verify: SELECT school, COUNT(*) FROM public.dorms GROUP BY school ORDER BY school;

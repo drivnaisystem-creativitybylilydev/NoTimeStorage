@@ -6,7 +6,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { getAvailableTimeSlots } from '@/lib/booking/availability';
 import { getDefaultTimeSlots } from '@/lib/booking/time-slots';
-import { SCHOOL_NAMES, getDormsForSchool } from '@/lib/schools/config';
+import { SCHOOL_NAMES, getDormsForSchool, getMoveOutWindow } from '@/lib/schools/config';
 import { createClient } from '@/lib/supabase/client';
 
 // Configuration: Minimum storage duration in months
@@ -128,18 +128,24 @@ function SchedulePageContent() {
   const isDateDisabled = (date: Date) => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    
-    // If selecting move-out, disable past dates
+
     if (selectingMoveOut) {
-      return date < today;
+      // Always disable past dates
+      if (date < today) return true;
+      // If a school is selected and has a move-out window, restrict to that range
+      const window = getMoveOutWindow(school);
+      if (window) {
+        return date < window.start || date > window.end;
+      }
+      return false;
     }
-    
+
     // If selecting move-in, disable dates before minimum storage period
     if (moveOutDate) {
       const minMoveIn = getMinimumMoveInDate(moveOutDate);
       return date < minMoveIn;
     }
-    
+
     return false;
   };
 
@@ -370,6 +376,17 @@ function SchedulePageContent() {
             </div>
           </div>
 
+          {selectingMoveOut && school && (() => {
+            const w = getMoveOutWindow(school);
+            if (!w) return null;
+            const fmt = (d: Date) => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'America/New_York' });
+            return (
+              <div style={{ padding: '10px 14px', background: 'var(--color-latte-soft)', border: '1px solid var(--color-latte)', borderRadius: '8px', color: 'var(--color-coffee)', fontSize: '0.875rem', marginBottom: '16px', fontWeight: 500 }}>
+                📅 Move-out pickup for {school.split(' ').slice(-1)[0]}: <strong>{fmt(w.start)} – {fmt(w.end)}</strong>
+              </div>
+            );
+          })()}
+
           {dateError && (
             <div style={{ padding: '12px', background: '#FEE2E2', border: '1px solid #EF4444', borderRadius: '8px', color: '#B91C1C', fontSize: '0.875rem', marginBottom: '16px' }}>
               {dateError}
@@ -482,8 +499,20 @@ function SchedulePageContent() {
             id="school-select"
             value={school}
             onChange={(e) => {
-              setSchool(e.target.value);
+              const newSchool = e.target.value;
+              setSchool(newSchool);
               setDorm('');
+              // Reset move-out date if it falls outside the new school's window
+              const window = getMoveOutWindow(newSchool);
+              if (window) {
+                if (moveOutDate && (moveOutDate < window.start || moveOutDate > window.end)) {
+                  setMoveOutDate(null);
+                  setMoveInDate(null);
+                  setSelectingMoveOut(true);
+                }
+                // Jump calendar to the school's move-out month
+                setCurrentMonth(new Date(window.start.getFullYear(), window.start.getMonth()));
+              }
             }}
             style={{
               width: '100%',
