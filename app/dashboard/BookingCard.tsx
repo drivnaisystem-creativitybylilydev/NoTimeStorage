@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAppModal } from '@/app/components/AppModalProvider';
 import { deleteBooking, updateBookingDates } from '@/lib/booking/update-booking';
+import { getBoxDistributionDate } from '@/lib/schools/config';
 
 type BookingItem = { item_type: string; quantity: number; monthly_rate: number; subtotal: number };
 export type BookingRow = {
@@ -67,6 +68,11 @@ export function BookingCard({ booking: b }: { booking: BookingRow }) {
   const [deleting, setDeleting] = useState(false);
 
   const isUnpaid = b.payment_status !== 'paid';
+
+  const boxDay = b.school ? getBoxDistributionDate(b.school) : null;
+  const fmtBoxDay = boxDay
+    ? boxDay.toLocaleDateString('en-US', { month: 'long', day: 'numeric', timeZone: 'America/New_York' })
+    : null;
 
   const handleSaveDates = async () => {
     if (!moveOutDate || !moveInDate || !moveOutTime) {
@@ -150,6 +156,27 @@ export function BookingCard({ booking: b }: { booking: BookingRow }) {
           Booked {formatDate(b.created_at)}
         </span>
       </div>
+
+      {fmtBoxDay && (
+        <div style={{
+          display: 'flex',
+          gap: '10px',
+          alignItems: 'flex-start',
+          padding: '10px 14px',
+          background: '#FEF9EC',
+          border: '1px solid #F3D98B',
+          borderRadius: '8px',
+          marginBottom: '16px',
+          fontSize: '0.8125rem',
+          color: '#7C5C1E',
+        }}>
+          <span style={{ fontSize: '1rem', lineHeight: 1, flexShrink: 0 }}>📦</span>
+          <div>
+            <strong>Box delivery: {fmtBoxDay}</strong>
+            <span style={{ marginLeft: '4px' }}>— we&apos;ll drop off empty boxes at your dorm and contact you beforehand.</span>
+          </div>
+        </div>
+      )}
 
       {editingDates ? (
         <div style={{ marginBottom: '20px', padding: '20px', background: 'var(--color-paper)', borderRadius: '12px', border: '1px solid var(--color-latte)' }}>
