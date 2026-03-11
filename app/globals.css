@@ -5745,12 +5745,13 @@ button {
 
 .box-carousel {
   position: relative; z-index: 1;
-  display: flex; flex-direction: column; align-self: stretch;
+  align-self: stretch;
 }
 
 .box-carousel-frame {
-  width: 100%; flex: 1; min-height: 400px;
+  width: 100%; height: 100%; min-height: 420px;
   border-radius: 16px; overflow: hidden;
+  position: relative;
   background: var(--color-white); border: 1.5px solid var(--color-latte);
   box-shadow:
     0 0 0 1px rgba(90, 45, 8, 0.12),
@@ -5760,7 +5761,14 @@ button {
 
 .box-carousel-img { width: 100%; height: 100%; object-fit: cover; display: block; }
 
-.box-carousel-nav { display: flex; justify-content: center; gap: 12px; margin-top: 18px; }
+.box-carousel-overlay {
+  position: absolute; bottom: 0; left: 0; right: 0;
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+  padding: 12px 16px 16px;
+  background: linear-gradient(to top, rgba(255,255,255,0.85) 0%, rgba(255,255,255,0) 100%);
+}
+
+.box-carousel-nav { display: flex; justify-content: center; gap: 12px; }
 
 .box-carousel-dot {
   width: 10px; height: 10px; border-radius: 50%;
@@ -5775,7 +5783,7 @@ button {
 
 .box-carousel-label {
   font-size: 0.7rem; font-weight: 600; letter-spacing: 0.08em;
-  text-transform: uppercase; color: var(--color-gray-600); text-align: center; margin-top: 10px;
+  text-transform: uppercase; color: var(--color-gray-700); text-align: center; margin: 0;
 }
 
 .box-specs-content {
@@ -5844,7 +5852,7 @@ button {
 @media (max-width: 768px) {
   .box-showcase-content { grid-template-columns: 1fr; align-items: start; gap: 0; }
   .box-carousel { align-self: auto; }
-  .box-carousel-frame { min-height: 280px; flex: none; aspect-ratio: 1; border-radius: 16px 16px 0 0; }
+  .box-carousel-frame { min-height: 300px; height: 300px; border-radius: 16px 16px 0 0; }
   .box-trigger-body { display: none; }
   .box-trigger-headline { font-size: 1.8rem; }
   .box-specs-content {

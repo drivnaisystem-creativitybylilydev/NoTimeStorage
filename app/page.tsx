@@ -42,14 +42,16 @@ function BoxCarousel() {
             transition={{ duration: 0.4, ease: [0.25, 0.1, 0.25, 1] }}
           />
         </AnimatePresence>
+        <div className="box-carousel-overlay">
+          <p className="box-carousel-label">{BOX_IMAGES[current].label}</p>
+          <div className="box-carousel-nav">
+            {BOX_IMAGES.map((_, i) => (
+              <button key={i} className={`box-carousel-dot${i === current ? ' active' : ''}`}
+                onClick={() => setCurrent(i)} aria-label={`View ${BOX_IMAGES[i].label}`} />
+            ))}
+          </div>
+        </div>
       </div>
-      <div className="box-carousel-nav">
-        {BOX_IMAGES.map((_, i) => (
-          <button key={i} className={`box-carousel-dot${i === current ? ' active' : ''}`}
-            onClick={() => setCurrent(i)} aria-label={`View ${BOX_IMAGES[i].label}`} />
-        ))}
-      </div>
-      <p className="box-carousel-label">{BOX_IMAGES[current].label}</p>
     </motion.div>
   );
 }
