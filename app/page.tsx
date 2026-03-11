@@ -13,10 +13,10 @@ const DEBUG_LOG = (data: Record<string, unknown>) => { fetch('http://127.0.0.1:7
 // #endregion
 
 const BOX_IMAGES = [
-  { src: '/brand/box-scale-side.png', alt: 'Person standing next to NoTime Storage box showing scale', label: 'Real Size – Side View', cover: true },
-  { src: '/brand/box-scale-inside.png', alt: 'Person standing inside NoTime Storage box showing scale', label: 'Real Size – Inside View', cover: true },
-  { src: '/brand/box-3d-view.png', alt: '3D isometric view of NoTime Storage box', label: 'Isometric View', cover: false },
-  { src: '/brand/box-birdseye-view.png', alt: "Bird's-eye view of NoTime Storage box", label: "Bird's-Eye View", cover: false },
+  { src: '/brand/box-scale-side.png', alt: 'Person standing next to NoTime Storage box showing scale', label: 'Real Size – Side View' },
+  { src: '/brand/box-scale-inside.png', alt: 'Person standing inside NoTime Storage box showing scale', label: 'Real Size – Inside View' },
+  { src: '/brand/box-3d-view.png', alt: '3D isometric view of NoTime Storage box', label: 'Isometric View' },
+  { src: '/brand/box-birdseye-view.png', alt: "Bird's-eye view of NoTime Storage box", label: "Bird's-Eye View" },
 ];
 
 function BoxCarousel() {
@@ -35,7 +35,7 @@ function BoxCarousel() {
             key={current}
             src={BOX_IMAGES[current].src}
             alt={BOX_IMAGES[current].alt}
-            className={`box-carousel-img${BOX_IMAGES[current].cover ? ' box-carousel-img--cover' : ''}`}
+            className="box-carousel-img"
             initial={{ opacity: 0, scale: 0.97 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.97 }}
@@ -102,8 +102,9 @@ function BoxShowcase() {
               <div className="box-showcase-content">
                 <BoxCarousel />
                 <motion.div className="box-specs-content"
-                  initial={{ opacity: 0, x: 36 }} animate={{ opacity: 1, x: 0 }}
-                  transition={{ duration: 0.65, delay: 0.2, ease: [0.25, 0.1, 0.25, 1] }}>
+                  initial={{ opacity: 0, x: -80, clipPath: 'inset(0 0 0 55% round 20px)' }}
+                  animate={{ opacity: 1, x: 0, clipPath: 'inset(0 0 0 0% round 20px)' }}
+                  transition={{ duration: 0.75, delay: 0.25, ease: [0.22, 1, 0.36, 1] }}>
                   <h3 className="box-specs-headline">Your Stuff, Secured &amp; Stored</h3>
                   <p className="box-specs-subheadline">No flimsy cardboard here. Our boxes are built to handle a full dorm room&apos;s worth of belongings.</p>
                   <div className="box-specs-grid">
