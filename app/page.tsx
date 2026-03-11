@@ -13,10 +13,10 @@ const DEBUG_LOG = (data: Record<string, unknown>) => { fetch('http://127.0.0.1:7
 // #endregion
 
 const BOX_IMAGES = [
-  { src: '/brand/box-3d-view.png', alt: '3D isometric view of NoTime Storage box', label: 'Isometric View' },
-  { src: '/brand/box-birdseye-view.png', alt: "Bird's-eye view of NoTime Storage box", label: "Bird's-Eye View" },
-  { src: '/brand/box-scale-side.png', alt: 'Person standing next to NoTime Storage box showing scale', label: 'Real Size – Side View' },
-  { src: '/brand/box-scale-inside.png', alt: 'Person standing inside NoTime Storage box showing scale', label: 'Real Size – Inside View' },
+  { src: '/brand/box-scale-side.png', alt: 'Person standing next to NoTime Storage box showing scale', label: 'Real Size – Side View', cover: true },
+  { src: '/brand/box-scale-inside.png', alt: 'Person standing inside NoTime Storage box showing scale', label: 'Real Size – Inside View', cover: true },
+  { src: '/brand/box-3d-view.png', alt: '3D isometric view of NoTime Storage box', label: 'Isometric View', cover: false },
+  { src: '/brand/box-birdseye-view.png', alt: "Bird's-eye view of NoTime Storage box", label: "Bird's-Eye View", cover: false },
 ];
 
 function BoxCarousel() {
@@ -35,7 +35,7 @@ function BoxCarousel() {
             key={current}
             src={BOX_IMAGES[current].src}
             alt={BOX_IMAGES[current].alt}
-            className="box-carousel-img"
+            className={`box-carousel-img${BOX_IMAGES[current].cover ? ' box-carousel-img--cover' : ''}`}
             initial={{ opacity: 0, scale: 0.97 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.97 }}
@@ -117,7 +117,11 @@ function BoxShowcase() {
                     </div>
                     <div className="spec-item">
                       <div className="spec-icon">🧊</div>
-                      <div><div className="spec-label">Volume</div><div className="spec-value">≈ 4 mini fridges</div></div>
+                      <div>
+                        <div className="spec-label">Volume</div>
+                        <div className="spec-value">20.8 cu ft</div>
+                        <div className="spec-subvalue">≈ 4 mini fridges</div>
+                      </div>
                     </div>
                   </div>
                   <div className="box-fits-wrapper">
