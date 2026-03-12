@@ -493,13 +493,13 @@ export default function Home() {
             <a href="#contact">Contact</a>
             {(loading || !user) ? (
               <>
-                <Link href="/auth/signup" className="header-cta">Get Started</Link>
-                <Link href="/auth/login" className="header-login">Login</Link>
+                <a href="/auth/signup" className="header-cta">Get Started</a>
+                <a href="/auth/login" className="header-login">Login</a>
               </>
             ) : (
               <>
-                <Link href="/booking/configure" className="header-cta">Book Storage</Link>
-                <Link href="/dashboard" className="header-login">Dashboard</Link>
+                <a href="/booking/configure" className="header-cta">Book Storage</a>
+                <a href="/dashboard" className="header-login">Dashboard</a>
               </>
             )}
           </nav>
@@ -531,13 +531,13 @@ export default function Home() {
         <a href="#contact" onClick={() => setMobileNavOpen(false)}>Contact</a>
         {(loading || !user) ? (
           <>
-            <Link href="/auth/login" onClick={() => setMobileNavOpen(false)}>Login</Link>
-            <Link href="/auth/signup" className="mobile-nav-cta" onClick={() => setMobileNavOpen(false)}>Get Started</Link>
+            <a href="/auth/login" onClick={() => setMobileNavOpen(false)}>Login</a>
+            <a href="/auth/signup" className="mobile-nav-cta" onClick={() => setMobileNavOpen(false)}>Get Started</a>
           </>
         ) : (
           <>
-            <Link href="/dashboard" onClick={() => setMobileNavOpen(false)}>Dashboard</Link>
-            <Link href="/booking/configure" className="mobile-nav-cta" onClick={() => setMobileNavOpen(false)}>Book Storage</Link>
+            <a href="/dashboard" onClick={() => setMobileNavOpen(false)}>Dashboard</a>
+            <a href="/booking/configure" className="mobile-nav-cta" onClick={() => setMobileNavOpen(false)}>Book Storage</a>
           </>
         )}
       </div>
@@ -567,13 +567,13 @@ export default function Home() {
             variants={fadeInUp}
           >
             {(loading || !user) ? (
-              <Link href="/auth/signup">
-                <button className="button-primary">Get Started</button>
-              </Link>
+              <a href="/auth/signup">
+                <button className="button-primary" type="button">Get Started</button>
+              </a>
             ) : (
-              <Link href="/booking/configure">
-                <button className="button-primary">Book Your Storage</button>
-              </Link>
+              <a href="/booking/configure">
+                <button className="button-primary" type="button">Book Your Storage</button>
+              </a>
             )}
             <a href="#how-it-works">
               <button className="button-secondary">Learn More</button>
