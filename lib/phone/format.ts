@@ -1,6 +1,11 @@
-import { getCountries, getCountryCallingCode, parsePhoneNumberFromString } from 'libphonenumber-js';
+import {
+  getCountries,
+  getCountryCallingCode,
+  parsePhoneNumberFromString,
+  type CountryCode as LibCountryCode,
+} from 'libphonenumber-js';
 
-export type CountryCode = string;
+export type CountryCode = LibCountryCode;
 
 // Helper to build emoji flag from ISO country code (e.g. "US" -> 🇺🇸)
 function countryCodeToFlag(code: string): string {
