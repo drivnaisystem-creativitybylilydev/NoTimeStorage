@@ -503,7 +503,8 @@ function PaymentPageContent() {
         <Link href={`/booking/schedule?${searchParams.toString()}`} className="booking-payment-back">
           ← Edit details
         </Link>
-      </div>
+          </div>
+        </div>
     </AuthPageWrapper>
   );
 }
