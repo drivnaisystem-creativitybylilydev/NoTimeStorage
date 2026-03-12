@@ -50,14 +50,20 @@ export function ProfileEditor({ profileId, initialEmail, initialPhone, initialSc
     try {
       const normalizedPhone = normalizePhoneForStorage(phone, phoneCountry);
 
-      // Update auth user email + metadata
-      const { error: authError } = await supabase.auth.updateUser({
-        email,
-        data: {
-          phone: normalizedPhone,
-          school,
+      // Update auth user email + metadata; ensure email-change confirmation
+      // redirects back to our email-change-complete page.
+      const { error: authError } = await supabase.auth.updateUser(
+        {
+          email,
+          data: {
+            phone: normalizedPhone,
+            school,
+          },
         },
-      });
+        {
+          emailRedirectTo: `${window.location.origin}/auth/email-change-complete`,
+        }
+      );
       if (authError) throw authError;
 
       // Update profile row
