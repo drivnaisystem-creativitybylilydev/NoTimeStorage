@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { formatDate } from '@/lib/utils/date';
 import { getMoveOutWindow } from '@/lib/schools/config';
+import { AuthPageWrapper } from '@/app/components/AuthPageWrapper';
 
 function BookingConfirmedContent() {
   const searchParams = useSearchParams();
@@ -27,7 +28,7 @@ function BookingConfirmedContent() {
   };
 
   return (
-    <div className="auth-container">
+    <AuthPageWrapper>
       <motion.div
         className="auth-card"
         style={{ maxWidth: '480px' }}
@@ -168,13 +169,13 @@ function BookingConfirmedContent() {
           </motion.div>
         </div>
       </motion.div>
-    </div>
+    </AuthPageWrapper>
   );
 }
 
 export default function BookingConfirmedPage() {
   return (
-    <Suspense fallback={<div className="auth-container" />}>
+    <Suspense fallback={<AuthPageWrapper><div /></AuthPageWrapper>}>
       <BookingConfirmedContent />
     </Suspense>
   );

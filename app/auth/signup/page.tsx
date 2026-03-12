@@ -6,6 +6,8 @@ import { createClient } from '@/lib/supabase/client';
 import Link from 'next/link';
 import Image from 'next/image';
 import { SCHOOL_NAMES } from '@/lib/schools/config';
+import { AuthPageWrapper } from '@/app/components/AuthPageWrapper';
+import { SUPPORTED_COUNTRIES, normalizePhoneForStorage, formatPhoneForDisplay } from '@/lib/phone/format';
 
 export default function SignUpPage() {
   const router = useRouter();
@@ -18,6 +20,7 @@ export default function SignUpPage() {
     firstName: '',
     lastName: '',
     phone: '',
+    phoneCountry: 'US',
     fullName: '',
     school: '',
     parentEmail: '',
@@ -46,8 +49,8 @@ export default function SignUpPage() {
     }
 
     try {
-      // Sign up with Supabase Auth
-      // The database trigger will automatically create the user profile
+      const normalizedPhone = normalizePhoneForStorage(formData.phone, formData.phoneCountry as any);
+
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: formData.email,
         password: formData.password,
@@ -55,7 +58,7 @@ export default function SignUpPage() {
           emailRedirectTo: `${window.location.origin}/auth/callback`,
           data: {
             full_name: `${formData.firstName} ${formData.lastName}`,
-            phone: formData.phone,
+            phone: normalizedPhone,
             school: formData.school,
             parent_email: formData.parentEmail || null,
           },
@@ -77,7 +80,7 @@ export default function SignUpPage() {
 
   if (success) {
     return (
-      <div className="auth-container">
+      <AuthPageWrapper>
         <div className="auth-card">
           <div className="auth-logo">
             <Image
@@ -154,12 +157,12 @@ export default function SignUpPage() {
             </p>
           </div>
         </div>
-      </div>
+      </AuthPageWrapper>
     );
   }
 
   return (
-    <div className="auth-container">
+    <AuthPageWrapper>
       <div className="auth-card">
         <div className="auth-logo">
           <Image
@@ -219,14 +222,49 @@ export default function SignUpPage() {
 
           <div className="form-group">
             <label htmlFor="phone">Phone Number</label>
-            <input
-              type="tel"
-              id="phone"
-              value={formData.phone}
-              onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-              placeholder="(555) 123-4567"
-              required
-            />
+            <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'stretch' }}>
+              <select
+                id="phoneCountry"
+                value={formData.phoneCountry}
+                onChange={(e) => setFormData({ ...formData, phoneCountry: e.target.value })}
+                style={{
+                  width: '3.25rem',
+                  minWidth: '3.25rem',
+                  padding: '0',
+                  border: '2px solid var(--color-latte)',
+                  borderRadius: '8px',
+                  backgroundColor: 'white',
+                  fontSize: '0.95rem',
+                  color: 'var(--color-coffee)',
+                  cursor: 'pointer',
+                  textAlign: 'center',
+                  appearance: 'auto',
+                }}
+              >
+                {SUPPORTED_COUNTRIES.map((c) => (
+                  <option key={c.code} value={c.code}>
+                    {c.label}
+                  </option>
+                ))}
+              </select>
+              <input
+                type="tel"
+                id="phone"
+                value={formData.phone}
+                onChange={(e) =>
+                  setFormData({ ...formData, phone: formatPhoneForDisplay(e.target.value, formData.phoneCountry as any) })
+                }
+                placeholder="(555) 123-4567"
+                required
+                style={{
+                  flex: 1,
+                  padding: '0.75rem 1rem',
+                  border: '2px solid var(--color-latte)',
+                  borderRadius: '8px',
+                  fontSize: '1rem',
+                }}
+              />
+            </div>
           </div>
 
           <div className="form-group">
@@ -308,6 +346,6 @@ export default function SignUpPage() {
           </div>
         </form>
       </div>
-    </div>
+    </AuthPageWrapper>
   );
 }

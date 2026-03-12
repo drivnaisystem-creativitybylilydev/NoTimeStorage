@@ -9,6 +9,7 @@ import { createBooking } from '@/lib/booking/create-booking';
 import { chargeBookingPayment } from '@/lib/square/charge-booking';
 import type { CreateBookingInput, BookingItemType } from '@/lib/booking/types';
 import { formatDate, formatTime } from '@/lib/utils/date';
+import { AuthPageWrapper } from '@/app/components/AuthPageWrapper';
 
 const ITEM_TYPE_MAP: Record<string, BookingItemType> = {
   smallWithBox: 'small_with_box',
@@ -343,8 +344,9 @@ function PaymentPageContent() {
   const hasWallet = applePayInstance || googlePayInstance;
 
   return (
-    <div className="booking-payment-page">
-      <div className="booking-payment-container">
+    <AuthPageWrapper>
+      <div className="booking-payment-page">
+        <div className="booking-payment-container">
         <div className="booking-payment-header">
           <Link href="/">
             <Image src="/brand/notime-storage-logo.png" alt="NoTime Storage" width={80} height={80} style={{ marginBottom: '24px', display: 'block' }} />
@@ -502,13 +504,13 @@ function PaymentPageContent() {
           ← Edit details
         </Link>
       </div>
-    </div>
+    </AuthPageWrapper>
   );
 }
 
 export default function PaymentPage() {
   return (
-    <Suspense fallback={<div className="booking-payment-page" />}>
+    <Suspense fallback={<AuthPageWrapper><div className="booking-payment-page" /></AuthPageWrapper>}>
       <PaymentPageContent />
     </Suspense>
   );

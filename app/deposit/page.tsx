@@ -6,7 +6,7 @@ export default async function DepositPage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
-  if (!user) redirect('/auth/login?redirect=/deposit');
+  if (!user) redirect('/auth/signup?redirect=/deposit');
 
   const { data: profile } = await supabase
     .from('users')

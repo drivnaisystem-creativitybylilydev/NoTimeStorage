@@ -3,8 +3,9 @@ import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import { BookingCard } from './BookingCard';
-import { DashboardHeader } from './DashboardHeader';
 import { PackingGuide } from './PackingGuide';
+import { AuthPageWrapper } from '@/app/components/AuthPageWrapper';
+import { ProfileEditor } from './ProfileEditor';
 
 type BookingItem = { item_type: string; quantity: number; monthly_rate: number; subtotal: number };
 type BookingRow = {
@@ -61,7 +62,7 @@ export default async function DashboardPage() {
   // Use profile when available, fall back to auth user (e.g. email from auth)
   const displayName = profile?.full_name || metaName || user.user_metadata?.full_name || 'there';
   const displayEmail = profile?.email ?? user.email ?? '—';
-  const displayPhone = profile?.phone || user.user_metadata?.phone || '—';
+  const displayPhone = profile?.phone || user.user_metadata?.phone || '';
   const displaySchool = profile?.school || 'Stonehill College';
   const depositPaid = profile?.deposit_paid === true;
 
@@ -93,24 +94,20 @@ export default async function DashboardPage() {
   const bookings: BookingRow[] = rawBookings ?? [];
 
   return (
-    <div>
-      {/* Dashboard Header */}
-      <DashboardHeader depositPaid={depositPaid} />
-
-      {/* Dashboard Content - same layout as booking pages */}
-      <div className="auth-container">
+    <AuthPageWrapper>
         <div style={{ maxWidth: '900px', width: '100%', background: 'white', borderRadius: '16px', padding: 'clamp(20px, 5vw, 48px)', boxShadow: '0 20px 60px rgba(0,0,0,0.08)' }}>
           {/* Header - matches Configure page */}
           <div style={{ textAlign: 'center', marginBottom: '48px' }}>
-            <Link href="/">
-              <Image
-                src="/brand/notime-storage-logo.png"
-                alt="NoTime Storage"
-                width={80}
-                height={80}
-                style={{ marginBottom: '24px' }}
-              />
-            </Link>
+            <div className="auth-logo">
+              <Link href="/">
+                <Image
+                  src="/brand/notime-storage-logo.png"
+                  alt="NoTime Storage"
+                  width={80}
+                  height={80}
+                />
+              </Link>
+            </div>
             <h1 style={{ fontSize: '2.25rem', fontWeight: '800', color: 'var(--color-coffee)', marginBottom: '12px' }}>
               Welcome, {displayName}!
             </h1>
@@ -119,29 +116,20 @@ export default async function DashboardPage() {
             </p>
           </div>
 
-          {/* Your Profile - same card style as Storage Boxes / Additional Items */}
+          {/* Your Profile - editable */}
           <div style={{ marginBottom: '40px', padding: 'clamp(16px, 4vw, 32px)', background: 'var(--color-paper)', borderRadius: '12px', border: '2px solid var(--color-latte)' }}>
-            <h2 style={{ fontSize: '1.5rem', fontWeight: '700', color: 'var(--color-coffee)', marginBottom: '24px' }}>
+            <h2 style={{ fontSize: '1.5rem', fontWeight: '700', color: 'var(--color-coffee)', marginBottom: '16px' }}>
               👤 Your Profile
             </h2>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '16px', borderBottom: '1px solid var(--color-latte-soft)' }}>
-                <span style={{ fontSize: '1rem', fontWeight: '600', color: 'var(--color-gray-700)' }}>Name</span>
-                <span style={{ fontSize: '1rem', color: 'var(--color-coffee)', fontWeight: '500' }}>{displayName === 'there' ? '—' : displayName}</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '16px', borderBottom: '1px solid var(--color-latte-soft)' }}>
-                <span style={{ fontSize: '1rem', fontWeight: '600', color: 'var(--color-gray-700)' }}>Email</span>
-                <span style={{ fontSize: '1rem', color: 'var(--color-coffee)', fontWeight: '500', wordBreak: 'break-all' }}>{displayEmail}</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '16px', borderBottom: '1px solid var(--color-latte-soft)' }}>
-                <span style={{ fontSize: '1rem', fontWeight: '600', color: 'var(--color-gray-700)' }}>Phone</span>
-                <span style={{ fontSize: '1rem', color: 'var(--color-coffee)', fontWeight: '500' }}>{displayPhone}</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontSize: '1rem', fontWeight: '600', color: 'var(--color-gray-700)' }}>School</span>
-                <span style={{ fontSize: '1rem', color: 'var(--color-coffee)', fontWeight: '500' }}>{displaySchool}</span>
-              </div>
-            </div>
+            <p style={{ fontSize: '0.9rem', color: 'var(--color-gray-600)', marginBottom: '16px' }}>
+              Update your contact info below. Changes are saved to your account and used for bookings.
+            </p>
+            <ProfileEditor
+              profileId={profile?.id ?? user.id}
+              initialEmail={displayEmail}
+              initialPhone={displayPhone}
+              initialSchool={displaySchool}
+            />
           </div>
 
           {/* Deposit banner — shown only when deposit not yet paid */}
@@ -254,7 +242,6 @@ export default async function DashboardPage() {
             </div>
           </div>
         </div>
-      </div>
-    </div>
+      </AuthPageWrapper>
   );
 }

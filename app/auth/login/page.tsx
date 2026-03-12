@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import Link from 'next/link';
 import Image from 'next/image';
+import { AuthPageWrapper } from '@/app/components/AuthPageWrapper';
 
 function LoginPageContent() {
   const router = useRouter();
@@ -46,7 +47,7 @@ function LoginPageContent() {
   };
 
   return (
-    <div className="auth-container">
+    <AuthPageWrapper>
       <div className="auth-card">
         <div className="auth-logo">
           <Image
@@ -110,13 +111,13 @@ function LoginPageContent() {
           </div>
         </form>
       </div>
-    </div>
+    </AuthPageWrapper>
   );
 }
 
 export default function LoginPage() {
   return (
-    <Suspense fallback={<div className="auth-container"><div className="auth-card" /></div>}>
+    <Suspense fallback={<AuthPageWrapper><div className="auth-card" /></AuthPageWrapper>}>
       <LoginPageContent />
     </Suspense>
   );

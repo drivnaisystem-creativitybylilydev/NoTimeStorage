@@ -17,7 +17,7 @@ export default async function BookingLayout({
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
-  if (!user) redirect('/auth/login?redirect=/booking/configure');
+  if (!user) redirect('/auth/signup?redirect=/booking/configure');
 
   const { data: profile } = await supabase
     .from('users')

@@ -8,6 +8,7 @@ import { getAvailableTimeSlots } from '@/lib/booking/availability';
 import { getDefaultTimeSlots } from '@/lib/booking/time-slots';
 import { SCHOOL_NAMES, getDormsForSchool, getMoveOutWindow } from '@/lib/schools/config';
 import { createClient } from '@/lib/supabase/client';
+import { AuthPageWrapper } from '@/app/components/AuthPageWrapper';
 
 // Configuration: Minimum storage duration in months
 const MINIMUM_STORAGE_MONTHS = 3;
@@ -290,7 +291,7 @@ function SchedulePageContent() {
   };
 
   return (
-    <div className="auth-container">
+    <AuthPageWrapper>
       <div style={{ maxWidth: '800px', width: '100%', background: 'white', borderRadius: '16px', padding: 'clamp(20px, 5vw, 48px)', boxShadow: '0 20px 60px rgba(0,0,0,0.08)' }}>
         {/* Header */}
         <div style={{ textAlign: 'center', marginBottom: '48px' }}>
@@ -926,13 +927,13 @@ function SchedulePageContent() {
           </button>
         </div>
       </div>
-    </div>
+    </AuthPageWrapper>
   );
 }
 
 export default function SchedulePage() {
   return (
-    <Suspense fallback={<div className="auth-container" />}>
+    <Suspense fallback={<AuthPageWrapper><div /></AuthPageWrapper>}>
       <SchedulePageContent />
     </Suspense>
   );

@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { updateBookingItems } from '@/lib/booking/update-booking';
 import { chargeBookingUpgrade } from '@/lib/square/charge-upgrade';
 import type { BookingItemInput, BookingItemType } from '@/lib/booking/types';
+import { AuthPageWrapper } from '@/app/components/AuthPageWrapper';
 
 const ITEM_TYPE_MAP: Record<string, BookingItemType> = {
   smallWithBox: 'small_with_box',
@@ -223,7 +224,7 @@ export function EditBookingForm({
   const isAtItemCap = totalAdditionalItems >= MAX_ADDITIONAL_ITEMS;
 
   return (
-    <div className="auth-container">
+    <AuthPageWrapper>
       <div style={{ maxWidth: '900px', width: '100%', background: 'white', borderRadius: '16px', padding: '48px', boxShadow: '0 20px 60px rgba(0,0,0,0.08)' }}>
 
         <div style={{ textAlign: 'center', marginBottom: '48px' }}>
@@ -374,6 +375,6 @@ export function EditBookingForm({
           </Link>
         </div>
       </div>
-    </div>
+    </AuthPageWrapper>
   );
 }

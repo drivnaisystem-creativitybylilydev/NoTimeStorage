@@ -72,7 +72,7 @@ function BoxShowcase() {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
-    <section className="box-showcase-section">
+    <section id="box-specifications" className="box-showcase-section">
       {/* ── Trigger ── */}
       <button
         className={`box-showcase-trigger${isOpen ? ' open' : ''}`}
@@ -180,7 +180,7 @@ function BoxShowcase() {
                     fullHeight
                     images={[
                       { src: '/brand/box-scale-side.png', alt: 'Person standing next to NoTime Storage box showing scale', objectPosition: 'center center' },
-                      { src: '/brand/box-scale-inside.png', alt: 'Person standing inside NoTime Storage box showing depth', objectPosition: 'center 38%' },
+                      { src: '/brand/box-scale-inside.png', alt: 'Person standing inside NoTime Storage box showing depth', objectPosition: 'center 75%' },
                     ]}
                   />
                   <div className="box-left-divider" />
@@ -487,6 +487,7 @@ export default function Home() {
           </a>
           <nav className="header-nav">
             <a href="#how-it-works">How It Works</a>
+            <a href="#box-specifications">Box Specifications</a>
             <a href="#pricing">Pricing</a>
             <a href="#faq">FAQ</a>
             <a href="#contact">Contact</a>
@@ -524,6 +525,7 @@ export default function Home() {
       {/* Mobile nav drawer */}
       <div className={`mobile-nav-drawer${mobileNavOpen ? ' open' : ''}`}>
         <a href="#how-it-works" onClick={() => setMobileNavOpen(false)}>How It Works</a>
+        <a href="#box-specifications" onClick={() => setMobileNavOpen(false)}>Box Specifications</a>
         <a href="#pricing" onClick={() => setMobileNavOpen(false)}>Pricing</a>
         <a href="#faq" onClick={() => setMobileNavOpen(false)}>FAQ</a>
         <a href="#contact" onClick={() => setMobileNavOpen(false)}>Contact</a>

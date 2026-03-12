@@ -5,6 +5,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { chargeDeposit } from '@/lib/square/deposit';
+import { AuthPageWrapper } from '@/app/components/AuthPageWrapper';
 
 interface DepositFormProps {
   applicationId: string;
@@ -195,7 +196,7 @@ export function DepositForm({ applicationId, locationId, isSandbox, customerName
   }
 
   return (
-    <div className="auth-container">
+    <AuthPageWrapper>
       <motion.div
         className="auth-card"
         style={{ maxWidth: '520px' }}
@@ -408,6 +409,6 @@ export function DepositForm({ applicationId, locationId, isSandbox, customerName
           </Link>
         </div>
       </motion.div>
-    </div>
+    </AuthPageWrapper>
   );
 }

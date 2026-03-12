@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import Image from 'next/image';
+import { AuthPageWrapper } from '@/app/components/AuthPageWrapper';
 
 export default function AdminLoginPage() {
   const router = useRouter();
@@ -42,7 +43,7 @@ export default function AdminLoginPage() {
   };
 
   return (
-    <div className="auth-container">
+    <AuthPageWrapper>
       <div className="auth-card">
         <div className="auth-logo">
           <Image
@@ -102,7 +103,7 @@ export default function AdminLoginPage() {
           </p>
         </form>
       </div>
-    </div>
+    </AuthPageWrapper>
   );
 }
 

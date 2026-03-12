@@ -5,6 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
+import { AuthPageWrapper } from '@/app/components/AuthPageWrapper';
 
 function BookingUpdatedContent() {
   const searchParams = useSearchParams();
@@ -30,7 +31,7 @@ function BookingUpdatedContent() {
   };
 
   return (
-    <div className="auth-container">
+    <AuthPageWrapper>
       <motion.div className="auth-card" style={{ maxWidth: '480px' }} variants={cardVariants} initial="hidden" animate="visible">
         <div className="auth-logo">
           <Image src="/brand/notime-storage-logo.png" alt="NoTime Storage" width={60} height={60} />
@@ -73,13 +74,13 @@ function BookingUpdatedContent() {
           </motion.div>
         </div>
       </motion.div>
-    </div>
+    </AuthPageWrapper>
   );
 }
 
 export default function BookingUpdatedPage() {
   return (
-    <Suspense fallback={<div className="auth-container" />}>
+    <Suspense fallback={<AuthPageWrapper><div /></AuthPageWrapper>}>
       <BookingUpdatedContent />
     </Suspense>
   );

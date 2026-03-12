@@ -4,6 +4,7 @@ import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
+import { AuthPageWrapper } from '@/app/components/AuthPageWrapper';
 
 function ConfigurePageContent() {
   const searchParams = useSearchParams();
@@ -89,30 +90,42 @@ function ConfigurePageContent() {
   };
 
   return (
-    <div className="auth-container">
-      <div style={{ maxWidth: '900px', width: '100%', background: 'white', borderRadius: '16px', padding: 'clamp(20px, 5vw, 48px)', boxShadow: '0 20px 60px rgba(0,0,0,0.08)' }}>
+    <AuthPageWrapper>
+      <div
+        style={{
+          maxWidth: '900px',
+          width: '100%',
+          background: 'white',
+          borderRadius: '18px',
+          padding: 'clamp(14px, 3.5vw, 28px)',
+          paddingTop: 'clamp(14px, 3.5vw, 22px)',
+          boxShadow: '0 20px 60px rgba(0,0,0,0.08)',
+          // Visually centered with breathing room, but keep full card within viewport
+          margin: '32px 0 40px',
+        }}
+      >
         {/* Header */}
-        <div style={{ textAlign: 'center', marginBottom: '48px' }}>
+        <div style={{ textAlign: 'center', marginBottom: '24px' }}>
           <Link href="/">
             <Image
               src="/brand/notime-storage-logo.png"
               alt="NoTime Storage"
               width={80}
               height={80}
-              style={{ marginBottom: '24px' }}
+              style={{ marginBottom: '12px' }}
             />
           </Link>
-          <h1 style={{ fontSize: '2.25rem', fontWeight: '800', color: 'var(--color-coffee)', marginBottom: '12px' }}>
+          <h1 style={{ fontSize: '2.15rem', fontWeight: '800', color: 'var(--color-coffee)', marginBottom: '8px' }}>
             Configure Your Storage
           </h1>
-          <p style={{ fontSize: '1.125rem', color: 'var(--color-gray-600)' }}>
+          <p style={{ fontSize: '1.05rem', color: 'var(--color-gray-600)' }}>
             Choose boxes (optional) and/or additional items — up to 4 items if you skip boxes
           </p>
         </div>
 
         {/* Box Selection */}
-        <div style={{ marginBottom: '40px', padding: 'clamp(16px, 4vw, 32px)', background: 'var(--color-paper)', borderRadius: '12px', border: '2px solid var(--color-latte)' }}>
-          <h2 style={{ fontSize: 'clamp(1.2rem, 4vw, 1.5rem)', fontWeight: '700', color: 'var(--color-coffee)', marginBottom: '24px' }}>
+        <div style={{ marginBottom: '24px', padding: 'clamp(10px, 2.5vw, 20px)', paddingTop: 'clamp(10px, 2.5vw, 14px)', background: 'var(--color-paper)', borderRadius: '14px', border: '2px solid var(--color-latte)' }}>
+          <h2 style={{ fontSize: 'clamp(1.15rem, 3.5vw, 1.4rem)', fontWeight: '700', color: 'var(--color-coffee)', marginBottom: '16px', marginTop: 0 }}>
             📦 Storage Boxes (optional)
           </h2>
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
@@ -159,9 +172,9 @@ function ConfigurePageContent() {
         </div>
 
         {/* Additional Items */}
-        <div style={{ marginBottom: '40px', padding: 'clamp(16px, 4vw, 32px)', background: 'var(--color-white)', borderRadius: '12px', border: '2px solid var(--color-latte-soft)' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
-            <h2 style={{ fontSize: '1.5rem', fontWeight: '700', color: 'var(--color-coffee)', margin: 0 }}>
+        <div style={{ marginBottom: '24px', padding: 'clamp(10px, 2.5vw, 20px)', paddingTop: 'clamp(10px, 2.5vw, 14px)', background: 'var(--color-white)', borderRadius: '14px', border: '2px solid var(--color-latte-soft)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px', marginTop: 0 }}>
+            <h2 style={{ fontSize: '1.4rem', fontWeight: '700', color: 'var(--color-coffee)', margin: 0 }}>
               ➕ Additional Items (Optional)
             </h2>
             <span style={{
@@ -174,7 +187,7 @@ function ConfigurePageContent() {
               {totalAdditionalItems} / {MAX_ADDITIONAL_ITEMS} items
             </span>
           </div>
-          <p style={{ fontSize: '0.875rem', color: 'var(--color-gray-600)', marginBottom: '24px' }}>
+          <p style={{ fontSize: '0.85rem', color: 'var(--color-gray-600)', marginBottom: '18px' }}>
             {boxQuantity === 0
               ? `Store up to ${MAX_ADDITIONAL_ITEMS} loose items without boxes (e.g. mini fridge, lamp).`
               : `Items that don't fit in boxes — max ${MAX_ADDITIONAL_ITEMS} additional items.`
@@ -182,8 +195,8 @@ function ConfigurePageContent() {
           </p>
 
           {/* Small Items */}
-          <div style={{ marginBottom: '20px', paddingBottom: '20px', borderBottom: '1px solid var(--color-latte-soft)' }}>
-            <div style={{ fontWeight: '600', marginBottom: '12px', color: 'var(--color-gray-800)' }}>Small Items (lamp, fan, small bin)</div>
+          <div style={{ marginBottom: '16px', paddingBottom: '16px', borderBottom: '1px solid var(--color-latte-soft)' }}>
+            <div style={{ fontWeight: '600', marginBottom: '10px', color: 'var(--color-gray-800)' }}>Small Items (lamp, fan, small bin)</div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span style={{ fontSize: '0.875rem' }}>With box - $9/mo</span>
@@ -205,8 +218,8 @@ function ConfigurePageContent() {
           </div>
 
           {/* Medium Items */}
-          <div style={{ marginBottom: '20px', paddingBottom: '20px', borderBottom: '1px solid var(--color-latte-soft)' }}>
-            <div style={{ fontWeight: '600', marginBottom: '12px', color: 'var(--color-gray-800)' }}>Medium Items (monitor, microwave, chair)</div>
+          <div style={{ marginBottom: '16px', paddingBottom: '16px', borderBottom: '1px solid var(--color-latte-soft)' }}>
+            <div style={{ fontWeight: '600', marginBottom: '10px', color: 'var(--color-gray-800)' }}>Medium Items (monitor, microwave, chair)</div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span style={{ fontSize: '0.875rem' }}>With box - $9/mo</span>
@@ -229,7 +242,7 @@ function ConfigurePageContent() {
 
           {/* Large Items */}
           <div>
-            <div style={{ fontWeight: '600', marginBottom: '12px', color: 'var(--color-gray-800)' }}>Large Items (mini fridge, desk, futon)</div>
+            <div style={{ fontWeight: '600', marginBottom: '10px', color: 'var(--color-gray-800)' }}>Large Items (mini fridge, desk, futon)</div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <span style={{ fontSize: '0.875rem' }}>Any size - $15/mo</span>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -242,7 +255,7 @@ function ConfigurePageContent() {
         </div>
 
         {/* Total & Continue */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px', padding: 'clamp(16px, 4vw, 24px)', background: 'var(--color-latte-soft)', borderRadius: '12px', marginBottom: '24px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px', padding: 'clamp(12px, 3vw, 20px)', background: 'var(--color-latte-soft)', borderRadius: '14px', marginBottom: '18px' }}>
           <div>
             <div style={{ fontSize: '0.875rem', color: 'var(--color-gray-600)', marginBottom: '4px' }}>Monthly Total</div>
             <div style={{ fontSize: 'clamp(1.5rem, 5vw, 2rem)', fontWeight: '800', color: 'var(--color-coffee)' }}>
@@ -253,7 +266,7 @@ function ConfigurePageContent() {
             onClick={handleContinue}
             disabled={!canContinue || (boxQuantity === 0 && (totalAdditionalItems < 1 || totalAdditionalItems > 4))}
             className="button-primary"
-            style={{ padding: '16px 32px', fontSize: '1.125rem', flexShrink: 0, opacity: canContinue && (boxQuantity >= 1 || (totalAdditionalItems >= 1 && totalAdditionalItems <= 4)) ? 1 : 0.6 }}
+            style={{ padding: '12px 28px', fontSize: '1.05rem', flexShrink: 0, opacity: canContinue && (boxQuantity >= 1 || (totalAdditionalItems >= 1 && totalAdditionalItems <= 4)) ? 1 : 0.6 }}
           >
             Continue to Schedule →
           </button>
@@ -265,13 +278,13 @@ function ConfigurePageContent() {
           </Link>
         </div>
       </div>
-    </div>
+    </AuthPageWrapper>
   );
 }
 
 export default function ConfigurePage() {
   return (
-    <Suspense fallback={<div className="auth-container" />}>
+    <Suspense fallback={<AuthPageWrapper><div /></AuthPageWrapper>}>
       <ConfigurePageContent />
     </Suspense>
   );
