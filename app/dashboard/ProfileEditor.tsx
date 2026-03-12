@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { SCHOOL_NAMES } from '@/lib/schools/config';
-import { SUPPORTED_COUNTRIES, normalizePhoneForStorage, formatPhoneForDisplay } from '@/lib/phone/format';
+import { SUPPORTED_COUNTRIES, normalizePhoneForStorage, formatPhoneForDisplay, type CountryCode } from '@/lib/phone/format';
 
 type ProfileEditorProps = {
   profileId: string;
@@ -18,7 +18,7 @@ export function ProfileEditor({ profileId, initialEmail, initialPhone, initialSc
   const router = useRouter();
   const [editing, setEditing] = useState(false);
   const [email, setEmail] = useState(initialEmail);
-  const [phoneCountry, setPhoneCountry] = useState<string>('US');
+  const [phoneCountry, setPhoneCountry] = useState<CountryCode>('US');
   const [phone, setPhone] = useState(formatPhoneForDisplay(initialPhone || '', phoneCountry));
   const [school, setSchool] = useState(initialSchool);
   const [saving, setSaving] = useState(false);
