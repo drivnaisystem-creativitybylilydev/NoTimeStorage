@@ -94,180 +94,181 @@ export function ProfileEditor({ profileId, initialEmail, initialPhone, initialSc
     }
   };
 
-  if (!editing) {
-    return (
-      <>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '16px', borderBottom: '1px solid var(--color-latte-soft)' }}>
-            <span style={{ fontSize: '1rem', fontWeight: '600', color: 'var(--color-gray-700)' }}>Email</span>
-            <span style={{ fontSize: '1rem', color: 'var(--color-coffee)', fontWeight: '500', wordBreak: 'break-all' }}>{email}</span>
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '16px', borderBottom: '1px solid var(--color-latte-soft)' }}>
-            <span style={{ fontSize: '1rem', fontWeight: '600', color: 'var(--color-gray-700)' }}>Phone</span>
-            <span style={{ fontSize: '1rem', color: 'var(--color-coffee)', fontWeight: '500' }}>{formatPhoneForDisplay(phone, phoneCountry)}</span>
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: '1rem', fontWeight: '600', color: 'var(--color-gray-700)' }}>School</span>
-            <span style={{ fontSize: '1rem', color: 'var(--color-coffee)', fontWeight: '500' }}>{school}</span>
-          </div>
-        </div>
-        <button
-          type="button"
-          className="button-secondary"
-          style={{ marginTop: '16px' }}
-          onClick={() => setEditing(true)}
-        >
-          Edit profile
-        </button>
-      </>
-    );
-  }
-
   return (
     <>
-      {/* Back arrow to exit edit mode */}
-      <div style={{ display: 'flex', alignItems: 'center', marginBottom: '8px' }}>
-        <button
-          type="button"
-          onClick={() => {
-            setEditing(false);
-            setError(null);
-            setEmail(initialEmail);
-            setPhone(initialDisplayPhone);
-            setSchool(initialSchool);
-          }}
-          style={{
-            border: 'none',
-            background: 'transparent',
-            color: 'var(--color-coffee)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '4px',
-            cursor: 'pointer',
-            padding: '4px 0',
-          }}
-        >
-          <span style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            width: '24px',
-            height: '24px',
-            borderRadius: '999px',
-            border: '1px solid var(--color-latte)',
-            fontSize: '0.85rem',
-          }}>
-            ←
-          </span>
-          <span style={{ fontSize: '0.85rem' }}>Back to profile</span>
-        </button>
-      </div>
-
-      <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          if (!saving && isDirty) void handleSave();
-        }}
-        style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}
-      >
-        {error && (
-          <div className="auth-error">
-            {error}
+      {/* Read-only or edit content */}
+      {!editing ? (
+        <>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '16px', borderBottom: '1px solid var(--color-latte-soft)' }}>
+              <span style={{ fontSize: '1rem', fontWeight: '600', color: 'var(--color-gray-700)' }}>Email</span>
+              <span style={{ fontSize: '1rem', color: 'var(--color-coffee)', fontWeight: '500', wordBreak: 'break-all' }}>{email}</span>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '16px', borderBottom: '1px solid var(--color-latte-soft)' }}>
+              <span style={{ fontSize: '1rem', fontWeight: '600', color: 'var(--color-gray-700)' }}>Phone</span>
+              <span style={{ fontSize: '1rem', color: 'var(--color-coffee)', fontWeight: '500' }}>{formatPhoneForDisplay(phone, phoneCountry)}</span>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontSize: '1rem', fontWeight: '600', color: 'var(--color-gray-700)' }}>School</span>
+              <span style={{ fontSize: '1rem', color: 'var(--color-coffee)', fontWeight: '500' }}>{school}</span>
+            </div>
           </div>
-        )}
-      <label style={{ display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '0.9rem', color: 'var(--color-gray-700)' }}>
-        Email
-        <input
-          type="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          required
-          style={{ padding: '0.6rem 0.8rem', borderRadius: '8px', border: '1px solid var(--color-latte)' }}
-        />
-      </label>
-      <label style={{ display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '0.9rem', color: 'var(--color-gray-700)' }}>
-        Phone
-        <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'stretch' }}>
-          <select
-            value={phoneCountry}
-            onChange={(e) => setPhoneCountry(e.target.value as any)}
-            style={{
-              width: '3.25rem',
-              minWidth: '3.25rem',
-              padding: '0',
-              borderRadius: '8px',
-              border: '2px solid var(--color-latte)',
-              backgroundColor: 'white',
-              fontSize: '0.95rem',
-              color: 'var(--color-coffee)',
-              cursor: 'pointer',
-              textAlign: 'center',
-              appearance: 'auto',
-            }}
+          <button
+            type="button"
+            className="button-secondary"
+            style={{ marginTop: '16px' }}
+            onClick={() => setEditing(true)}
           >
-            {SUPPORTED_COUNTRIES.map((c) => (
-              <option key={c.code} value={c.code}>{c.label}</option>
-            ))}
-          </select>
-          <input
-            type="tel"
-            value={phone}
-            onChange={(e) => setPhone(formatPhoneForDisplay(e.target.value, phoneCountry))}
-            required
-            style={{
-              flex: 1,
-              padding: '0.6rem 0.8rem',
-              borderRadius: '8px',
-              border: '2px solid var(--color-latte)',
+            Edit profile
+          </button>
+        </>
+      ) : (
+        <>
+          {/* Back arrow to exit edit mode */}
+          <div style={{ display: 'flex', alignItems: 'center', marginBottom: '8px' }}>
+            <button
+              type="button"
+              onClick={() => {
+                setEditing(false);
+                setError(null);
+                setEmail(initialEmail);
+                setPhone(initialDisplayPhone);
+                setSchool(initialSchool);
+              }}
+              style={{
+                border: 'none',
+                background: 'transparent',
+                color: 'var(--color-coffee)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+                cursor: 'pointer',
+                padding: '4px 0',
+              }}
+            >
+              <span style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: '24px',
+                height: '24px',
+                borderRadius: '999px',
+                border: '1px solid var(--color-latte)',
+                fontSize: '0.85rem',
+              }}>
+                ←
+              </span>
+              <span style={{ fontSize: '0.85rem' }}>Back to profile</span>
+            </button>
+          </div>
+
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (!saving && isDirty) void handleSave();
             }}
-          />
-        </div>
-      </label>
-      <label style={{ display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '0.9rem', color: 'var(--color-gray-700)' }}>
-        School
-        <select
-          value={school}
-          onChange={(e) => setSchool(e.target.value)}
-          required
-          style={{
-            padding: '0.6rem 0.8rem',
-            borderRadius: '8px',
-            border: '2px solid var(--color-latte)',
-            backgroundColor: 'white',
-            fontSize: '0.95rem',
-            color: school ? 'var(--color-coffee)' : '#9CA3AF',
-            cursor: 'pointer',
-          }}
-        >
-          <option value="" disabled>Select your school</option>
-          {SCHOOL_NAMES.map((s) => (
-            <option key={s} value={s}>{s}</option>
-          ))}
-        </select>
-      </label>
-      <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
-        <button
-          type="submit"
-          className="button-primary"
-          disabled={saving || !isDirty}
-        >
-          {saving ? 'Saving…' : 'Save changes'}
-        </button>
-        <button
-          type="button"
-          className="button-secondary"
-          onClick={() => {
-            setEditing(false);
-            setError(null);
-            setEmail(initialEmail);
-            setPhone(formatPhoneForDisplay(initialPhone || '', phoneCountry));
-            setSchool(initialSchool);
-          }}
-        >
-          Cancel
-        </button>
-      </div>
-      </form>
+            style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}
+          >
+            {error && (
+              <div className="auth-error">
+                {error}
+              </div>
+            )}
+            <label style={{ display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '0.9rem', color: 'var(--color-gray-700)' }}>
+              Email
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                style={{ padding: '0.6rem 0.8rem', borderRadius: '8px', border: '1px solid var(--color-latte)' }}
+              />
+            </label>
+            <label style={{ display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '0.9rem', color: 'var(--color-gray-700)' }}>
+              Phone
+              <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'stretch' }}>
+                <select
+                  value={phoneCountry}
+                  onChange={(e) => setPhoneCountry(e.target.value as any)}
+                  style={{
+                    width: '3.25rem',
+                    minWidth: '3.25rem',
+                    padding: '0',
+                    borderRadius: '8px',
+                    border: '2px solid var(--color-latte)',
+                    backgroundColor: 'white',
+                    fontSize: '0.95rem',
+                    color: 'var(--color-coffee)',
+                    cursor: 'pointer',
+                    textAlign: 'center',
+                    appearance: 'auto',
+                  }}
+                >
+                  {SUPPORTED_COUNTRIES.map((c) => (
+                    <option key={c.code} value={c.code}>{c.label}</option>
+                  ))}
+                </select>
+                <input
+                  type="tel"
+                  value={phone}
+                  onChange={(e) => setPhone(formatPhoneForDisplay(e.target.value, phoneCountry))}
+                  required
+                  style={{
+                    flex: 1,
+                    padding: '0.6rem 0.8rem',
+                    borderRadius: '8px',
+                    border: '2px solid var(--color-latte)',
+                  }}
+                />
+              </div>
+            </label>
+            <label style={{ display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '0.9rem', color: 'var(--color-gray-700)' }}>
+              School
+              <select
+                value={school}
+                onChange={(e) => setSchool(e.target.value)}
+                required
+                style={{
+                  padding: '0.6rem 0.8rem',
+                  borderRadius: '8px',
+                  border: '2px solid var(--color-latte)',
+                  backgroundColor: 'white',
+                  fontSize: '0.95rem',
+                  color: school ? 'var(--color-coffee)' : '#9CA3AF',
+                  cursor: 'pointer',
+                }}
+              >
+                <option value="" disabled>Select your school</option>
+                {SCHOOL_NAMES.map((s) => (
+                  <option key={s} value={s}>{s}</option>
+                ))}
+              </select>
+            </label>
+            <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
+              <button
+                type="submit"
+                className="button-primary"
+                disabled={saving || !isDirty}
+              >
+                {saving ? 'Saving…' : 'Save changes'}
+              </button>
+              <button
+                type="button"
+                className="button-secondary"
+                onClick={() => {
+                  setEditing(false);
+                  setError(null);
+                  setEmail(initialEmail);
+                  setPhone(formatPhoneForDisplay(initialPhone || '', phoneCountry));
+                  setSchool(initialSchool);
+                }}
+              >
+                Cancel
+              </button>
+            </div>
+          </form>
+        </>
+      )}
 
       {showSuccess && (
         <div
