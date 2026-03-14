@@ -617,6 +617,13 @@ function PaymentPageContent() {
               </div>
             )}
 
+            <div style={{ display: 'flex', gap: '6px', alignItems: 'center', marginBottom: '10px' }}>
+              {['visa', 'mastercard', 'amex', 'discovery'].map((card) => (
+                <div key={card} style={{ width: '44px', height: '28px', borderRadius: '4px', overflow: 'hidden', border: '1px solid #e5e7eb', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <img src={`/card-logos/${card}.jpg`} alt={card} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                </div>
+              ))}
+            </div>
             <div id="sq-card-booking" className="square-card-container" />
 
             <button
