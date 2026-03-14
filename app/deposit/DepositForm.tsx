@@ -384,9 +384,8 @@ export function DepositForm({ applicationId, locationId, isSandbox, customerName
                 className="payment-wallet-button payment-wallet-button-apple"
                 onClick={handleApplePayClick}
                 disabled={loading}
-              >
-                Apple Pay
-              </button>
+                aria-label="Buy with Apple Pay"
+              />
             )}
             <div id="google-pay-button" className="payment-wallet-button" />
           </div>

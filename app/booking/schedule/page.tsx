@@ -961,7 +961,7 @@ function SchedulePageContent() {
             <p style={{ fontSize: '0.875rem', color: 'var(--color-gray-600)', marginBottom: '16px' }}>
               Choose how you would like to pay for your storage.
             </p>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+            <div className="payment-plan-grid">
 
               {/* Pay in Full */}
               <button

@@ -3,6 +3,7 @@
 html {
   scroll-behavior: smooth;
   background-color: var(--color-paper);
+  overflow-x: hidden;
 }
 
 /* Auth pages: AuthPageWrapper adds .auth-page-active to html/body on mount */
@@ -157,6 +158,7 @@ body {
   color: var(--color-ink);
   background-color: var(--color-paper);
   padding-top: 80px;
+  overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -5815,6 +5817,19 @@ button {
 }
 
 /* Digital Wallets */
+/* Payment plan card grid — stacks vertically on mobile */
+.payment-plan-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+@media (max-width: 500px) {
+  .payment-plan-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 .payment-digital-wallets {
   display: flex;
   flex-direction: row;
