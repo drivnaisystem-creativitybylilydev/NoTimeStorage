@@ -1931,7 +1931,7 @@ button {
 }
 
 .faq-container {
-  max-width: 800px;
+  max-width: 680px;
   margin: 0 auto;
 }
 
@@ -1957,18 +1957,19 @@ button {
 }
 
 .faq-item {
-  border: 2px solid var(--color-latte-soft);
-  border-radius: 16px;
+  border: 1.5px solid var(--color-latte-soft);
+  border-radius: 12px;
   overflow: hidden;
   background-color: var(--color-white);
-  box-shadow: 0 0 0 1.5px #C9A47E, 0 0 18px 6px rgba(201, 164, 126, 0.35), 0 0 40px 12px rgba(180, 120, 60, 0.12);
-  transition: box-shadow 0.25s ease;
+  box-shadow: 0 2px 8px rgba(75, 46, 37, 0.07), 0 1px 3px rgba(75, 46, 37, 0.05);
+  transition: box-shadow 0.25s ease, border-color 0.25s ease, transform 0.2s ease;
 }
 
 .faq-item:hover,
 .faq-item.active {
   border-color: var(--color-latte);
-  box-shadow: 0 0 0 2px #C9A47E, 0 0 26px 10px rgba(201, 164, 126, 0.55), 0 0 52px 16px rgba(180, 120, 60, 0.22);
+  box-shadow: 0 6px 20px rgba(75, 46, 37, 0.13), 0 2px 8px rgba(75, 46, 37, 0.08);
+  transform: translateY(-1px);
 }
 
 .faq-question {
@@ -1976,13 +1977,13 @@ button {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: var(--spacing-lg);
+  padding: 14px var(--spacing-lg);
   background-color: transparent;
   border: none;
   cursor: pointer;
   text-align: left;
   font-family: inherit;
-  font-size: var(--font-size-lg);
+  font-size: var(--font-size-base);
   font-weight: 600;
   color: var(--color-coffee);
   transition: background-color 0.2s ease;
@@ -2015,16 +2016,16 @@ button {
 }
 
 .faq-answer {
-  padding: 0 var(--spacing-lg) var(--spacing-lg) var(--spacing-lg);
+  padding: 0 var(--spacing-lg) 14px var(--spacing-lg);
   border-top: 1px solid var(--color-latte-soft);
   overflow: hidden;
 }
 
 .faq-answer p {
-  font-size: var(--font-size-base);
+  font-size: var(--font-size-sm);
   line-height: var(--line-height-relaxed);
   color: var(--color-gray-700);
-  margin: var(--spacing-md) 0 0 0;
+  margin: 10px 0 0 0;
 }
 
 /* FAQ - Mobile Responsive */
@@ -2507,11 +2508,61 @@ button {
 
 /* Trust & Social Proof Strip */
 .trust-strip {
-  background-color: transparent;
+  position: relative;
+  background-color: #4B2E25;
   padding: var(--spacing-xl) var(--spacing-lg);
+  overflow: hidden;
+}
+
+.trust-strip::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: url('/brand/Schools-served.png') center center / cover no-repeat;
+  opacity: 0.35;
+  filter: blur(1px) saturate(0.7);
+  mix-blend-mode: luminosity;
+  z-index: 0;
+}
+
+
+/* Heading + stats: light on dark background */
+.trust-strip .trust-heading,
+.trust-strip .trust-social-value,
+.trust-strip .trust-social-label {
+  color: #F7F3EE !important;
+}
+
+.trust-strip .trust-heading {
+  text-shadow: 0 2px 18px rgba(10, 4, 2, 0.85), 0 1px 6px rgba(10, 4, 2, 0.6);
+}
+
+.trust-strip .trust-social-stars {
+  color: #f5c842 !important;
+}
+
+.trust-strip .trust-heading-underline {
+  background: #E7D3BF !important;
+}
+
+.trust-strip .trust-social-divider {
+  background-color: rgba(247,243,238,0.3) !important;
+}
+
+/* Cards: light beige so logos + text are clearly visible */
+.trust-strip .campus-school-tile {
+  background: rgba(231, 211, 191, 0.92) !important;
+  border-color: rgba(201, 164, 126, 0.5) !important;
+}
+
+.trust-strip .campus-school-name,
+.trust-strip .campus-school-location {
+  color: #4B2E25 !important;
 }
 
 .trust-strip-content {
+  position: relative;
+  z-index: 1;
   max-width: 1200px;
   margin: 0 auto;
   display: flex;
@@ -2634,14 +2685,15 @@ button {
 }
 
 .trust-heading {
-  font-size: clamp(1.4rem, 2.8vw, 2rem);
+  font-size: clamp(1rem, 3vw, 2.2rem);
   font-weight: 800;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
   text-align: center;
   color: var(--color-coffee);
   margin: 0;
   animation: trust-heading-glow-pulse 2.5s ease-in-out infinite;
+  white-space: nowrap;
 }
 
 .trust-heading-underline {
@@ -3000,12 +3052,26 @@ button {
 
 /* Why NoTime Storage */
 .why-section {
-  background: linear-gradient(to bottom, var(--color-white) 0%, var(--color-paper) 100%);
+  position: relative;
+  background-color: #4B2E25;
   padding: var(--spacing-4xl) var(--spacing-lg);
   overflow: hidden;
 }
 
+.why-section::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: url('/brand/moving-truck.png') center center / cover no-repeat;
+  opacity: 0.35;
+  filter: blur(1px) saturate(0.7);
+  mix-blend-mode: luminosity;
+  z-index: 0;
+}
+
 .why-container {
+  position: relative;
+  z-index: 1;
   max-width: 1200px;
   margin: 0 auto;
 }
@@ -3014,18 +3080,19 @@ button {
   text-align: center;
   font-size: var(--font-size-4xl);
   font-weight: 800;
-  color: var(--color-coffee);
+  color: #F7F3EE;
   margin-bottom: var(--spacing-sm);
   letter-spacing: -0.02em;
+  text-shadow: 0 2px 18px rgba(10, 4, 2, 0.85), 0 1px 6px rgba(10, 4, 2, 0.6);
 }
 
 .why-subtitle {
   text-align: center;
   font-size: var(--font-size-lg);
-  color: var(--color-gray-600);
+  color: #ffffff;
   margin-bottom: var(--spacing-md);
-  font-weight: 400;
-  opacity: 0.85;
+  font-weight: 700;
+  opacity: 1;
 }
 
 /* Circular Rotating Carousel */
@@ -3074,10 +3141,10 @@ button {
 .value-card {
   text-align: center;
   padding: var(--spacing-2xl) var(--spacing-xl);
-  background-color: var(--color-white);
-  border: 2px solid var(--color-latte-soft);
+  background: rgba(231, 211, 191, 0.92);
+  border: 2px solid rgba(201, 164, 126, 0.5);
   border-radius: 24px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12), 0 4px 12px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18), 0 4px 12px rgba(0, 0, 0, 0.1);
   position: relative;
   height: 100%;
   display: flex;
@@ -3100,7 +3167,7 @@ button {
   border: none;
   border-radius: 0;
   box-shadow: none;
-  color: var(--color-coffee);
+  color: #E7D3BF;
   width: 56px;
   height: 56px;
   font-size: 2.5rem;
@@ -3208,11 +3275,26 @@ button {
 
 /* Comparison Table */
 .comparison-section {
-  background-color: var(--color-white);
+  position: relative;
+  background-color: #4B2E25;
   padding: var(--spacing-4xl) var(--spacing-lg);
+  overflow: hidden;
+}
+
+.comparison-section::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: url('/brand/table-bg.png') center center / cover no-repeat;
+  opacity: 0.35;
+  filter: blur(1px) saturate(0.7);
+  mix-blend-mode: luminosity;
+  z-index: 0;
 }
 
 .comparison-container {
+  position: relative;
+  z-index: 1;
   max-width: 900px;
   margin: 0 auto;
 }
@@ -3221,18 +3303,19 @@ button {
   text-align: center;
   font-size: var(--font-size-4xl);
   font-weight: 800;
-  color: var(--color-coffee);
+  color: #F7F3EE;
   margin-bottom: var(--spacing-sm);
   letter-spacing: -0.02em;
+  text-shadow: 0 2px 18px rgba(10, 4, 2, 0.85), 0 1px 6px rgba(10, 4, 2, 0.6);
 }
 
 .comparison-subtitle {
   text-align: center;
   font-size: var(--font-size-lg);
-  color: var(--color-gray-700);
+  color: #ffffff;
   margin-bottom: var(--spacing-3xl);
-  font-weight: 400;
-  opacity: 0.85;
+  font-weight: 700;
+  opacity: 1;
 }
 
 .section-cta,
@@ -3505,29 +3588,56 @@ button {
 
 /* Testimonials */
 .testimonials-section {
-  background-color: var(--color-white);
+  position: relative;
   padding: var(--spacing-4xl) var(--spacing-lg);
+  background-color: #1a0e09;
+  overflow: hidden;
+}
+
+/* Background image layer */
+.testimonials-section::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: url('/brand/hero-picture.png') center center / cover no-repeat;
+  opacity: 0.18;
+  filter: blur(2px) saturate(0.6);
+  z-index: 0;
 }
 
 .testimonials-container {
+  position: relative;
+  z-index: 1;
   max-width: 1200px;
   margin: 0 auto;
 }
 
 .testimonials-title {
   text-align: center;
-  font-size: var(--font-size-4xl);
-  font-weight: 700;
-  color: var(--color-coffee);
+  font-size: clamp(2.8rem, 6vw, 4.5rem);
+  font-weight: 800;
+  color: #fff;
   margin-bottom: var(--spacing-sm);
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+}
+
+.testimonials-title-accent {
+  display: block;
+  width: 56px;
+  height: 3px;
+  background: linear-gradient(90deg, #C9A47E, #f0c87a);
+  border-radius: 2px;
+  margin: 10px auto 0;
 }
 
 .testimonials-subtitle {
   text-align: center;
   font-size: var(--font-size-base);
-  color: var(--color-gray-600);
+  color: rgba(255,255,255,0.55);
   margin-bottom: var(--spacing-3xl);
   font-style: italic;
+  margin-top: 16px;
 }
 
 .testimonials-grid {
@@ -3536,24 +3646,75 @@ button {
   gap: var(--spacing-xl);
 }
 
+@keyframes reviews-scroll {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+
+.reviews-scroll-row {
+  position: relative;
+  /* Break out of the max-width container so the row spans full viewport width */
+  width: 100vw;
+  left: 50%;
+  transform: translateX(-50%);
+  overflow: hidden;
+  padding: var(--spacing-md) 0;
+  mask-image: linear-gradient(
+    to right,
+    transparent 0%,
+    black 80px,
+    black calc(100% - 80px),
+    transparent 100%
+  );
+  -webkit-mask-image: linear-gradient(
+    to right,
+    transparent 0%,
+    black 80px,
+    black calc(100% - 80px),
+    transparent 100%
+  );
+}
+
+.reviews-scroll-row > div {
+  display: flex;
+  align-items: stretch;
+  gap: 24px;
+  width: max-content;
+  animation: reviews-scroll 35s linear infinite;
+}
+
+.reviews-scroll-row:hover > div {
+  animation-play-state: paused;
+}
+
 .testimonial-card {
-  background-color: var(--color-white);
-  border: 2px solid var(--color-latte);
-  border-radius: 16px;
-  box-shadow: 0 0 0 2px #C9A47E, 0 0 22px 8px rgba(201, 164, 126, 0.45), 0 0 48px 14px rgba(180, 120, 60, 0.18);
+  background: rgba(255, 255, 255, 0.07);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(201, 164, 126, 0.3);
+  border-radius: 18px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.08);
   padding: var(--spacing-xl);
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.testimonial-card:hover {
+  border-color: rgba(201, 164, 126, 0.6);
+  box-shadow: 0 8px 40px rgba(0,0,0,0.45), 0 0 20px rgba(201, 164, 126, 0.15);
 }
 
 .testimonial-stars {
-  color: var(--color-coffee);
+  color: #f5c842;
   font-size: var(--font-size-lg);
   margin-bottom: var(--spacing-md);
+  text-shadow: 0 0 8px rgba(245, 200, 66, 0.7), 0 0 16px rgba(245, 200, 66, 0.4);
+  letter-spacing: 2px;
 }
 
 .testimonial-text {
   font-size: var(--font-size-base);
   line-height: var(--line-height-relaxed);
-  color: var(--color-gray-700);
+  color: rgba(255,255,255,0.88);
   margin-bottom: var(--spacing-md);
   font-style: italic;
 }
@@ -3566,13 +3727,13 @@ button {
 
 .testimonial-author strong {
   font-size: var(--font-size-base);
-  font-weight: 600;
-  color: var(--color-coffee);
+  font-weight: 700;
+  color: #E7D3BF;
 }
 
 .testimonial-author span {
   font-size: var(--font-size-sm);
-  color: var(--color-gray-600);
+  color: rgba(255,255,255,0.45);
 }
 
 /* Early Reminder CTA */

@@ -526,8 +526,7 @@ function PaymentPageContent() {
                 <div className="payment-schedule-row today">
                   <div>
                     <div style={{ fontWeight: '700', color: 'var(--color-coffee)' }}>Today (Month 1)</div>
-                    <div style={{ fontSize: '0.8125rem', color: 'var(--color-gray-600)' }}>Base: ${((monthlyBreakdown.month1Cents + 5000) / 100).toFixed(2)}</div>
-                    <div style={{ fontSize: '0.8125rem', color: '#2e7d32' }}>Deposit credit: −$50.00</div>
+                    <div style={{ fontSize: '0.8125rem', color: 'var(--color-gray-600)' }}>Auto-charged today</div>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
                     <span style={{ color: '#2e7d32', fontWeight: '700' }}>✓</span>

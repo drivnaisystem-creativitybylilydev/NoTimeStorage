@@ -27,7 +27,7 @@ export interface MonthlyBreakdown {
 }
 
 /**
- * Returns true if the remaining balance (after deposit) is eligible for a monthly plan.
+ * Returns true if the booking is eligible for a monthly plan.
  */
 export function isEligibleForMonthlyPlan(remainingBalanceCents: number): boolean {
   return remainingBalanceCents >= MONTHLY_PLAN_MIN_BALANCE_CENTS;
@@ -36,8 +36,8 @@ export function isEligibleForMonthlyPlan(remainingBalanceCents: number): boolean
 /**
  * Calculates the 3-month installment breakdown.
  *
- * @param totalPriceCents       Full booking price in cents (before deposit deduction)
- * @param bookingDate           Date the booking is made (default: today)
+ * @param totalPriceCents  Full booking price in cents (before deposit deduction)
+ * @param bookingDate      Date the booking is made (default: today)
  */
 export function calculateMonthlyBreakdown(
   totalPriceCents: number,
@@ -46,7 +46,6 @@ export function calculateMonthlyBreakdown(
   const remainingBalanceCents = totalPriceCents - DEPOSIT_CREDIT_CENTS;
 
   // Divide TOTAL price into 3 equal monthly bases (rounded to nearest dollar).
-  // e.g. $665 / 3 = $221.67 → $222 per base month.
   const baseMonthCents = Math.round(totalPriceCents / MONTHLY_PLAN_MONTHS / 100) * 100;
 
   // Month 1: base minus the $50 deposit credit (charged today)
@@ -58,7 +57,6 @@ export function calculateMonthlyBreakdown(
   // Month 3: absorbs any rounding so the 3-month total always equals remainingBalance
   const month3Cents = remainingBalanceCents - month1Cents - month2Cents;
 
-  // Due dates
   const month2Date = new Date(bookingDate);
   month2Date.setDate(month2Date.getDate() + 30);
 

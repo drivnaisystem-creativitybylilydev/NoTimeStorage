@@ -592,6 +592,7 @@ export default function Home() {
               whileInView={{ opacity: 1, x: 0 }}
               viewport={{ once: true, margin: '-60px' }}
               transition={{ duration: 0.7, ease: [0.25, 0.1, 0.25, 1] }}
+              style={{ textShadow: '0 2px 18px rgba(10, 4, 2, 0.85), 0 1px 6px rgba(10, 4, 2, 0.6)' }}
             >
               Official Moving Partners of:
             </motion.p>
@@ -612,7 +613,7 @@ export default function Home() {
           >
             <div className="trust-social-proof-item">
               <span className="trust-social-stars">★★★★★</span>
-              <span className="trust-social-value">4.7</span>
+              <span className="trust-social-value">5.0</span>
               <span className="trust-social-label">Student Rating</span>
             </div>
             <div className="trust-social-divider" />
@@ -1293,37 +1294,37 @@ export default function Home() {
       {/* Testimonials */}
       <section className="testimonials-section">
         <div className="testimonials-container">
-          <h2 className="testimonials-title">Student Reviews</h2>
-          <p className="testimonials-subtitle">Sample testimonials — copy TBD</p>
+          <h2 className="testimonials-title">
+            Student Reviews
+            <span className="testimonials-title-accent" />
+          </h2>
+          <p className="testimonials-subtitle">Here's what students have to say about NoTime Storage</p>
           
-          <div className="testimonials-grid">
-            <div className="testimonial-card">
-              <div className="testimonial-stars">★★★★★</div>
-              <p className="testimonial-text">"Made my summer break so much easier. They picked up everything from my dorm and delivered it back perfectly in the fall."</p>
-              <div className="testimonial-author">
-                <strong>Student Testimonial</strong>
-                <span>Sample review</span>
+          {(() => {
+            const reviews = [
+              { name: 'Sammy F.', sub: 'Stonehill Junior · California', text: '"It was overall a great experience, and it made my life so much easier and less stressful."' },
+              { name: 'Kira P.', sub: 'Stonehill Junior · Pennsylvania', text: '"Jermaine (the owner) was very open and worked hard to make everything convenient for us."' },
+              { name: 'Emma T.', sub: 'Stonehill Sophomore · Connecticut', text: '"I would recommend the service to a friend — to support a student-run business, and because of the affordable pricing."' },
+              { name: 'Trevian R.', sub: 'Stonehill Sophomore · Maryland', text: '"I would honestly pay more. I didn\'t touch a thing, and the move was legit 5 minutes."' },
+              { name: 'Hannah W.', sub: 'Stonehill Sophomore · Massachusetts', text: '"I didn\'t think I needed the service since I live an hour away, but I\'m so glad I did. Saves so much time and stress — sooo worth it!"' },
+            ];
+            return (
+              <div className="reviews-scroll-row">
+                <div>
+                  {[...reviews, ...reviews].map((r, idx) => (
+                    <div key={idx} aria-hidden={idx >= reviews.length} className="testimonial-card" style={{ width: '300px', flexShrink: 0 }}>
+                      <div className="testimonial-stars">★★★★★</div>
+                      <p className="testimonial-text">{r.text}</p>
+                      <div className="testimonial-author">
+                        <strong>{r.name}</strong>
+                        <span>{r.sub}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
-            </div>
-            
-            <div className="testimonial-card">
-              <div className="testimonial-stars">★★★★★</div>
-              <p className="testimonial-text">"My parents loved how easy and secure this was. No need to rent a storage unit or drive back and forth."</p>
-              <div className="testimonial-author">
-                <strong>Student Testimonial</strong>
-                <span>Sample review</span>
-              </div>
-            </div>
-            
-            <div className="testimonial-card">
-              <div className="testimonial-stars">★★★★★</div>
-              <p className="testimonial-text">"Great pricing for students and the online tracking made it easy to see exactly what I had stored."</p>
-              <div className="testimonial-author">
-                <strong>Student Testimonial</strong>
-                <span>Sample review</span>
-              </div>
-            </div>
-          </div>
+            );
+          })()}
           <motion.div 
             className="section-cta"
             initial={{ opacity: 0, y: 12 }}
@@ -1363,160 +1364,71 @@ export default function Home() {
           </motion.p>
           
           <div className="faq-list">
-            {/* FAQ Item 1 */}
-            <motion.div 
-              className={`faq-item ${openFaq === 0 ? 'active' : ''}`}
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: "-100px" }}
-              transition={{ duration: 0.5, delay: 0.2, ease: [0.25, 0.1, 0.25, 1] }}
-            >
-              <button 
-                className="faq-question" 
-                onClick={() => toggleFaq(0)}
-                aria-expanded={openFaq === 0}
+            {[
+              {
+                q: "How does the pickup and delivery process work?",
+                a: "After booking online, we show up at your dorm on your scheduled move-out day — no lugging boxes to a facility yourself. We carefully load everything into our truck and store it at our secure warehouse over the summer. When move-in rolls around, we deliver everything directly back to your new room on the date you chose at checkout."
+              },
+              {
+                q: "How much does it cost and what's included?",
+                a: "Pricing is based on the number of boxes and any additional items (mini-fridge, fan, rug, etc.) you need stored. A $50 deposit is collected at booking to secure your spot, and the remaining balance is due before pickup. We also offer a monthly payment plan that splits the remaining balance into 3 equal installments — great if you want to spread the cost over the summer."
+              },
+              {
+                q: "What exactly counts as a 'box'?",
+                a: "Our standard box is a medium-sized moving box (roughly 18\" × 18\" × 16\"). You can use your own boxes as long as they're sealed and sturdy. Oversized items like mini-fridges, fans, lamps, rugs, and chairs are listed separately as add-ons when you configure your order. If you have something unusual, reach out and we'll let you know how to list it."
+              },
+              {
+                q: "What are the move-out and move-in date windows?",
+                a: "Move-out windows are set per campus and aligned with each school's official checkout schedule — typically mid-to-late April through mid-May. Move-in delivery windows open in late August through September. You select your preferred dates and time slots at checkout, and we coordinate from there. Exact windows for your school are shown during booking."
+              },
+              {
+                q: "Is my stuff safe while in storage?",
+                a: "All belongings are stored in our climate-controlled, secure warehouse facility. Items are tracked and logged at pickup. While we take every precaution to ensure items are handled carefully, we recommend not storing irreplaceable valuables. If you have questions about a specific item, reach out before booking."
+              },
+              {
+                q: "Can I add extra items after I've already booked?",
+                a: "Yes — reach out to us before your pickup date and we can update your order. Additional items may affect your total price. We do our best to accommodate last-minute changes, especially if you contact us at least 48 hours before your scheduled pickup."
+              },
+              {
+                q: "What if I need to cancel my booking?",
+                a: "If you need to cancel, contact us as soon as possible. The $50 deposit is non-refundable once a pickup is scheduled, but any remaining balance paid will be refunded. If you cancel well in advance before a pickup date is confirmed, we'll work with you on a case-by-case basis."
+              },
+              {
+                q: "Which schools do you currently serve?",
+                a: "We currently serve Stonehill College, with plans to expand to additional campuses each semester. If your school isn't listed yet, sign up for our reminder list and we'll notify you when we launch at your campus. We're a student-run business founded at Stonehill, so new schools are added based on demand."
+              },
+            ].map((item, i) => (
+              <motion.div
+                key={i}
+                className={`faq-item ${openFaq === i ? 'active' : ''}`}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: "-100px" }}
+                transition={{ duration: 0.5, delay: 0.1 + i * 0.05, ease: [0.25, 0.1, 0.25, 1] }}
               >
-                <span>How does the pickup and delivery process work?</span>
-                <span className="faq-icon">{openFaq === 0 ? '−' : '+'}</span>
-              </button>
-              <AnimatePresence>
-                {openFaq === 0 && (
-                  <motion.div 
-                    className="faq-answer"
-                    initial={{ height: 0, opacity: 0 }}
-                    animate={{ height: "auto", opacity: 1 }}
-                    exit={{ height: 0, opacity: 0 }}
-                    transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
-                  >
-                    <p>Simply schedule a pickup time that works for you through our website or app. We'll arrive with all necessary packing materials and carefully collect your items. When you need your belongings back, request delivery through your account and we'll bring them directly to your door.</p>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </motion.div>
-
-            {/* FAQ Item 2 */}
-            <motion.div 
-              className={`faq-item ${openFaq === 1 ? 'active' : ''}`}
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: "-100px" }}
-              transition={{ duration: 0.5, delay: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
-            >
-              <button 
-                className="faq-question" 
-                onClick={() => toggleFaq(1)}
-                aria-expanded={openFaq === 1}
-              >
-                <span>Is my stuff insured while in storage?</span>
-                <span className="faq-icon">{openFaq === 1 ? '−' : '+'}</span>
-              </button>
-              <AnimatePresence>
-                {openFaq === 1 && (
-                  <motion.div 
-                    className="faq-answer"
-                    initial={{ height: 0, opacity: 0 }}
-                    animate={{ height: "auto", opacity: 1 }}
-                    exit={{ height: 0, opacity: 0 }}
-                    transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
-                  >
-                    <p>Yes, all items are covered by our comprehensive insurance policy at no additional cost. Your belongings are protected from the moment we pick them up until they're safely returned to you. Additional coverage options are available if needed.</p>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </motion.div>
-
-            {/* FAQ Item 3 */}
-            <motion.div 
-              className={`faq-item ${openFaq === 2 ? 'active' : ''}`}
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: "-100px" }}
-              transition={{ duration: 0.5, delay: 0.4, ease: [0.25, 0.1, 0.25, 1] }}
-            >
-              <button 
-                className="faq-question" 
-                onClick={() => toggleFaq(2)}
-                aria-expanded={openFaq === 2}
-              >
-                <span>Can I access my items while they're in storage?</span>
-                <span className="faq-icon">{openFaq === 2 ? '−' : '+'}</span>
-              </button>
-              <AnimatePresence>
-                {openFaq === 2 && (
-                  <motion.div 
-                    className="faq-answer"
-                    initial={{ height: 0, opacity: 0 }}
-                    animate={{ height: "auto", opacity: 1 }}
-                    exit={{ height: 0, opacity: 0 }}
-                    transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
-                  >
-                    <p>You can view your complete inventory 24/7 through our online portal. While we don't offer physical access to the storage facility for security reasons, you can request delivery of any items you need, and we'll bring them to you within 48 hours.</p>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </motion.div>
-
-            {/* FAQ Item 4 */}
-            <motion.div 
-              className={`faq-item ${openFaq === 3 ? 'active' : ''}`}
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: "-100px" }}
-              transition={{ duration: 0.5, delay: 0.5, ease: [0.25, 0.1, 0.25, 1] }}
-            >
-              <button 
-                className="faq-question" 
-                onClick={() => toggleFaq(3)}
-                aria-expanded={openFaq === 3}
-              >
-                <span>What items are not allowed in storage?</span>
-                <span className="faq-icon">{openFaq === 3 ? '−' : '+'}</span>
-              </button>
-              <AnimatePresence>
-                {openFaq === 3 && (
-                  <motion.div 
-                    className="faq-answer"
-                    initial={{ height: 0, opacity: 0 }}
-                    animate={{ height: "auto", opacity: 1 }}
-                    exit={{ height: 0, opacity: 0 }}
-                    transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
-                  >
-                    <p>We cannot store hazardous materials, perishable food items, illegal substances, firearms, or live plants. If you're unsure about a specific item, please contact our support team and we'll be happy to help clarify.</p>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </motion.div>
-
-            {/* FAQ Item 5 */}
-            <motion.div 
-              className={`faq-item ${openFaq === 4 ? 'active' : ''}`}
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: "-100px" }}
-              transition={{ duration: 0.5, delay: 0.6, ease: [0.25, 0.1, 0.25, 1] }}
-            >
-              <button 
-                className="faq-question" 
-                onClick={() => toggleFaq(4)}
-                aria-expanded={openFaq === 4}
-              >
-                <span>How do I cancel or change my storage plan?</span>
-                <span className="faq-icon">{openFaq === 4 ? '−' : '+'}</span>
-              </button>
-              <AnimatePresence>
-                {openFaq === 4 && (
-                  <motion.div 
-                    className="faq-answer"
-                    initial={{ height: 0, opacity: 0 }}
-                    animate={{ height: "auto", opacity: 1 }}
-                    exit={{ height: 0, opacity: 0 }}
-                    transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
-                  >
-                    <p>You can upgrade, downgrade, or cancel your plan at any time through your account dashboard. There are no cancellation fees. If you're canceling, simply schedule a delivery for all your items and your service will end once everything is returned.</p>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </motion.div>
+                <button
+                  className="faq-question"
+                  onClick={() => toggleFaq(i)}
+                  aria-expanded={openFaq === i}
+                >
+                  <span>{item.q}</span>
+                  <span className="faq-icon">{openFaq === i ? '−' : '+'}</span>
+                </button>
+                <AnimatePresence>
+                  {openFaq === i && (
+                    <motion.div
+                      className="faq-answer"
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: "auto", opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
+                    >
+                      <p>{item.a}</p>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </motion.div>
+            ))}
           </div>
           <motion.div 
             className="section-cta"
