@@ -543,7 +543,7 @@ footer {
   position: relative;
   background-color: #2a1a14; /* Fallback for letterboxing when image doesn't fill */
   background-image: url('/brand/herosection.png');
-  background-size: contain;
+  background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
 }
