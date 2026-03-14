@@ -32,6 +32,7 @@ export interface CreateBookingInput {
   school: string;
   monthly_total_cents: number;
   items: BookingItemInput[];
+  payment_plan?: 'full' | 'monthly';
 }
 
 export interface Booking {
@@ -58,4 +59,5 @@ export interface BookingWithItems extends Booking {
   total_price?: number | string | null;
   box_quantity?: number | null;
   payment_status?: string | null;
+  payment_plan?: 'full' | 'monthly' | null;
 }

@@ -20,6 +20,7 @@ export function DepositForm({ applicationId, locationId, isSandbox, customerName
   const cardInstanceRef = useRef<any>(null);
   const applePayRef = useRef<any>(null);
   const googlePayRef = useRef<any>(null);
+  const initializingRef = useRef(false);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -34,12 +35,25 @@ export function DepositForm({ applicationId, locationId, isSandbox, customerName
       ? 'https://sandbox.web.squarecdn.com/v1/square.js'
       : 'https://web.squarecdn.com/v1/square.js';
 
+    const waitForSquare = (): Promise<any> => new Promise((resolve, reject) => {
+      const sq = (window as any).Square;
+      if (sq) { resolve(sq); return; }
+      let attempts = 0;
+      const interval = setInterval(() => {
+        const s = (window as any).Square;
+        if (s) { clearInterval(interval); resolve(s); }
+        else if (++attempts > 20) { clearInterval(interval); reject(new Error('Square SDK timed out')); }
+      }, 150);
+    });
+
     const initSquare = async () => {
-      if (cardInstanceRef.current) return;
+      if (cardInstanceRef.current || initializingRef.current) return;
+      initializingRef.current = true;
       try {
-        const sq = (window as any).Square;
+        const sq = await waitForSquare().catch(() => null);
         if (!sq) {
           setError('Square SDK not available.');
+          initializingRef.current = false;
           return;
         }
 
@@ -87,6 +101,8 @@ export function DepositForm({ applicationId, locationId, isSandbox, customerName
 
         // Google Pay: create with PaymentRequest and attach a button into our div.
         try {
+          const gpContainer = document.getElementById('google-pay-button');
+          if (gpContainer) gpContainer.innerHTML = '';
           const googlePay = await payments.googlePay(paymentRequest);
           await googlePay.attach('#google-pay-button', {
             buttonColor: 'default',
@@ -122,6 +138,8 @@ export function DepositForm({ applicationId, locationId, isSandbox, customerName
         }
       } catch (err: any) {
         setError(err?.message ?? 'Could not initialize payment form.');
+      } finally {
+        initializingRef.current = false;
       }
     };
 
@@ -138,14 +156,22 @@ export function DepositForm({ applicationId, locationId, isSandbox, customerName
     }
 
     return () => {
+      initializingRef.current = false;
       googlePayCleanup?.();
+      if (googlePayRef.current && typeof googlePayRef.current.destroy === 'function') {
+        googlePayRef.current.destroy();
+      }
+      googlePayRef.current = null;
       cardInstanceRef.current?.destroy?.();
       cardInstanceRef.current = null;
       applePayRef.current = null;
-      googlePayRef.current = null;
       setSdkReady(false);
       setApplePayInstance(null);
       setGooglePayInstance(null);
+      const cardEl = document.getElementById('sq-card');
+      if (cardEl) cardEl.innerHTML = '';
+      const gpEl = document.getElementById('google-pay-button');
+      if (gpEl) gpEl.innerHTML = '';
     };
   }, [applicationId, locationId, isSandbox]);
 

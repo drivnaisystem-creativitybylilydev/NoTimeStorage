@@ -24,6 +24,13 @@ interface NewBookingAdminEmailProps {
   stairs: boolean;
   additionalItems?: string;
   specialInstructions?: string;
+  paymentPlan?: 'full' | 'monthly';
+  totalPrice?: number;
+  month1Amount?: number;
+  month2Amount?: number;
+  month2Date?: string;
+  month3Amount?: number;
+  month3Date?: string;
 }
 
 export function NewBookingAdminEmail({
@@ -43,7 +50,15 @@ export function NewBookingAdminEmail({
   stairs = false,
   additionalItems = '',
   specialInstructions = '',
+  paymentPlan = 'full',
+  totalPrice,
+  month1Amount,
+  month2Amount,
+  month2Date,
+  month3Amount,
+  month3Date,
 }: NewBookingAdminEmailProps) {
+  const isMonthly = paymentPlan === 'monthly' && !!month1Amount;
   return (
     <EmailLayout preview={`📦 New booking — ${customerName} · ${moveOutDate} · ${school}`}>
       <Section style={emailStyles.body_section}>
@@ -170,9 +185,44 @@ export function NewBookingAdminEmail({
                 </td>
               </tr>
               <tr>
-                <td style={{ ...emailStyles.cardLabel, fontWeight: '700', color: colors.coffee }}>Monthly total</td>
-                <td style={{ ...emailStyles.cardValue, fontSize: '16px', color: colors.coffee }}>${monthlyTotal}/mo</td>
+                <td style={{ ...emailStyles.cardLabel, fontWeight: '700', color: colors.coffee }}>Monthly rate</td>
+                <td style={{ ...emailStyles.cardValue, fontSize: '14px', color: colors.coffee }}>${monthlyTotal}/mo</td>
               </tr>
+              <tr>
+                <td style={{ ...emailStyles.cardLabel, paddingTop: '6px' }}>Payment plan</td>
+                <td style={{ ...emailStyles.cardValue, paddingTop: '6px' }}>
+                  <span style={{
+                    display: 'inline-block',
+                    backgroundColor: isMonthly ? '#FEF3C7' : '#D4F7E0',
+                    color: isMonthly ? '#92400E' : '#166534',
+                    borderRadius: '12px',
+                    padding: '2px 10px',
+                    fontSize: '11px',
+                    fontWeight: '700',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.5px',
+                  }}>
+                    {isMonthly ? '📅 Monthly (3×)' : '✓ Pay in Full'}
+                  </span>
+                </td>
+              </tr>
+              {isMonthly && month1Amount && month2Amount && month3Amount && (
+                <tr>
+                  <td style={{ ...emailStyles.cardLabel, paddingTop: '6px', verticalAlign: 'top' }}>Schedule</td>
+                  <td style={{ ...emailStyles.cardValue, paddingTop: '6px', lineHeight: '1.7' }}>
+                    <span style={{ color: '#2e7d32' }}>✓ ${(month1Amount / 100).toFixed(2)} today</span>
+                    <br />
+                    {month2Date && <><span style={{ color: colors.muted }}>🔄 ${(month2Amount / 100).toFixed(2)} on {month2Date}</span><br /></>}
+                    {month3Date && <span style={{ color: colors.muted }}>🔄 ${(month3Amount / 100).toFixed(2)} on {month3Date}</span>}
+                  </td>
+                </tr>
+              )}
+              {totalPrice && (
+                <tr>
+                  <td style={{ ...emailStyles.cardLabel, paddingTop: '6px', fontWeight: '700', color: colors.coffee }}>Total</td>
+                  <td style={{ ...emailStyles.cardValue, paddingTop: '6px', fontSize: '16px', color: colors.coffee }}>${totalPrice.toFixed(2)}</td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>

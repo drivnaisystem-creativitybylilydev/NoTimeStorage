@@ -83,12 +83,14 @@ export default function SignUpPage() {
       <AuthPageWrapper>
         <div className="auth-card">
           <div className="auth-logo">
-            <Image
-              src="/brand/notime-storage-logo.png"
-              alt="NoTime Storage"
-              width={60}
-              height={60}
-            />
+            <Link href="/">
+              <Image
+                src="/brand/notime-storage-logo.png"
+                alt="NoTime Storage"
+                width={60}
+                height={60}
+              />
+            </Link>
           </div>
 
           <div className="auth-success" style={{ textAlign: 'center', padding: '8px 0 24px' }}>
@@ -165,12 +167,14 @@ export default function SignUpPage() {
     <AuthPageWrapper>
       <div className="auth-card">
         <div className="auth-logo">
-          <Image
-            src="/brand/notime-storage-logo.png"
-            alt="NoTime Storage"
-            width={60}
-            height={60}
-          />
+          <Link href="/">
+            <Image
+              src="/brand/notime-storage-logo.png"
+              alt="NoTime Storage"
+              width={60}
+              height={60}
+            />
+          </Link>
         </div>
         
         <div className="auth-header">

@@ -7,9 +7,11 @@ import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import { createBooking } from '@/lib/booking/create-booking';
 import { chargeBookingPayment } from '@/lib/square/charge-booking';
+import { chargeFirstMonthPayment, createMonthlyPaymentSchedule } from '@/app/actions/monthly-payments';
 import type { CreateBookingInput, BookingItemType } from '@/lib/booking/types';
 import { formatDate, formatTime } from '@/lib/utils/date';
 import { AuthPageWrapper } from '@/app/components/AuthPageWrapper';
+import { isEligibleForMonthlyPlan, calculateMonthlyBreakdown } from '@/lib/payment-plan-calculator';
 
 const ITEM_TYPE_MAP: Record<string, BookingItemType> = {
   smallWithBox: 'small_with_box',
@@ -48,6 +50,7 @@ function PaymentPageContent() {
   const applePayRef = useRef<any>(null);
   const googlePayRef = useRef<any>(null);
   const paymentProcessorRef = useRef<((token: string) => Promise<void>) | null>(null);
+  const initializingRef = useRef(false);
 
   // URL params (unchanged)
   const boxes = searchParams.get('boxes') || '0';
@@ -61,6 +64,7 @@ function PaymentPageContent() {
   const room = searchParams.get('room') || '';
   const instructions = searchParams.get('instructions') || '';
   const school = searchParams.get('school') || 'Stonehill College';
+  const paymentPlan = (searchParams.get('paymentPlan') || 'full') as 'full' | 'monthly';
 
   const storageMonths = (() => {
     if (!moveOutDate || !moveInDate) return 3;
@@ -87,19 +91,34 @@ function PaymentPageContent() {
   };
 
   let itemsTotal = 0;
-  const itemsList: string[] = [];
+  const itemsWithPrices: { label: string; price: number }[] = [];
   ['smallWithBox', 'smallWithoutBox', 'mediumWithBox', 'mediumWithoutBox', 'large'].forEach(key => {
     const qty = parseInt(searchParams.get(key) || '0');
     if (qty > 0) {
-      itemsTotal += qty * itemPrices[key];
-      itemsList.push(`${qty}× ${key.replace(/([A-Z])/g, ' $1').toLowerCase()}`);
+      const lineTotal = qty * itemPrices[key];
+      itemsTotal += lineTotal;
+      itemsWithPrices.push({
+        label: `${qty}× ${key.replace(/([A-Z])/g, ' $1').toLowerCase()}`,
+        price: lineTotal,
+      });
     }
   });
 
   const monthlyTotal = boxesTotal + itemsTotal;
   const monthlyTotalCents = Math.round(monthlyTotal * 100);
   const totalPrice = monthlyTotal * storageMonths;
+  // totalPriceCents = remaining balance after deposit (used for full-pay charge)
   const totalPriceCents = Math.round((totalPrice - 50) * 100);
+  // fullPriceCents = total before deposit (used as input to monthly breakdown)
+  const fullPriceCents = Math.round(totalPrice * 100);
+
+  const monthlyBreakdown =
+    paymentPlan === 'monthly' && isEligibleForMonthlyPlan(totalPriceCents)
+      ? calculateMonthlyBreakdown(fullPriceCents, new Date())
+      : null;
+
+  // Amount actually charged today
+  const dueTodayCents = monthlyBreakdown ? monthlyBreakdown.month1Cents : totalPriceCents;
 
   const buildBookingPayload = useCallback((): CreateBookingInput | null => {
     if (!userId || !moveOutDate || !moveInDate || !moveOutTime || !dorm || !elevator || !stairs) return null;
@@ -132,8 +151,9 @@ function PaymentPageContent() {
       school,
       monthly_total_cents: monthlyTotalCents,
       items,
+      payment_plan: paymentPlan,
     };
-  }, [userId, moveOutDate, moveInDate, moveOutTime, dorm, elevator, stairs, room, instructions, school, boxQty, monthlyTotalCents, searchParams]);
+  }, [userId, moveOutDate, moveInDate, moveOutTime, dorm, elevator, stairs, room, instructions, school, boxQty, monthlyTotalCents, paymentPlan, searchParams]);
 
   const processPaymentWithToken = useCallback(async (token: string) => {
     const payload = buildBookingPayload();
@@ -142,6 +162,7 @@ function PaymentPageContent() {
       setProcessing(false);
       return;
     }
+
     setStep('creating');
     const bookingResult = await createBooking(payload);
     if (!bookingResult.success) {
@@ -150,17 +171,47 @@ function PaymentPageContent() {
       setStep('idle');
       return;
     }
+
     setStep('charging');
-    const chargeResult = await chargeBookingPayment(token, bookingResult.bookingId, totalPriceCents);
-    if (!chargeResult.success) {
-      setError(`Payment failed: ${chargeResult.error} — Your booking was saved but not charged. Please contact support.`);
-      setProcessing(false);
-      setStep('idle');
-      return;
+    const bookingId = bookingResult.bookingId;
+    const confirmedBase = `/booking/confirmed?moveOutDate=${moveOutDate}&school=${encodeURIComponent(school)}&boxes=${boxes}&monthlyTotal=${monthlyTotal}&totalPrice=${totalPrice}&months=${storageMonths}`;
+
+    if (paymentPlan === 'monthly' && monthlyBreakdown) {
+      // — Monthly path —
+      const month1Result = await chargeFirstMonthPayment(token, bookingId, monthlyBreakdown.month1Cents);
+      if (!month1Result.success) {
+        setError(`Payment failed: ${month1Result.error} — Your booking was saved. Please contact support.`);
+        setProcessing(false);
+        setStep('idle');
+        return;
+      }
+
+      // Fire-and-forget invoice creation (non-blocking — booking is confirmed even if invoice fails)
+      createMonthlyPaymentSchedule({
+        bookingId,
+        customerId: month1Result.customerId,
+        cardId: month1Result.cardId,
+        month2Cents: monthlyBreakdown.month2Cents,
+        month2Date: monthlyBreakdown.month2Date,
+        month3Cents: monthlyBreakdown.month3Cents,
+        month3Date: monthlyBreakdown.month3Date,
+      }).catch((err) => console.error('[monthly invoice]', err));
+
+      setStep('done');
+      window.location.href = `${confirmedBase}&paymentPlan=monthly&month1=${monthlyBreakdown.month1Cents}&month2=${monthlyBreakdown.month2Cents}&month2Date=${monthlyBreakdown.month2Date}&month3=${monthlyBreakdown.month3Cents}&month3Date=${monthlyBreakdown.month3Date}`;
+    } else {
+      // — Pay in Full path (unchanged) —
+      const chargeResult = await chargeBookingPayment(token, bookingId, totalPriceCents);
+      if (!chargeResult.success) {
+        setError(`Payment failed: ${chargeResult.error} — Your booking was saved but not charged. Please contact support.`);
+        setProcessing(false);
+        setStep('idle');
+        return;
+      }
+      setStep('done');
+      window.location.href = `${confirmedBase}&paymentPlan=full`;
     }
-    setStep('done');
-    window.location.href = `/booking/confirmed?moveOutDate=${moveOutDate}&school=${encodeURIComponent(school)}&boxes=${boxes}&monthlyTotal=${monthlyTotal}&totalPrice=${totalPrice}&months=${storageMonths}`;
-  }, [buildBookingPayload, totalPriceCents, moveOutDate, school, boxes, monthlyTotal, totalPrice, storageMonths]);
+  }, [buildBookingPayload, totalPriceCents, paymentPlan, monthlyBreakdown, moveOutDate, school, boxes, monthlyTotal, totalPrice, storageMonths]);
 
   paymentProcessorRef.current = processPaymentWithToken;
 
@@ -188,15 +239,27 @@ function PaymentPageContent() {
       ? 'https://sandbox.web.squarecdn.com/v1/square.js'
       : 'https://web.squarecdn.com/v1/square.js';
 
+    const waitForSquare = (): Promise<any> => new Promise((resolve, reject) => {
+      const sq = (window as any).Square;
+      if (sq) { resolve(sq); return; }
+      let attempts = 0;
+      const interval = setInterval(() => {
+        const s = (window as any).Square;
+        if (s) { clearInterval(interval); resolve(s); }
+        else if (++attempts > 20) { clearInterval(interval); reject(new Error('Square SDK timed out')); }
+      }, 150);
+    });
+
     const existing = document.querySelector(`script[src="${scriptSrc}"]`);
     const initSquare = async () => {
-      if (cardInstanceRef.current) return;
+      if (cardInstanceRef.current || initializingRef.current) return;
+      initializingRef.current = true;
       try {
-        const sq = (window as any).Square;
-        if (!sq) return;
+        const sq = await waitForSquare().catch(() => null);
+        if (!sq) { initializingRef.current = false; return; }
         const payments = sq.payments(appId, locationId);
-        const container = document.getElementById('sq-card-booking');
-        if (container) container.innerHTML = '';
+        const cardContainer = document.getElementById('sq-card-booking');
+        if (cardContainer) cardContainer.innerHTML = '';
 
         // Square card style: only properties Square accepts (no boxShadow, no fontSize).
         const card = await payments.card({
@@ -225,7 +288,7 @@ function PaymentPageContent() {
         setSdkReady(true);
 
         // PaymentRequest: amount must be decimal string for display (e.g. "393.00"), not cents
-        const totalAmountDisplay = (totalPriceCents / 100).toFixed(2);
+        const totalAmountDisplay = (dueTodayCents / 100).toFixed(2);
         const paymentRequest = payments.paymentRequest({
           countryCode: 'US',
           currencyCode: 'USD',
@@ -243,6 +306,8 @@ function PaymentPageContent() {
 
         // Google Pay: create with paymentRequest, attach to div with button options only
         try {
+          const gpContainer = document.getElementById('google-pay-button');
+          if (gpContainer) gpContainer.innerHTML = '';
           const googlePay = await payments.googlePay(paymentRequest);
           await googlePay.attach('#google-pay-button', { buttonColor: 'default', buttonType: 'long' });
           googlePayRef.current = googlePay;
@@ -271,6 +336,8 @@ function PaymentPageContent() {
         }
       } catch (err: any) {
         setError(err?.message ?? 'Could not load payment form.');
+      } finally {
+        initializingRef.current = false;
       }
     };
 
@@ -285,16 +352,24 @@ function PaymentPageContent() {
     }
 
     return () => {
+      initializingRef.current = false;
       googlePayCleanup?.();
+      if (googlePayRef.current && typeof googlePayRef.current.destroy === 'function') {
+        googlePayRef.current.destroy();
+      }
+      googlePayRef.current = null;
       cardInstanceRef.current?.destroy?.();
       cardInstanceRef.current = null;
       applePayRef.current = null;
-      googlePayRef.current = null;
       setSdkReady(false);
       setApplePayInstance(null);
       setGooglePayInstance(null);
+      const cardEl = document.getElementById('sq-card-booking');
+      if (cardEl) cardEl.innerHTML = '';
+      const gpEl = document.getElementById('google-pay-button');
+      if (gpEl) gpEl.innerHTML = '';
     };
-  }, [appId, locationId, isSandbox, totalPriceCents]);
+  }, [appId, locationId, isSandbox, dueTodayCents]);
 
   const handleApplePayClick = async (e: React.MouseEvent) => {
     e.preventDefault();
@@ -360,50 +435,56 @@ function PaymentPageContent() {
           <div className="booking-order-summary">
             <h2>Booking Summary</h2>
 
-            <div className="booking-summary-section">
+            <div className="booking-summary-section booking-summary-details">
               <h3>Details</h3>
               <div className="booking-summary-line">
-                <span>School</span>
+                <span className="booking-summary-label">School</span>
                 <span>{school}</span>
               </div>
               <div className="booking-summary-line">
-                <span>Move-out</span>
+                <span className="booking-summary-label">Move-out</span>
                 <span>{formatDate(moveOutDate)} at {formatTime(moveOutTime)}</span>
               </div>
               {moveInDate && (
                 <div className="booking-summary-line">
-                  <span>Move-in</span>
+                  <span className="booking-summary-label">Move-in</span>
                   <span>{formatDate(moveInDate)}</span>
                 </div>
               )}
               <div className="booking-summary-line">
-                <span>Location</span>
+                <span className="booking-summary-label">Location</span>
                 <span>{dorm}{room ? `, Room ${room}` : ''}</span>
               </div>
               <div className="booking-summary-line">
-                <span>Access</span>
+                <span className="booking-summary-label">Access</span>
                 <span>{elevator === 'yes' ? 'Elevator' : 'No elevator'}{stairs === 'yes' ? ', stairs' : ''}</span>
               </div>
             </div>
 
-            <div className="booking-summary-section">
+            <div className="booking-summary-section booking-summary-storage">
               <h3>Storage</h3>
+              {/* Boxes: label alone, then quantity + price row */}
               {boxQty > 0 && (
-                <div className="booking-summary-line">
-                  <span>{boxQty} {boxQty === 1 ? 'Box' : 'Boxes'}</span>
-                  <span>${boxesTotal}/mo</span>
+                <div className="booking-summary-storage-block">
+                  <div className="booking-summary-storage-label">Boxes</div>
+                  <div className="booking-summary-line">
+                    <span>{boxQty} {boxQty === 1 ? 'Box' : 'Boxes'}</span>
+                    <span>${boxesTotal.toFixed(2)}/mo</span>
+                  </div>
                 </div>
               )}
-              {boxQty === 0 && itemsList.length > 0 && (
-                <div className="booking-summary-line">
-                  <span>Items only (no boxes)</span>
-                  <span>${itemsTotal.toFixed(2)}/mo</span>
-                </div>
-              )}
-              {itemsList.length > 0 && (
-                <div className="booking-summary-line">
-                  <span>{boxQty === 0 ? 'Items' : 'Additional'}</span>
-                  <span>{itemsList.join(', ')}</span>
+              {/* Additional: label alone, then each item + price right-aligned */}
+              {itemsWithPrices.length > 0 && (
+                <div className="booking-summary-storage-block">
+                  <div className="booking-summary-storage-label">Additional</div>
+                  <div className="booking-summary-storage-items">
+                    {itemsWithPrices.map((item, i) => (
+                      <div key={i} className="booking-summary-line">
+                        <span>{item.label}</span>
+                        <span className="booking-summary-storage-item-price">${item.price.toFixed(2)}/mo</span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>
@@ -417,34 +498,90 @@ function PaymentPageContent() {
                 <span>Duration</span>
                 <span>{storageMonths} months</span>
               </div>
-              {/* Original subtotal — crossed out, deposit not yet deducted */}
-              <div className="booking-summary-line" style={{ opacity: 0.55 }}>
+              <div className="booking-summary-line" style={{ color: '#000' }}>
                 <span>Subtotal</span>
-                <span style={{ textDecoration: 'line-through' }}>${totalPrice.toFixed(2)}</span>
+                <span style={{ textDecoration: 'line-through', textDecorationColor: 'red' }}>${totalPrice.toFixed(2)}</span>
               </div>
-              {/* Deposit deduction */}
               <div className="booking-summary-line" style={{ color: 'var(--color-latte)', fontSize: '14px' }}>
                 <span>Deposit (already paid)</span>
                 <span style={{ color: '#2e7d32', fontWeight: '600' }}>−$50.00</span>
               </div>
-              {/* Discounted subtotal */}
-              <div className="booking-summary-line highlight">
-                <span>Subtotal after deposit</span>
-                <span>${(totalPrice - 50).toFixed(2)}</span>
-              </div>
             </div>
 
-            <div className="booking-summary-total">
-              <span>Total due today</span>
-              <span>${(totalPrice - 50).toFixed(2)}</span>
-            </div>
+            {/* Payment schedule — monthly plan */}
+            {paymentPlan === 'monthly' && monthlyBreakdown ? (
+              <div className="payment-schedule-card">
+                <div style={{ fontSize: '0.6875rem', fontWeight: '700', letterSpacing: '0.1em', color: 'var(--color-coffee)', marginBottom: '14px', textTransform: 'uppercase' }}>
+                  Payment Schedule
+                </div>
+
+                {/* Month 1 — today */}
+                <div className="payment-schedule-row today">
+                  <div>
+                    <div style={{ fontWeight: '700', color: 'var(--color-coffee)' }}>Today (Month 1)</div>
+                    <div style={{ fontSize: '0.8125rem', color: 'var(--color-gray-600)' }}>Base: ${((monthlyBreakdown.month1Cents + 5000) / 100).toFixed(2)}</div>
+                    <div style={{ fontSize: '0.8125rem', color: '#2e7d32' }}>Deposit credit: −$50.00</div>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+                    <span style={{ color: '#2e7d32', fontWeight: '700' }}>✓</span>
+                    <span style={{ fontWeight: '700', color: 'var(--color-coffee)', fontSize: '1.0625rem' }}>
+                      ${(monthlyBreakdown.month1Cents / 100).toFixed(2)}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Month 2 */}
+                <div className="payment-schedule-row future">
+                  <div>
+                    <div style={{ fontWeight: '600' }}>Month 2</div>
+                    <div style={{ fontSize: '0.8125rem', color: 'var(--color-gray-500)' }}>
+                      {new Date(monthlyBreakdown.month2Date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+                    <span>🔄</span>
+                    <span style={{ fontWeight: '600' }}>${(monthlyBreakdown.month2Cents / 100).toFixed(2)}</span>
+                  </div>
+                </div>
+
+                {/* Month 3 */}
+                <div className="payment-schedule-row future">
+                  <div>
+                    <div style={{ fontWeight: '600' }}>Month 3</div>
+                    <div style={{ fontSize: '0.8125rem', color: 'var(--color-gray-500)' }}>
+                      {new Date(monthlyBreakdown.month3Date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+                    <span>🔄</span>
+                    <span style={{ fontWeight: '600' }}>${(monthlyBreakdown.month3Cents / 100).toFixed(2)}</span>
+                  </div>
+                </div>
+
+                <div style={{ borderTop: '1px solid var(--color-latte)', marginTop: '12px', paddingTop: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontWeight: '700', color: 'var(--color-coffee)' }}>Total</span>
+                  <span style={{ fontWeight: '700', color: 'var(--color-coffee)' }}>${(monthlyBreakdown.totalCents / 100).toFixed(2)}</span>
+                </div>
+                <div style={{ fontSize: '0.75rem', color: 'var(--color-gray-500)', marginTop: '8px' }}>
+                  ✓ = Charged today · 🔄 = Auto-charged on date shown
+                </div>
+              </div>
+            ) : (
+              <div className="booking-summary-total">
+                <span>Total due today</span>
+                <span>${(totalPrice - 50).toFixed(2)}</span>
+              </div>
+            )}
           </div>
 
           {/* Right: Payment */}
           <div className="booking-payment-card">
             <h2>Payment</h2>
             <div className="payment-trust-message">
-              Your $50 commitment deposit has been deducted. You will be charged <strong>${(totalPrice - 50).toFixed(2)}</strong> today.
+              {paymentPlan === 'monthly' && monthlyBreakdown
+                ? <>Your $50 deposit credit is applied to month 1. You will be charged <strong>${(monthlyBreakdown.month1Cents / 100).toFixed(2)}</strong> today, then auto-charged monthly.</>
+                : <>Your $50 commitment deposit has been deducted. You will be charged <strong>${(totalPrice - 50).toFixed(2)}</strong> today.</>
+              }
             </div>
 
             {isSandbox && (
@@ -489,7 +626,12 @@ function PaymentPageContent() {
               disabled={!sdkReady || processing}
             >
               {processing && <span className="payment-spinner" aria-hidden />}
-              {processing ? stepLabel : `Pay $${totalPrice.toFixed(2)} & Confirm`}
+              {processing
+                ? stepLabel
+                : paymentPlan === 'monthly' && monthlyBreakdown
+                  ? `Pay $${(monthlyBreakdown.month1Cents / 100).toFixed(2)} Today & Confirm`
+                  : `Pay $${(totalPrice - 50).toFixed(2)} & Confirm`
+              }
             </button>
 
             <div className="payment-trust-badges">

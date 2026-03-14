@@ -6,6 +6,7 @@
 
 import { createClient } from '@/lib/supabase/server';
 import type { BookingWithItems } from './types';
+import { calculateMonthlyBreakdown, isEligibleForMonthlyPlan } from '@/lib/payment-plan-calculator';
 
 /** Customer info resolved from public.users for integrations */
 export type BookingWithCustomer = BookingWithItems & {
@@ -194,6 +195,25 @@ async function sendNewBookingEmail(b: BookingWithCustomer): Promise<void> {
     ? b.total_monthly_rate
     : parseFloat(String(b.total_monthly_rate || 0));
 
+  const isMonthly = b.payment_plan === 'monthly';
+  const totalPriceNum = typeof b.total_price === 'number' ? b.total_price : parseFloat(String(b.total_price || 0));
+  const totalPriceCents = Math.round(totalPriceNum * 100);
+  const breakdown = isMonthly && isEligibleForMonthlyPlan(Math.round((totalPriceNum - 50) * 100))
+    ? calculateMonthlyBreakdown(totalPriceCents)
+    : null;
+
+  const paymentParams = breakdown
+    ? {
+        paymentPlan: 'monthly' as const,
+        totalPrice: totalPriceNum,
+        month1Amount: breakdown.month1Cents,
+        month2Amount: breakdown.month2Cents,
+        month2Date: breakdown.month2Date,
+        month3Amount: breakdown.month3Cents,
+        month3Date: breakdown.month3Date,
+      }
+    : { paymentPlan: 'full' as const, totalPrice: totalPriceNum };
+
   const sharedParams = {
     customerName,
     bookingId: b.id,
@@ -208,6 +228,7 @@ async function sendNewBookingEmail(b: BookingWithCustomer): Promise<void> {
     specialInstructions: b.special_instructions ?? '',
     elevator: b.elevator_available ?? false,
     stairs: b.stairs_required ?? false,
+    ...paymentParams,
   };
 
   // Email to admin

@@ -78,7 +78,7 @@ export async function chargeBookingPayment(
       booking_id: bookingId,
       amount: booking.total_price,
       payment_type: 'full_payment',
-      stripe_transaction_id: payment.id,
+      square_payment_id: payment.id,
       status: 'succeeded',
     });
 

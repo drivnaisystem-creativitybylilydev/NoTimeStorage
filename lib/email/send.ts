@@ -58,10 +58,20 @@ export async function sendOrderConfirmedUser(params: {
   boxQuantity: number;
   monthlyTotal: number;
   additionalItems?: string;
+  paymentPlan?: 'full' | 'monthly';
+  totalPrice?: number;
+  month1Amount?: number;
+  month2Amount?: number;
+  month2Date?: string;
+  month3Amount?: number;
+  month3Date?: string;
 }) {
   const html = await render(OrderConfirmedUserEmail(params));
   const recipients = [params.to, params.parentEmail].filter(Boolean) as string[];
-  await sendEmail(recipients, '📦 Your NoTime Storage booking is confirmed', html);
+  const subject = params.paymentPlan === 'monthly'
+    ? '📦 Booking confirmed — your payment plan is set'
+    : '📦 Your NoTime Storage booking is confirmed';
+  await sendEmail(recipients, subject, html);
 }
 
 // ── Admin: deposit paid ──────────────────────────────────────────────────────
@@ -103,6 +113,13 @@ export async function sendNewBookingAdmin(params: {
   stairs: boolean;
   additionalItems?: string;
   specialInstructions?: string;
+  paymentPlan?: 'full' | 'monthly';
+  totalPrice?: number;
+  month1Amount?: number;
+  month2Amount?: number;
+  month2Date?: string;
+  month3Amount?: number;
+  month3Date?: string;
 }) {
   if (!ADMIN_EMAIL) return;
   const html = await render(NewBookingAdminEmail(params));

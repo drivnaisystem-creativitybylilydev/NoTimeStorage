@@ -9,6 +9,7 @@ import { getDefaultTimeSlots } from '@/lib/booking/time-slots';
 import { SCHOOL_NAMES, getDormsForSchool, getMoveOutWindow } from '@/lib/schools/config';
 import { createClient } from '@/lib/supabase/client';
 import { AuthPageWrapper } from '@/app/components/AuthPageWrapper';
+import { isEligibleForMonthlyPlan, calculateMonthlyBreakdown } from '@/lib/payment-plan-calculator';
 
 // Configuration: Minimum storage duration in months
 const MINIMUM_STORAGE_MONTHS = 3;
@@ -27,6 +28,25 @@ function SchedulePageContent() {
     large: parseInt(searchParams.get('large') || '0'),
   };
 
+  // Pricing helpers (mirrors payment page logic)
+  const getBoxPrice = (qty: number) => {
+    if (qty === 0) return 0;
+    if (qty === 1) return 80;
+    if (qty === 2 || qty === 3) return 55;
+    return 60;
+  };
+  const itemPrices: Record<string, number> = {
+    smallWithBox: 9, smallWithoutBox: 11,
+    mediumWithBox: 9, mediumWithoutBox: 12, large: 15,
+  };
+  const boxQty = boxes;
+  const boxesTotal = getBoxPrice(boxQty) * boxQty;
+  const itemsTotal = Object.entries(additionalItems).reduce(
+    (sum, [key, qty]) => sum + qty * (itemPrices[key] ?? 0),
+    0
+  );
+  const monthlyTotal = boxesTotal + itemsTotal;
+
   // State for scheduling
   const [moveOutDate, setMoveOutDate] = useState<Date | null>(null);
   const [moveInDate, setMoveInDate] = useState<Date | null>(null);
@@ -39,6 +59,7 @@ function SchedulePageContent() {
   const [stairsAccess, setStairsAccess] = useState<'yes' | 'no' | ''>('');
   const [roomNumber, setRoomNumber] = useState('');
   const [specialInstructions, setSpecialInstructions] = useState('');
+  const [paymentPlan, setPaymentPlan] = useState<'full' | 'monthly'>('full');
   const [dateError, setDateError] = useState('');
   const [availableSlots, setAvailableSlots] = useState<{ value: string; label: string }[]>([]);
   const [slotsLoading, setSlotsLoading] = useState(false);
@@ -86,6 +107,18 @@ function SchedulePageContent() {
       })
       .finally(() => setSlotsLoading(false));
   }, [moveOutDate, dorm]);
+
+  // Jump calendar to the school's move-out window (fires on pre-fill too)
+  useEffect(() => {
+    if (!school) return;
+    const w = getMoveOutWindow(school);
+    if (w) {
+      setCurrentMonth(new Date(w.start.getFullYear(), w.start.getMonth()));
+    } else {
+      const now = new Date();
+      setCurrentMonth(new Date(now.getFullYear(), now.getMonth()));
+    }
+  }, [school]);
 
   // Close dorm dropdown when clicking outside
   useEffect(() => {
@@ -158,6 +191,9 @@ function SchedulePageContent() {
       setMoveInDate(null);
       setSelectingMoveOut(false);
       setDateError('');
+      // Jump calendar to the first month where move-in is available
+      const minMoveIn = getMinimumMoveInDate(date);
+      setCurrentMonth(new Date(minMoveIn.getFullYear(), minMoveIn.getMonth()));
     } else {
       // Validate minimum storage duration
       if (moveOutDate) {
@@ -190,6 +226,19 @@ function SchedulePageContent() {
 
   const monthData = useMemo(() => getMonthData(currentMonth.getFullYear(), currentMonth.getMonth()), [currentMonth]);
 
+  const storageMonths = useMemo(() => {
+    if (!moveOutDate || !moveInDate) return 3;
+    const diff = (moveInDate.getTime() - moveOutDate.getTime()) / (1000 * 60 * 60 * 24 * 30.44);
+    return Math.max(3, Math.round(diff));
+  }, [moveOutDate, moveInDate]);
+
+  const totalPrice = monthlyTotal * storageMonths;
+  // Full price in cents (before deposit); remaining = full minus the $50 deposit already paid
+  const fullPriceCents = Math.round(totalPrice * 100);
+  const remainingBalanceCents = Math.round((totalPrice - 50) * 100);
+  const eligibleForMonthly = isEligibleForMonthlyPlan(remainingBalanceCents);
+  const monthlyBreakdown = eligibleForMonthly ? calculateMonthlyBreakdown(fullPriceCents, moveOutDate ?? new Date()) : null;
+
   const isFormValid = moveOutDate && moveInDate && moveOutTime && moveInTime && school && dorm && elevatorAccess && stairsAccess && roomNumber.trim();
 
   const handleContinue = () => {
@@ -212,6 +261,7 @@ function SchedulePageContent() {
       stairs: stairsAccess,
       room: roomNumber,
       instructions: specialInstructions,
+      paymentPlan: eligibleForMonthly ? paymentPlan : 'full',
     });
     router.push(`/booking/payment?${params.toString()}`);
   };
@@ -516,8 +566,6 @@ function SchedulePageContent() {
                   setMoveInDate(null);
                   setSelectingMoveOut(true);
                 }
-                // Jump calendar to the school's move-out month
-                setCurrentMonth(new Date(window.start.getFullYear(), window.start.getMonth()));
               }
             }}
             style={{
@@ -903,6 +951,109 @@ function SchedulePageContent() {
             }}
           />
         </div>
+
+        {/* Payment Plan Selector — only shown when eligible */}
+        {eligibleForMonthly && monthlyBreakdown && (
+          <div style={{ marginBottom: '32px' }}>
+            <h2 style={{ fontSize: '1.25rem', fontWeight: '700', color: 'var(--color-coffee)', marginBottom: '8px' }}>
+              Payment Plan
+            </h2>
+            <p style={{ fontSize: '0.875rem', color: 'var(--color-gray-600)', marginBottom: '16px' }}>
+              Choose how you would like to pay for your storage.
+            </p>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+
+              {/* Pay in Full */}
+              <button
+                type="button"
+                onClick={() => setPaymentPlan('full')}
+                style={{
+                  padding: '24px',
+                  borderRadius: '12px',
+                  border: `2px solid ${paymentPlan === 'full' ? 'var(--color-coffee)' : 'var(--color-latte)'}`,
+                  background: paymentPlan === 'full' ? 'var(--color-latte-soft)' : 'white',
+                  textAlign: 'left',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                  transform: paymentPlan === 'full' ? 'translateY(-2px)' : 'none',
+                  boxShadow: paymentPlan === 'full' ? '0 4px 16px rgba(75,46,37,0.15)' : 'none',
+                }}
+                onMouseEnter={(e) => {
+                  if (paymentPlan !== 'full') {
+                    e.currentTarget.style.transform = 'translateY(-2px)';
+                    e.currentTarget.style.boxShadow = '0 4px 12px rgba(75,46,37,0.1)';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (paymentPlan !== 'full') {
+                    e.currentTarget.style.transform = 'none';
+                    e.currentTarget.style.boxShadow = 'none';
+                  }
+                }}
+              >
+                <div style={{ fontWeight: '700', color: 'var(--color-coffee)', fontSize: '1rem', marginBottom: '8px' }}>
+                  Pay in Full
+                </div>
+                <div style={{ fontSize: '1.375rem', fontWeight: '800', color: 'var(--color-coffee)', marginBottom: '4px' }}>
+                  ${(totalPrice - 50).toFixed(2)}
+                </div>
+                <div style={{ fontSize: '0.8125rem', color: 'var(--color-gray-600)' }}>
+                  Due today (deposit deducted)
+                </div>
+              </button>
+
+              {/* Pay Monthly */}
+              <button
+                type="button"
+                onClick={() => setPaymentPlan('monthly')}
+                style={{
+                  padding: '24px',
+                  borderRadius: '12px',
+                  border: `2px solid ${paymentPlan === 'monthly' ? 'var(--color-coffee)' : 'var(--color-latte)'}`,
+                  background: paymentPlan === 'monthly' ? 'var(--color-latte-soft)' : 'white',
+                  textAlign: 'left',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                  transform: paymentPlan === 'monthly' ? 'translateY(-2px)' : 'none',
+                  boxShadow: paymentPlan === 'monthly' ? '0 4px 16px rgba(75,46,37,0.15)' : 'none',
+                  position: 'relative',
+                }}
+                onMouseEnter={(e) => {
+                  if (paymentPlan !== 'monthly') {
+                    e.currentTarget.style.transform = 'translateY(-2px)';
+                    e.currentTarget.style.boxShadow = '0 4px 12px rgba(75,46,37,0.1)';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (paymentPlan !== 'monthly') {
+                    e.currentTarget.style.transform = 'none';
+                    e.currentTarget.style.boxShadow = 'none';
+                  }
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                  <span style={{ fontWeight: '700', color: 'var(--color-coffee)', fontSize: '1rem' }}>
+                    Pay Monthly
+                  </span>
+                  <span style={{
+                    fontSize: '0.6875rem', fontWeight: '700',
+                    background: 'var(--color-coffee)', color: 'var(--color-latte-soft)',
+                    padding: '2px 8px', borderRadius: '99px',
+                  }}>
+                    💰 Save $50
+                  </span>
+                </div>
+                <div style={{ fontSize: '1.375rem', fontWeight: '800', color: 'var(--color-coffee)', marginBottom: '4px' }}>
+                  ${(monthlyBreakdown.month1Cents / 100).toFixed(2)} today
+                </div>
+                <div style={{ fontSize: '0.8125rem', color: 'var(--color-gray-600)' }}>
+                  Then 2× ${(monthlyBreakdown.month2Cents / 100).toFixed(2)} auto-charged monthly
+                </div>
+              </button>
+
+            </div>
+          </div>
+        )}
 
         {/* Action Buttons */}
         <div style={{ display: 'flex', gap: '16px', justifyContent: 'space-between', flexWrap: 'wrap' }}>

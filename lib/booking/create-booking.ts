@@ -78,6 +78,7 @@ export async function createBooking(input: CreateBookingInput): Promise<CreateBo
       total_monthly_rate: totalMonthlyRate,
       total_price: totalPrice,
       payment_status: 'unpaid',
+      payment_plan: input.payment_plan ?? 'full',
       room: input.room ?? null,
       special_instructions: input.special_instructions ?? null,
       move_out_date: input.move_out_date,
@@ -181,7 +182,7 @@ export async function createBooking(input: CreateBookingInput): Promise<CreateBo
       booking_id: booking.id,
       amount: 50,
       payment_type: 'deposit',
-      stripe_transaction_id: null,
+      square_payment_id: null,
       status: 'succeeded',
     });
 
@@ -206,6 +207,7 @@ export async function createBooking(input: CreateBookingInput): Promise<CreateBo
     total_monthly_rate: totalMonthlyRate,
     total_price: totalPrice,
     box_quantity: boxQuantity,
+    payment_plan: (input.payment_plan ?? 'full') as 'full' | 'monthly',
     special_instructions: booking.special_instructions ?? null,
     created_at: booking.created_at,
     updated_at: booking.updated_at,

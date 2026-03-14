@@ -39,12 +39,14 @@ export default function ResetPasswordPage() {
       <AuthPageWrapper>
         <div className="auth-card">
           <div className="auth-logo">
-            <Image
-              src="/brand/notime-storage-logo.png"
-              alt="NoTime Storage"
-              width={60}
-              height={60}
-            />
+            <Link href="/">
+              <Image
+                src="/brand/notime-storage-logo.png"
+                alt="NoTime Storage"
+                width={60}
+                height={60}
+              />
+            </Link>
           </div>
           
           <div className="auth-success">
@@ -67,12 +69,14 @@ export default function ResetPasswordPage() {
     <AuthPageWrapper>
       <div className="auth-card">
         <div className="auth-logo">
-          <Image
-            src="/brand/notime-storage-logo.png"
-            alt="NoTime Storage"
-            width={60}
-            height={60}
-          />
+          <Link href="/">
+            <Image
+              src="/brand/notime-storage-logo.png"
+              alt="NoTime Storage"
+              width={60}
+              height={60}
+            />
+          </Link>
         </div>
         
         <div className="auth-header">

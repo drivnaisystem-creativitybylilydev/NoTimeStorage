@@ -167,8 +167,7 @@ function BoxShowcase() {
               </div>
 
               <div className="box-showcase-content">
-
-                {/* LEFT BOX: anchors in place — right panel slides out from behind it */}
+                {/* LEFT BOX: Real-life photos, tall/full-height */}
                 <motion.div
                   className="box-carousels-left"
                   initial={{ opacity: 0 }}
@@ -183,17 +182,8 @@ function BoxShowcase() {
                       { src: '/brand/box-scale-inside.png', alt: 'Person standing inside NoTime Storage box showing depth', objectPosition: 'center 75%' },
                     ]}
                   />
-                  <div className="box-left-divider" />
-                  <FixedCarousel
-                    title="Technical Specs"
-                    images={[
-                      { src: '/brand/box-3d-view.png', alt: '3D isometric view showing 40×30×30 inch dimensions' },
-                      { src: '/brand/box-birdseye-view.png', alt: "Bird's-eye view showing 40×30 inch floor area" },
-                    ]}
-                  />
                 </motion.div>
 
-                {/* RIGHT BOX: slides out from behind the left box */}
                 <motion.div
                   className="box-specs-panel"
                   initial={{ x: '-100%' }}
@@ -211,6 +201,16 @@ function BoxShowcase() {
                   }}>
                     Each box handles a full dorm room&apos;s worth of belongings — from bedding and clothes to books and small appliances.
                   </p>
+
+                  <div className="box-specs-carousel-wrap">
+                    <FixedCarousel
+                      title="Technical Specs"
+                      images={[
+                        { src: '/brand/box-3d-view.png', alt: '3D isometric view showing 40×30×30 inch dimensions' },
+                        { src: '/brand/box-birdseye-view.png', alt: "Bird's-eye view showing 40×30 inch floor area" },
+                      ]}
+                    />
+                  </div>
 
                   <div className="box-specs-quick">
                     <p className="box-section-label">Box Metrics</p>
@@ -275,7 +275,7 @@ function BoxShowcase() {
 
 export default function Home() {
   const [user, setUser] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   // #region agent log
   const renderCountRef = useRef(0);
   renderCountRef.current += 1;
