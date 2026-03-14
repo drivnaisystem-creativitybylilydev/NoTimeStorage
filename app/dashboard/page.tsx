@@ -6,6 +6,7 @@ import { BookingCard } from './BookingCard';
 import { PackingGuide } from './PackingGuide';
 import { AuthPageWrapper } from '@/app/components/AuthPageWrapper';
 import { ProfileEditor } from './ProfileEditor';
+import { LogoutButton } from './LogoutButton';
 
 type BookingItem = { item_type: string; quantity: number; monthly_rate: number; subtotal: number };
 type BookingRow = {
@@ -241,6 +242,7 @@ export default async function DashboardPage() {
 
             </div>
           </div>
+          <LogoutButton />
         </div>
       </AuthPageWrapper>
   );
