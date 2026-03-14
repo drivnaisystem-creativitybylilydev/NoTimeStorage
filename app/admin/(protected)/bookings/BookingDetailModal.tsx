@@ -25,14 +25,14 @@ function formatTimeSlot(s: string) {
 }
 
 export function BookingDetailModal({ booking, onClose }: BookingDetailModalProps) {
-  const [items, setItems] = useState<Array<{ item_type: string; quantity: number; monthly_rate: number; subtotal: number }>>([]);
+  const [items, setItems] = useState<Array<{ item_type: string; quantity: number; unit_price_cents: number }>>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const supabase = createClient();
     supabase
       .from('booking_items')
-      .select('item_type, quantity, monthly_rate, subtotal')
+      .select('item_type, quantity, unit_price_cents')
       .eq('booking_id', booking.id)
       .then(({ data }) => {
         setItems(data || []);
@@ -131,6 +131,9 @@ export function BookingDetailModal({ booking, onClose }: BookingDetailModalProps
               <div>
                 <div style={{ fontSize: '0.75rem', color: 'var(--color-gray-600)', marginBottom: '4px' }}>Move-in</div>
                 <div style={{ fontWeight: 600, color: 'var(--color-coffee)' }}>{formatDate(booking.move_in_date)}</div>
+                {booking.move_in_time_slot && (
+                  <div style={{ fontSize: '0.875rem', color: 'var(--color-gray-600)' }}>{formatTimeSlot(booking.move_in_time_slot)}</div>
+                )}
               </div>
               <div>
                 <div style={{ fontSize: '0.75rem', color: 'var(--color-gray-600)', marginBottom: '4px' }}>Storage Duration</div>
@@ -184,12 +187,24 @@ export function BookingDetailModal({ booking, onClose }: BookingDetailModalProps
                     <span style={{ color: 'var(--color-gray-700)' }}>
                       {item.quantity}× {item.item_type.replace(/_/g, ' ')}
                     </span>
-                    <span style={{ fontWeight: 600, color: 'var(--color-coffee)' }}>${(item.subtotal ?? item.monthly_rate * item.quantity).toFixed(2)}/mo</span>
+                    <span style={{ fontWeight: 600, color: 'var(--color-coffee)' }}>${(item.unit_price_cents / 100).toFixed(2)}/mo</span>
                   </div>
                 ))}
               </div>
             )}
           </div>
+
+          {/* Special Instructions */}
+          {booking.special_instructions && (
+            <div>
+              <h3 style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--color-gray-600)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>
+                Special Instructions
+              </h3>
+              <div style={{ padding: '10px 14px', background: '#fef3c7', borderRadius: '8px', fontSize: '0.875rem', color: '#92400e' }}>
+                {booking.special_instructions}
+              </div>
+            </div>
+          )}
 
           {/* Totals */}
           <div style={{ paddingTop: '16px', borderTop: '2px solid var(--color-latte-soft)' }}>
@@ -204,6 +219,73 @@ export function BookingDetailModal({ booking, onClose }: BookingDetailModalProps
               </div>
             </div>
           </div>
+
+          {/* Payment Plan */}
+          <div>
+            <h3 style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--color-gray-600)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '12px' }}>
+              Payment
+            </h3>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '12px' }}>
+              <div>
+                <div style={{ fontSize: '0.75rem', color: 'var(--color-gray-600)', marginBottom: '4px' }}>Plan</div>
+                <span style={{
+                  display: 'inline-block', padding: '4px 10px', borderRadius: '6px', fontSize: '0.8rem', fontWeight: 700,
+                  background: booking.payment_plan === 'monthly' ? '#dbeafe' : '#dcfce7',
+                  color: booking.payment_plan === 'monthly' ? '#1e40af' : '#166534',
+                }}>
+                  {booking.payment_plan === 'monthly' ? 'Monthly (3×)' : 'Pay in Full'}
+                </span>
+              </div>
+              {booking.payment_plan === 'monthly' && (
+                <>
+                  <div>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--color-gray-600)', marginBottom: '4px' }}>Installment</div>
+                    <div style={{ fontWeight: 600, color: 'var(--color-coffee)' }}>
+                      {booking.monthly_payment_amount ? `$${booking.monthly_payment_amount.toFixed(2)}` : '—'}
+                    </div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--color-gray-600)', marginBottom: '4px' }}>Remaining</div>
+                    <div style={{ fontWeight: 600, color: 'var(--color-coffee)' }}>
+                      {booking.monthly_payments_remaining ?? '—'} payment{booking.monthly_payments_remaining !== 1 ? 's' : ''}
+                    </div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--color-gray-600)', marginBottom: '4px' }}>Next Payment</div>
+                    <div style={{ fontWeight: 600, color: 'var(--color-coffee)' }}>
+                      {booking.next_payment_date ? formatDate(booking.next_payment_date) : '—'}
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+
+          {/* Square IDs */}
+          {(booking.square_customer_id || booking.square_invoice_id) && (
+            <div>
+              <h3 style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--color-gray-600)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '12px' }}>
+                Square IDs
+              </h3>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                {booking.square_customer_id && (
+                  <div style={{ fontSize: '0.75rem', fontFamily: 'monospace', background: 'var(--color-white)', padding: '6px 10px', borderRadius: '6px', color: 'var(--color-gray-700)' }}>
+                    <span style={{ color: 'var(--color-gray-600)', marginRight: '8px' }}>Customer:</span>{booking.square_customer_id}
+                  </div>
+                )}
+                {booking.square_card_id && (
+                  <div style={{ fontSize: '0.75rem', fontFamily: 'monospace', background: 'var(--color-white)', padding: '6px 10px', borderRadius: '6px', color: 'var(--color-gray-700)' }}>
+                    <span style={{ color: 'var(--color-gray-600)', marginRight: '8px' }}>Card:</span>{booking.square_card_id}
+                  </div>
+                )}
+                {booking.square_invoice_id && (
+                  <div style={{ fontSize: '0.75rem', fontFamily: 'monospace', background: 'var(--color-white)', padding: '6px 10px', borderRadius: '6px', color: 'var(--color-gray-700)' }}>
+                    <span style={{ color: 'var(--color-gray-600)', marginRight: '8px' }}>Invoice:</span>{booking.square_invoice_id}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* Status */}
           <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>

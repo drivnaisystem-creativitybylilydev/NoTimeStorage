@@ -266,8 +266,16 @@ export function CalendarView({ bookings }: { bookings: BookingWithCustomer[] }) 
   };
 
   const switchToWeek = () => {
-    setWeekStart(getWeekStart(today));
+    // Start the week view on the first week of whichever month is currently visible
+    setWeekStart(getWeekStart(new Date(year, month, 1)));
     setView('week');
+  };
+
+  const switchToMonth = () => {
+    // When going back to month view, sync month/year to wherever the week view currently is
+    setYear(weekStart.getFullYear());
+    setMonth(weekStart.getMonth());
+    setView('month');
   };
 
   const isFiltered = schoolFilter !== 'All Schools' || boxFilter !== 'All Boxes';
@@ -356,7 +364,7 @@ export function CalendarView({ bookings }: { bookings: BookingWithCustomer[] }) 
             {(['month', 'week'] as const).map(v => (
               <button
                 key={v}
-                onClick={() => v === 'week' ? switchToWeek() : setView('month')}
+                onClick={() => v === 'week' ? switchToWeek() : switchToMonth()}
                 style={{
                   padding: '5px 14px', borderRadius: '6px', border: 'none', cursor: 'pointer',
                   fontSize: '0.82rem', fontWeight: 600,

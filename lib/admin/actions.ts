@@ -211,6 +211,7 @@ export async function markBookingPaid(bookingId: string): Promise<ActionResult> 
     'Add admin RLS policies so admins can update bookings (run docs/admin-bookings-rls.sql in Supabase SQL Editor).';
 
   // Try with paid_at first (run docs/admin-paid-at-migration.sql for revenue-this-month)
+  let updateSucceeded = false;
   try {
     const { data: withPaidAt, error: errPaidAt } = await supabase
       .from('bookings')
@@ -220,9 +221,8 @@ export async function markBookingPaid(bookingId: string): Promise<ActionResult> 
       .single();
 
     if (!errPaidAt && withPaidAt) {
-      return { success: true };
-    }
-    if (errPaidAt) {
+      updateSucceeded = true;
+    } else if (errPaidAt) {
       const noRows = errPaidAt.code === 'PGRST116' || errPaidAt.message?.includes('no rows') || errPaidAt.message?.includes('0 rows');
       if (noRows) {
         return { success: false, error: `Update had no effect. ${rlsHint}` };
@@ -236,24 +236,26 @@ export async function markBookingPaid(bookingId: string): Promise<ActionResult> 
     // ignore and try without paid_at
   }
 
-  const { data, error } = await supabase
-    .from('bookings')
-    .update(payload)
-    .eq('id', bookingId)
-    .select('id')
-    .single();
+  if (!updateSucceeded) {
+    const { data, error } = await supabase
+      .from('bookings')
+      .update(payload)
+      .eq('id', bookingId)
+      .select('id')
+      .single();
 
-  if (error) {
-    console.error('[markBookingPaid]', error);
-    const noRows = error.code === 'PGRST116' || error.message?.includes('no rows') || error.message?.includes('0 rows');
-    return {
-      success: false,
-      error: noRows ? `Update had no effect. ${rlsHint}` : error.message,
-    };
-  }
+    if (error) {
+      console.error('[markBookingPaid]', error);
+      const noRows = error.code === 'PGRST116' || error.message?.includes('no rows') || error.message?.includes('0 rows');
+      return {
+        success: false,
+        error: noRows ? `Update had no effect. ${rlsHint}` : error.message,
+      };
+    }
 
-  if (!data) {
-    return { success: false, error: `Update had no effect. ${rlsHint}` };
+    if (!data) {
+      return { success: false, error: `Update had no effect. ${rlsHint}` };
+    }
   }
 
   // Insert full_payment record into payments table
@@ -298,26 +300,24 @@ export async function adminCancelBooking(bookingId: string): Promise<ActionResul
 
   if (!adminUser) return { success: false, error: 'Admin access required' };
 
-  // Cancel related schedules before deleting the booking
+  // Soft-cancel: set status = 'cancelled' on booking (preserves audit trail)
+  const { error } = await supabase
+    .from('bookings')
+    .update({ status: 'cancelled', updated_at: new Date().toISOString() })
+    .eq('id', bookingId);
+
+  if (error) {
+    console.error('[adminCancelBooking] bookings', error);
+    return { success: false, error: error.message };
+  }
+
+  // Also cancel related schedules
   const { error: schedErr } = await supabase
     .from('schedules')
     .update({ status: 'cancelled' })
     .eq('booking_id', bookingId);
   if (schedErr) {
     console.error('[adminCancelBooking] schedules', schedErr);
-  }
-
-  // Delete booking_items first, then booking (cascade deletes payments too)
-  const { error: itemsErr } = await supabase.from('booking_items').delete().eq('booking_id', bookingId);
-  if (itemsErr) {
-    console.error('[adminCancelBooking] booking_items', itemsErr);
-    return { success: false, error: itemsErr.message };
-  }
-
-  const { error } = await supabase.from('bookings').delete().eq('id', bookingId);
-  if (error) {
-    console.error('[adminCancelBooking] bookings', error);
-    return { success: false, error: error.message };
   }
 
   return { success: true };
@@ -327,18 +327,31 @@ export type BookingWithCustomer = {
   id: string;
   status: string;
   payment_status: string;
+  payment_plan: 'full' | 'monthly';
   move_out_date: string;
   move_in_date: string;
   move_out_time_slot: string;
+  move_in_time_slot: string | null;
   dorm: string;
+  room: string | null;
   elevator_available: boolean;
   stairs_required: boolean;
   school: string;
+  special_instructions: string | null;
   total_price: number;
   total_monthly_rate: number;
   storage_months: number;
   box_quantity: number;
   created_at: string;
+  paid_at: string | null;
+  // Monthly plan fields
+  monthly_payment_amount: number | null;
+  monthly_payments_remaining: number | null;
+  next_payment_date: string | null;
+  // Square IDs
+  square_customer_id: string | null;
+  square_card_id: string | null;
+  square_invoice_id: string | null;
   customer: {
     full_name: string | null;
     email: string | null;
@@ -375,9 +388,11 @@ export async function getBookings(
       id,
       status,
       payment_status,
+      payment_plan,
       move_out_date,
       move_in_date,
       move_out_time_slot,
+      move_in_time_slot,
       dorm,
       room,
       elevator_available,
@@ -389,6 +404,13 @@ export async function getBookings(
       storage_months,
       box_quantity,
       created_at,
+      paid_at,
+      monthly_payment_amount,
+      monthly_payments_remaining,
+      next_payment_date,
+      square_customer_id,
+      square_card_id,
+      square_invoice_id,
       users!bookings_user_id_fkey (
         full_name,
         email,
@@ -457,23 +479,34 @@ export async function getBookings(
       id: row.id,
       status: row.status,
       payment_status: row.payment_status,
+      payment_plan: row.payment_plan ?? 'full',
       move_out_date: row.move_out_date,
       move_in_date: row.move_in_date,
       move_out_time_slot: row.move_out_time_slot,
+      move_in_time_slot: row.move_in_time_slot ?? null,
       dorm: row.dorm,
+      room: row.room ?? null,
       elevator_available: row.elevator_available,
       stairs_required: row.stairs_required,
       school: row.school,
+      special_instructions: row.special_instructions ?? null,
       total_price: typeof row.total_price === 'number' ? row.total_price : parseFloat(row.total_price || '0'),
       total_monthly_rate: typeof row.total_monthly_rate === 'number' ? row.total_monthly_rate : parseFloat(row.total_monthly_rate || '0'),
       storage_months: row.storage_months,
       box_quantity: row.box_quantity,
       created_at: row.created_at,
+      paid_at: row.paid_at ?? null,
+      monthly_payment_amount: row.monthly_payment_amount ?? null,
+      monthly_payments_remaining: row.monthly_payments_remaining ?? null,
+      next_payment_date: row.next_payment_date ?? null,
+      square_customer_id: row.square_customer_id ?? null,
+      square_card_id: row.square_card_id ?? null,
+      square_invoice_id: row.square_invoice_id ?? null,
       customer,
     };
   });
 
-  // Apply search filter if provided (client-side for now)
+  // Apply search filter — returns correct filtered count
   let filteredBookings = bookings;
   if (filters?.search) {
     const searchLower = filters.search.toLowerCase();
@@ -485,7 +518,7 @@ export async function getBookings(
     );
   }
 
-  return { bookings: filteredBookings, total: count || 0 };
+  return { bookings: filteredBookings, total: filters?.search ? filteredBookings.length : (count || 0) };
 }
 
 // ─── Analytics ───────────────────────────────────────────────────────────────
@@ -698,18 +731,29 @@ export async function getCalendarBookings(): Promise<BookingWithCustomer[]> {
       id,
       status,
       payment_status,
+      payment_plan,
       move_out_date,
       move_in_date,
       move_out_time_slot,
+      move_in_time_slot,
       dorm,
+      room,
       elevator_available,
       stairs_required,
       school,
+      special_instructions,
       total_price,
       total_monthly_rate,
       storage_months,
       box_quantity,
       created_at,
+      paid_at,
+      monthly_payment_amount,
+      monthly_payments_remaining,
+      next_payment_date,
+      square_customer_id,
+      square_card_id,
+      square_invoice_id,
       users!bookings_user_id_fkey (
         full_name,
         email,
@@ -740,18 +784,29 @@ export async function getCalendarBookings(): Promise<BookingWithCustomer[]> {
       id: row.id,
       status: row.status,
       payment_status: row.payment_status,
+      payment_plan: row.payment_plan ?? 'full',
       move_out_date: row.move_out_date,
       move_in_date: row.move_in_date,
       move_out_time_slot: row.move_out_time_slot,
+      move_in_time_slot: row.move_in_time_slot ?? null,
       dorm: row.dorm,
+      room: row.room ?? null,
       elevator_available: row.elevator_available,
       stairs_required: row.stairs_required,
       school: row.school,
+      special_instructions: row.special_instructions ?? null,
       total_price: typeof row.total_price === 'number' ? row.total_price : parseFloat(row.total_price || '0'),
       total_monthly_rate: typeof row.total_monthly_rate === 'number' ? row.total_monthly_rate : parseFloat(row.total_monthly_rate || '0'),
       storage_months: row.storage_months,
       box_quantity: row.box_quantity,
       created_at: row.created_at,
+      paid_at: row.paid_at ?? null,
+      monthly_payment_amount: row.monthly_payment_amount ?? null,
+      monthly_payments_remaining: row.monthly_payments_remaining ?? null,
+      next_payment_date: row.next_payment_date ?? null,
+      square_customer_id: row.square_customer_id ?? null,
+      square_card_id: row.square_card_id ?? null,
+      square_invoice_id: row.square_invoice_id ?? null,
       customer: pickUser(userRow),
     };
   });

@@ -22,8 +22,8 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
-          gap: '20px',
-          padding: '32px 24px 24px',
+          gap: '12px',
+          padding: '16px 24px 12px',
         }}
       >
         <Link
@@ -32,7 +32,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
-            gap: '12px',
+            gap: '6px',
             textDecoration: 'none',
           }}
         >
@@ -110,7 +110,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
       <main
         style={{
           flex: 1,
-          padding: '32px 64px 64px',
+          padding: '16px 64px 40px',
           maxWidth: '1400px',
           width: '100%',
           margin: '0 auto',

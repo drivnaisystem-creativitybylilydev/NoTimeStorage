@@ -340,7 +340,7 @@ function BookingsTableContent({ initialBookings, total, currentPage, filters, so
                       ${b.total_price.toFixed(2)}
                     </td>
                     <td style={{ textAlign: 'center' }}>
-                      <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap', alignItems: 'center' }}>
+                      <div style={{ display: 'inline-grid', gridTemplateColumns: b.payment_status !== 'paid' ? '1fr 1fr' : '1fr', gap: '6px', width: '100%', maxWidth: '220px' }}>
                         <button
                           type="button"
                           onClick={() => setSelectedBooking(b)}
@@ -365,6 +365,7 @@ function BookingsTableContent({ initialBookings, total, currentPage, filters, so
                           onClick={() => handleCancel(b.id)}
                           disabled={actionPending}
                           className="admin-btn admin-btn-danger"
+                          style={{ gridColumn: b.payment_status !== 'paid' ? '1 / -1' : undefined }}
                         >
                           <XCircle size={14} />
                           Cancel

@@ -3,9 +3,6 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
-import Image from 'next/image';
-import { AuthPageWrapper } from '@/app/components/AuthPageWrapper';
-
 export default function AdminLoginPage() {
   const router = useRouter();
   const supabase = createClient();
@@ -43,17 +40,8 @@ export default function AdminLoginPage() {
   };
 
   return (
-    <AuthPageWrapper>
+    <div style={{ display: 'flex', justifyContent: 'center', paddingTop: '24px' }}>
       <div className="auth-card">
-        <div className="auth-logo">
-          <Image
-            src="/brand/notime-storage-logo.png"
-            alt="NoTime Storage"
-            width={60}
-            height={60}
-          />
-        </div>
-
         <div className="auth-header">
           <h1>Owner / Admin Login</h1>
           <p>Sign in to the NoTime Storage admin dashboard</p>
@@ -103,7 +91,7 @@ export default function AdminLoginPage() {
           </p>
         </form>
       </div>
-    </AuthPageWrapper>
+    </div>
   );
 }
 
