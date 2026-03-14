@@ -306,9 +306,16 @@ function PaymentPageContent() {
 
         // Google Pay: create with paymentRequest, attach to div with button options only
         try {
+          if (googlePayRef.current) throw new Error('already attached');
           const gpContainer = document.getElementById('google-pay-button');
           if (gpContainer) gpContainer.innerHTML = '';
           const googlePay = await payments.googlePay(paymentRequest);
+          // Double-check after async — another concurrent init may have won
+          if (googlePayRef.current) {
+            googlePay.destroy?.();
+            throw new Error('already attached');
+          }
+          if (gpContainer) gpContainer.innerHTML = '';
           await googlePay.attach('#google-pay-button', { buttonColor: 'default', buttonType: 'long' });
           googlePayRef.current = googlePay;
           setGooglePayInstance(googlePay);
