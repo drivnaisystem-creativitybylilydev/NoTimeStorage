@@ -17,11 +17,20 @@ export type MonthlyScheduleResult =
  * Creates a Square Customer + Card on File from the payment token,
  * then charges month 1 using the saved card ID.
  */
+export type BillingAddress = {
+  addressLine1: string;
+  city: string;
+  state?: string;
+  postalCode: string;
+  country?: string;
+};
+
 export async function chargeFirstMonthPayment(
   sourceId: string,
   bookingId: string,
   month1Cents: number,
   verificationToken?: string,
+  billingAddress?: BillingAddress,
 ): Promise<MonthlyChargeResult> {
   const { squareClient, squareConfig } = await import('@/lib/square/client');
 
@@ -108,6 +117,17 @@ export async function chargeFirstMonthPayment(
       locationId: squareConfig.locationId!,
       customerId,
       note: `NoTime Storage – booking ${bookingId} (installment 1 of 3)`,
+      ...(billingAddress?.addressLine1 && billingAddress?.city && billingAddress?.postalCode
+        ? {
+            billingAddress: {
+              addressLine1: billingAddress.addressLine1,
+              locality: billingAddress.city,
+              administrativeDistrictLevel1: billingAddress.state ?? undefined,
+              postalCode: billingAddress.postalCode,
+              country: (billingAddress.country ?? 'US') as 'US',
+            },
+          }
+        : {}),
     });
 
     if (errors?.length || !payment?.id) {

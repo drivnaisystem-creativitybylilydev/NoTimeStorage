@@ -51,7 +51,10 @@ function PaymentPageContent() {
   const applePayRef = useRef<any>(null);
   const googlePayRef = useRef<any>(null);
   const paymentsRef = useRef<any>(null);
-  const paymentProcessorRef = useRef<((token: string, verificationToken?: string) => Promise<void>) | null>(null);
+  const [billingAddress, setBillingAddress] = useState<{ addressLine1: string; city: string; state?: string; postalCode: string; country?: string }>({
+    addressLine1: '', city: '', state: '', postalCode: '', country: 'US',
+  });
+  const paymentProcessorRef = useRef<((token: string, verificationToken?: string, billingAddress?: { addressLine1: string; city: string; state?: string; postalCode: string; country?: string }) => Promise<void>) | null>(null);
   const initializingRef = useRef(false);
 
   // URL params (unchanged)
@@ -155,28 +158,56 @@ function PaymentPageContent() {
     };
   }, [userId, moveOutDate, moveInDate, moveOutTime, dorm, elevator, stairs, room, instructions, school, boxQty, monthlyTotalCents, paymentPlan, searchParams]);
 
+  const DECLINE_MSG = 'Your card was declined. This can happen with new merchants. Please try a different card, or contact your bank to approve the transaction.';
+
+  const formatPaymentError = useCallback((raw: string) => {
+    const lower = raw.toLowerCase();
+    if (lower.includes('generic_decline') || lower.includes('declined') || lower.includes('authorization error')) return DECLINE_MSG;
+    return raw;
+  }, []);
+
   const verifyAndProcess = useCallback(async (token: string) => {
-    // 3DS / SCA — triggers in-app confirmation on Revolut, Monzo, etc.
-    // sourceId (token) stays as-is; verificationToken is passed separately
     let verificationToken: string | undefined;
     const payments = paymentsRef.current;
+    const hasBilling = billingAddress.addressLine1?.trim() && billingAddress.city?.trim() && billingAddress.postalCode?.trim();
+    const billingContact = hasBilling ? {
+      addressLines: [billingAddress.addressLine1.trim()],
+      city: billingAddress.city.trim(),
+      state: billingAddress.state?.trim() || undefined,
+      postalCode: billingAddress.postalCode.trim(),
+      country: billingAddress.country || 'US',
+    } : {};
+
     if (payments?.verifyBuyer) {
       try {
         const verificationResult = await payments.verifyBuyer(token, {
           amount: (dueTodayCents / 100).toFixed(2),
           currencyCode: 'USD',
           intent: 'CHARGE',
-          billingContact: {},
+          billingContact,
         });
         if (verificationResult?.token) verificationToken = verificationResult.token;
       } catch (err) {
         console.warn('[3DS] verifyBuyer failed, proceeding without:', err);
       }
     }
-    await paymentProcessorRef.current?.(token, verificationToken);
-  }, [dueTodayCents]);
 
-  const processPaymentWithToken = useCallback(async (token: string, verificationToken?: string) => {
+    const billingForApi = hasBilling ? {
+      addressLine1: billingAddress.addressLine1.trim(),
+      city: billingAddress.city.trim(),
+      state: billingAddress.state?.trim(),
+      postalCode: billingAddress.postalCode.trim(),
+      country: billingAddress.country || 'US',
+    } : undefined;
+
+    await paymentProcessorRef.current?.(token, verificationToken, billingForApi);
+  }, [dueTodayCents, billingAddress]);
+
+  const processPaymentWithToken = useCallback(async (
+    token: string,
+    verificationToken?: string,
+    billingAddress?: { addressLine1: string; city: string; state?: string; postalCode: string; country?: string },
+  ) => {
     const payload = buildBookingPayload();
     if (!payload) {
       setError('Missing booking details.');
@@ -199,9 +230,9 @@ function PaymentPageContent() {
 
     if (paymentPlan === 'monthly' && monthlyBreakdown) {
       // — Monthly path —
-      const month1Result = await chargeFirstMonthPayment(token, bookingId, monthlyBreakdown.month1Cents, verificationToken);
+      const month1Result = await chargeFirstMonthPayment(token, bookingId, monthlyBreakdown.month1Cents, verificationToken, billingAddress);
       if (!month1Result.success) {
-        setError(`Payment failed: ${month1Result.error} — Your booking was saved. Please contact support.`);
+        setError(`Payment failed: ${formatPaymentError(month1Result.error)} — Your booking was saved. Please contact support.`);
         setProcessing(false);
         setStep('idle');
         return;
@@ -222,9 +253,9 @@ function PaymentPageContent() {
       window.location.href = `${confirmedBase}&paymentPlan=monthly&month1=${monthlyBreakdown.month1Cents}&month2=${monthlyBreakdown.month2Cents}&month2Date=${monthlyBreakdown.month2Date}&month3=${monthlyBreakdown.month3Cents}&month3Date=${monthlyBreakdown.month3Date}`;
     } else {
       // — Pay in Full path (unchanged) —
-      const chargeResult = await chargeBookingPayment(token, bookingId, totalPriceCents, verificationToken);
+      const chargeResult = await chargeBookingPayment(token, bookingId, totalPriceCents, verificationToken, billingAddress);
       if (!chargeResult.success) {
-        setError(`Payment failed: ${chargeResult.error} — Your booking was saved but not charged. Please contact support.`);
+        setError(`Payment failed: ${formatPaymentError(chargeResult.error)} — Your booking was saved but not charged. Please contact support.`);
         setProcessing(false);
         setStep('idle');
         return;
@@ -232,7 +263,7 @@ function PaymentPageContent() {
       setStep('done');
       window.location.href = `${confirmedBase}&paymentPlan=full`;
     }
-  }, [buildBookingPayload, totalPriceCents, paymentPlan, monthlyBreakdown, moveOutDate, school, boxes, monthlyTotal, totalPrice, storageMonths]);
+  }, [buildBookingPayload, totalPriceCents, paymentPlan, monthlyBreakdown, moveOutDate, school, boxes, monthlyTotal, totalPrice, storageMonths, formatPaymentError]);
 
   paymentProcessorRef.current = processPaymentWithToken;
 
@@ -645,6 +676,44 @@ function PaymentPageContent() {
                 <span>or pay with card</span>
               </div>
             )}
+
+            <div style={{ marginBottom: '16px' }}>
+              <div style={{ fontSize: '0.8rem', fontWeight: 600, color: '#6B5A52', marginBottom: '8px' }}>
+                Billing address <span style={{ fontWeight: 400, color: '#9E8E88' }}>(optional — helps reduce declines)</span>
+              </div>
+              <div style={{ display: 'grid', gap: '8px' }}>
+                <input
+                  type="text"
+                  placeholder="Street address"
+                  value={billingAddress.addressLine1}
+                  onChange={e => setBillingAddress(a => ({ ...a, addressLine1: e.target.value }))}
+                  style={{ padding: '10px 12px', borderRadius: '8px', border: '1px solid #E7D3BF', fontSize: '0.9rem' }}
+                />
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                  <input
+                    type="text"
+                    placeholder="City"
+                    value={billingAddress.city}
+                    onChange={e => setBillingAddress(a => ({ ...a, city: e.target.value }))}
+                    style={{ padding: '10px 12px', borderRadius: '8px', border: '1px solid #E7D3BF', fontSize: '0.9rem' }}
+                  />
+                  <input
+                    type="text"
+                    placeholder="State"
+                    value={billingAddress.state}
+                    onChange={e => setBillingAddress(a => ({ ...a, state: e.target.value }))}
+                    style={{ padding: '10px 12px', borderRadius: '8px', border: '1px solid #E7D3BF', fontSize: '0.9rem' }}
+                  />
+                </div>
+                <input
+                  type="text"
+                  placeholder="ZIP / Postal code"
+                  value={billingAddress.postalCode}
+                  onChange={e => setBillingAddress(a => ({ ...a, postalCode: e.target.value }))}
+                  style={{ padding: '10px 12px', borderRadius: '8px', border: '1px solid #E7D3BF', fontSize: '0.9rem' }}
+                />
+              </div>
+            </div>
 
             <div style={{ display: 'flex', gap: '6px', alignItems: 'center', marginBottom: '10px' }}>
               {['visa', 'mastercard', 'amex', 'discovery'].map((card) => (

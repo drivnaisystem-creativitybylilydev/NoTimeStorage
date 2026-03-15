@@ -14,11 +14,20 @@ export type ChargeBookingResult =
  * Updates bookings.payment_status = 'paid' and inserts a full_payment record.
  * The Supabase trigger then sets users.full_payment_paid = true automatically.
  */
+export type BillingAddress = {
+  addressLine1: string;
+  city: string;
+  state?: string;
+  postalCode: string;
+  country?: string;
+};
+
 export async function chargeBookingPayment(
   sourceId: string,
   bookingId: string,
   amountCents: number,
   verificationToken?: string,
+  billingAddress?: BillingAddress,
 ): Promise<ChargeBookingResult> {
   // Auth check via anon client (reads session cookie)
   const authClient = await createClient();
@@ -59,6 +68,17 @@ export async function chargeBookingPayment(
       locationId: squareConfig.locationId!,
       note: `NoTime Storage – booking ${bookingId}`,
       ...(verificationToken ? { verificationToken } : {}),
+      ...(billingAddress?.addressLine1 && billingAddress?.city && billingAddress?.postalCode
+        ? {
+            billingAddress: {
+              addressLine1: billingAddress.addressLine1,
+              locality: billingAddress.city,
+              administrativeDistrictLevel1: billingAddress.state ?? undefined,
+              postalCode: billingAddress.postalCode,
+              country: (billingAddress.country ?? 'US') as 'US',
+            },
+          }
+        : {}),
     });
 
     if (errors?.length || !payment?.id) {

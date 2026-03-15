@@ -25,8 +25,15 @@ export function DepositForm({ applicationId, locationId, isSandbox, customerName
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [sdkReady, setSdkReady] = useState(false);
-   const [applePayInstance, setApplePayInstance] = useState<any>(null);
-   const [googlePayInstance, setGooglePayInstance] = useState<any>(null);
+  const [applePayInstance, setApplePayInstance] = useState<any>(null);
+  const [googlePayInstance, setGooglePayInstance] = useState<any>(null);
+  const [billingAddress, setBillingAddress] = useState({
+    addressLine1: '',
+    city: '',
+    state: '',
+    postalCode: '',
+    country: 'US',
+  });
 
   useEffect(() => {
     let googlePayCleanup: (() => void) | null = null;
@@ -182,30 +189,53 @@ export function DepositForm({ applicationId, locationId, isSandbox, customerName
     };
   }, [applicationId, locationId, isSandbox]);
 
+  const DECLINE_MESSAGE = 'Your card was declined. This can happen with new merchants. Please try a different card, or contact your bank to approve the transaction.';
+
+  function formatPaymentError(raw: string): string {
+    const lower = raw.toLowerCase();
+    if (lower.includes('generic_decline') || lower.includes('declined') || lower.includes('authorization error')) {
+      return DECLINE_MESSAGE;
+    }
+    return raw;
+  }
+
   async function verifyAndCharge(token: string) {
-    // 3DS / SCA — required for European cards (Revolut, Monzo, etc.)
-    // sourceId = original card nonce; verificationToken = separate 3DS token
     let verificationToken: string | undefined;
     const payments = paymentsRef.current;
+    const hasBilling = billingAddress.addressLine1?.trim() && billingAddress.city?.trim() && billingAddress.postalCode?.trim();
+    const billingContact = hasBilling ? {
+      addressLines: [billingAddress.addressLine1.trim()],
+      city: billingAddress.city.trim(),
+      state: billingAddress.state?.trim() || undefined,
+      postalCode: billingAddress.postalCode.trim(),
+      country: billingAddress.country || 'US',
+    } : {};
+
     if (payments?.verifyBuyer) {
       try {
         const verificationResult = await payments.verifyBuyer(token, {
-          amount: '1.00', // must match the actual charge amount
+          amount: '1.00',
           currencyCode: 'USD',
           intent: 'CHARGE',
-          billingContact: {},
+          billingContact,
         });
-        if (verificationResult?.token) {
-          verificationToken = verificationResult.token;
-        }
+        if (verificationResult?.token) verificationToken = verificationResult.token;
       } catch (err) {
         console.warn('[3DS] verifyBuyer failed, proceeding without:', err);
       }
     }
-    // Pass original nonce as sourceId + verification token separately
-    const res = await chargeDeposit(token, verificationToken);
+
+    const billingForApi = hasBilling ? {
+      addressLine1: billingAddress.addressLine1.trim(),
+      city: billingAddress.city.trim(),
+      state: billingAddress.state?.trim(),
+      postalCode: billingAddress.postalCode.trim(),
+      country: billingAddress.country || 'US',
+    } : undefined;
+
+    const res = await chargeDeposit(token, verificationToken, billingForApi);
     if (!res.success) {
-      setError(res.error);
+      setError(formatPaymentError(res.error));
       return;
     }
     window.location.href = '/booking/configure';
@@ -415,6 +445,44 @@ export function DepositForm({ applicationId, locationId, isSandbox, customerName
               <span>or pay with card</span>
             </div>
           )}
+
+          <div style={{ marginBottom: '16px' }}>
+            <div style={{ fontSize: '0.8rem', fontWeight: 600, color: '#6B5A52', marginBottom: '8px' }}>
+              Billing address <span style={{ fontWeight: 400, color: '#9E8E88' }}>(optional — helps reduce declines)</span>
+            </div>
+            <div style={{ display: 'grid', gap: '8px' }}>
+              <input
+                type="text"
+                placeholder="Street address"
+                value={billingAddress.addressLine1}
+                onChange={e => setBillingAddress(a => ({ ...a, addressLine1: e.target.value }))}
+                style={{ padding: '10px 12px', borderRadius: '8px', border: '1px solid #E7D3BF', fontSize: '0.9rem' }}
+              />
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                <input
+                  type="text"
+                  placeholder="City"
+                  value={billingAddress.city}
+                  onChange={e => setBillingAddress(a => ({ ...a, city: e.target.value }))}
+                  style={{ padding: '10px 12px', borderRadius: '8px', border: '1px solid #E7D3BF', fontSize: '0.9rem' }}
+                />
+                <input
+                  type="text"
+                  placeholder="State"
+                  value={billingAddress.state}
+                  onChange={e => setBillingAddress(a => ({ ...a, state: e.target.value }))}
+                  style={{ padding: '10px 12px', borderRadius: '8px', border: '1px solid #E7D3BF', fontSize: '0.9rem' }}
+                />
+              </div>
+              <input
+                type="text"
+                placeholder="ZIP / Postal code"
+                value={billingAddress.postalCode}
+                onChange={e => setBillingAddress(a => ({ ...a, postalCode: e.target.value }))}
+                style={{ padding: '10px 12px', borderRadius: '8px', border: '1px solid #E7D3BF', fontSize: '0.9rem' }}
+              />
+            </div>
+          </div>
 
           <div style={{ display: 'flex', gap: '6px', alignItems: 'center', marginBottom: '10px' }}>
             {['visa', 'mastercard', 'amex', 'discovery'].map((card) => (

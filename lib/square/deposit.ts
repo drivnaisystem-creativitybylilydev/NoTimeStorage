@@ -15,7 +15,19 @@ export type DepositResult =
  * Web Payments SDK on the frontend. Marks the user as deposit_paid in
  * Supabase and fires confirmation emails.
  */
-export async function chargeDeposit(sourceId: string, verificationToken?: string): Promise<DepositResult> {
+export type BillingAddress = {
+  addressLine1: string;
+  city: string;
+  state?: string;
+  postalCode: string;
+  country?: string;
+};
+
+export async function chargeDeposit(
+  sourceId: string,
+  verificationToken?: string,
+  billingAddress?: BillingAddress,
+): Promise<DepositResult> {
   // Auth check via anon client
   const authClient = await createClient();
   const { data: { user } } = await authClient.auth.getUser();
@@ -45,6 +57,17 @@ export async function chargeDeposit(sourceId: string, verificationToken?: string
       locationId: squareConfig.locationId!,
       note: `NoTime Storage – $50 deposit (${profile.email ?? user.email})`,
       ...(verificationToken ? { verificationToken } : {}),
+      ...(billingAddress?.addressLine1 && billingAddress?.city && billingAddress?.postalCode
+        ? {
+            billingAddress: {
+              addressLine1: billingAddress.addressLine1,
+              locality: billingAddress.city,
+              administrativeDistrictLevel1: billingAddress.state ?? undefined,
+              postalCode: billingAddress.postalCode,
+              country: (billingAddress.country ?? 'US') as 'US',
+            },
+          }
+        : {}),
     });
 
     if (errors?.length || !payment?.id) {
