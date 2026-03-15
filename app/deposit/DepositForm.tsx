@@ -184,7 +184,8 @@ export function DepositForm({ applicationId, locationId, isSandbox, customerName
 
   async function verifyAndCharge(token: string) {
     // 3DS / SCA — required for European cards (Revolut, Monzo, etc.)
-    let verificationToken = token;
+    // sourceId = original card nonce; verificationToken = separate 3DS token
+    let verificationToken: string | undefined;
     const payments = paymentsRef.current;
     if (payments?.verifyBuyer) {
       try {
@@ -198,11 +199,11 @@ export function DepositForm({ applicationId, locationId, isSandbox, customerName
           verificationToken = verificationResult.token;
         }
       } catch (err) {
-        // 3DS failed or not supported — proceed with original token
         console.warn('[3DS] verifyBuyer failed, proceeding without:', err);
       }
     }
-    const res = await chargeDeposit(verificationToken);
+    // Pass original nonce as sourceId + verification token separately
+    const res = await chargeDeposit(token, verificationToken);
     if (!res.success) {
       setError(res.error);
       return;

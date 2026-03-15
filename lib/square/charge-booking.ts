@@ -18,6 +18,7 @@ export async function chargeBookingPayment(
   sourceId: string,
   bookingId: string,
   amountCents: number,
+  verificationToken?: string,
 ): Promise<ChargeBookingResult> {
   // Auth check via anon client (reads session cookie)
   const authClient = await createClient();
@@ -57,6 +58,7 @@ export async function chargeBookingPayment(
       },
       locationId: squareConfig.locationId!,
       note: `NoTime Storage – booking ${bookingId}`,
+      ...(verificationToken ? { verificationToken } : {}),
     });
 
     if (errors?.length || !payment?.id) {

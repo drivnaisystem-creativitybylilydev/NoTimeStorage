@@ -21,6 +21,7 @@ export async function chargeFirstMonthPayment(
   sourceId: string,
   bookingId: string,
   month1Cents: number,
+  verificationToken?: string,
 ): Promise<MonthlyChargeResult> {
   const { squareClient, squareConfig } = await import('@/lib/square/client');
 
@@ -87,6 +88,7 @@ export async function chargeFirstMonthPayment(
       idempotencyKey: randomUUID(),
       sourceId,
       card: { customerId },
+      ...(verificationToken ? { verificationToken } : {}),
     });
     if (!cardResponse.card?.id) {
       const detail = cardResponse.errors?.[0]?.detail ?? 'Failed to save card on file.';

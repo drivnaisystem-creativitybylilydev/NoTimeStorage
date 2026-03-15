@@ -146,6 +146,20 @@ After a sandbox test payment confirm these are correct in Supabase:
 
 ---
 
+## SECTION 8 — Known Issues to Fix Post-Launch
+
+### 8.0 — Parent email not receiving notifications
+- Parent email is collected during signup and stored as `parent_email` on the `users` table
+- Currently only the deposit confirmation email is sent to the parent (`sendDepositConfirmedUser` passes `parentEmail`)
+- **No other emails** (order confirmation, move-in reminder, etc.) are being CC'd to the parent
+- **Fix needed:** Audit all `send*.ts` email functions and add `parentEmail` as a CC or additional recipient where appropriate:
+  - `sendDepositConfirmedUser` ✅ already sends to parent
+  - `sendOrderConfirmedUser` ❌ needs parent CC
+  - `sendMoveInReminderUser` ❌ needs parent CC
+- Also verify the parent email is being fetched from the DB and passed through in each flow
+
+---
+
 ## SECTION 8 — Post-Launch Housekeeping
 
 - [ ] Delete any test bookings and sandbox customer records from Supabase

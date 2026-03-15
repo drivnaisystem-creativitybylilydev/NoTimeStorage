@@ -51,7 +51,7 @@ function PaymentPageContent() {
   const applePayRef = useRef<any>(null);
   const googlePayRef = useRef<any>(null);
   const paymentsRef = useRef<any>(null);
-  const paymentProcessorRef = useRef<((token: string) => Promise<void>) | null>(null);
+  const paymentProcessorRef = useRef<((token: string, verificationToken?: string) => Promise<void>) | null>(null);
   const initializingRef = useRef(false);
 
   // URL params (unchanged)
@@ -157,7 +157,8 @@ function PaymentPageContent() {
 
   const verifyAndProcess = useCallback(async (token: string) => {
     // 3DS / SCA — triggers in-app confirmation on Revolut, Monzo, etc.
-    let verifiedToken = token;
+    // sourceId (token) stays as-is; verificationToken is passed separately
+    let verificationToken: string | undefined;
     const payments = paymentsRef.current;
     if (payments?.verifyBuyer) {
       try {
@@ -167,15 +168,15 @@ function PaymentPageContent() {
           intent: 'CHARGE',
           billingContact: {},
         });
-        if (verificationResult?.token) verifiedToken = verificationResult.token;
+        if (verificationResult?.token) verificationToken = verificationResult.token;
       } catch (err) {
         console.warn('[3DS] verifyBuyer failed, proceeding without:', err);
       }
     }
-    await paymentProcessorRef.current?.(verifiedToken);
+    await paymentProcessorRef.current?.(token, verificationToken);
   }, [dueTodayCents]);
 
-  const processPaymentWithToken = useCallback(async (token: string) => {
+  const processPaymentWithToken = useCallback(async (token: string, verificationToken?: string) => {
     const payload = buildBookingPayload();
     if (!payload) {
       setError('Missing booking details.');
@@ -198,7 +199,7 @@ function PaymentPageContent() {
 
     if (paymentPlan === 'monthly' && monthlyBreakdown) {
       // — Monthly path —
-      const month1Result = await chargeFirstMonthPayment(token, bookingId, monthlyBreakdown.month1Cents);
+      const month1Result = await chargeFirstMonthPayment(token, bookingId, monthlyBreakdown.month1Cents, verificationToken);
       if (!month1Result.success) {
         setError(`Payment failed: ${month1Result.error} — Your booking was saved. Please contact support.`);
         setProcessing(false);
@@ -221,7 +222,7 @@ function PaymentPageContent() {
       window.location.href = `${confirmedBase}&paymentPlan=monthly&month1=${monthlyBreakdown.month1Cents}&month2=${monthlyBreakdown.month2Cents}&month2Date=${monthlyBreakdown.month2Date}&month3=${monthlyBreakdown.month3Cents}&month3Date=${monthlyBreakdown.month3Date}`;
     } else {
       // — Pay in Full path (unchanged) —
-      const chargeResult = await chargeBookingPayment(token, bookingId, totalPriceCents);
+      const chargeResult = await chargeBookingPayment(token, bookingId, totalPriceCents, verificationToken);
       if (!chargeResult.success) {
         setError(`Payment failed: ${chargeResult.error} — Your booking was saved but not charged. Please contact support.`);
         setProcessing(false);
