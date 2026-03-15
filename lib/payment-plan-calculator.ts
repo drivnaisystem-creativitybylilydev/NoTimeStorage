@@ -4,7 +4,7 @@
  */
 
 export const MONTHLY_PLAN_MONTHS = 3;
-export const DEPOSIT_CREDIT_CENTS = 100; // TEST: $1.00 — change back to 5000 after testing
+export const DEPOSIT_CREDIT_CENTS = 5000; // $50.00 deposit
 export const MONTHLY_PLAN_MIN_BALANCE_CENTS = 0; // no minimum
 
 export interface MonthlyBreakdown {

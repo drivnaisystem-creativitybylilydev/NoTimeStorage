@@ -5932,6 +5932,18 @@ button {
   cursor: pointer;
 }
 
+/* Google Pay: Square injects a button that may not stretch — force full width */
+#google-pay-button {
+  width: 100%;
+  display: flex;
+}
+#google-pay-button iframe,
+#google-pay-button button,
+#google-pay-button > div {
+  width: 100% !important;
+  min-width: 100%;
+}
+
 .payment-wallet-button-apple {
   -webkit-appearance: -apple-pay-button;
   -apple-pay-button-type: buy;

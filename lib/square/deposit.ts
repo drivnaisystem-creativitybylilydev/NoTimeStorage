@@ -51,7 +51,7 @@ export async function chargeDeposit(
       sourceId,
       idempotencyKey: randomUUID(),
       amountMoney: {
-        amount: BigInt(100), // TEST: $1.00 — change back to 5000 after testing
+        amount: BigInt(5000), // $50.00 deposit
         currency: 'USD',
       },
       locationId: squareConfig.locationId!,

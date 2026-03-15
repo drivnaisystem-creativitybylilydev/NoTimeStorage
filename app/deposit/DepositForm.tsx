@@ -214,7 +214,7 @@ export function DepositForm({ applicationId, locationId, isSandbox, customerName
     if (payments?.verifyBuyer) {
       try {
         const verificationResult = await payments.verifyBuyer(token, {
-          amount: '1.00',
+          amount: '50.00',
           currencyCode: 'USD',
           intent: 'CHARGE',
           billingContact,
