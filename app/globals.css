@@ -2136,6 +2136,75 @@ button {
   z-index: 1;
 }
 
+/* Legal pages (Privacy, Terms, About, Careers) */
+.legal-page {
+  min-height: calc(100vh - 80px);
+  padding: var(--spacing-3xl) var(--spacing-lg);
+  background: var(--color-paper);
+}
+
+.legal-container {
+  max-width: 720px;
+  margin: 0 auto;
+  color: var(--color-coffee);
+}
+
+.legal-container h1 {
+  font-size: var(--font-size-4xl);
+  font-weight: 800;
+  color: var(--color-coffee);
+  margin-bottom: var(--spacing-xs);
+}
+
+.legal-updated {
+  font-size: var(--font-size-sm);
+  color: var(--color-gray-600);
+  margin-bottom: var(--spacing-2xl);
+}
+
+.legal-container section {
+  margin-bottom: var(--spacing-2xl);
+}
+
+.legal-container h2 {
+  font-size: var(--font-size-xl);
+  font-weight: 700;
+  color: var(--color-coffee);
+  margin-bottom: var(--spacing-sm);
+}
+
+.legal-container p,
+.legal-container li {
+  font-size: var(--font-size-base);
+  line-height: 1.7;
+  color: var(--color-gray-700);
+  margin-bottom: var(--spacing-md);
+}
+
+.legal-container ul {
+  margin-bottom: var(--spacing-md);
+  padding-left: var(--spacing-xl);
+}
+
+.legal-container a {
+  color: var(--color-coffee);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.legal-container a:hover {
+  color: var(--color-coffee-dark);
+}
+
+.legal-back {
+  font-size: var(--font-size-sm);
+  color: var(--color-gray-600) !important;
+}
+
+.legal-back:hover {
+  color: var(--color-coffee) !important;
+}
+
 .contact-container {
   max-width: 640px;
   margin: 0 auto;
@@ -2454,6 +2523,16 @@ button {
   color: var(--color-latte-soft);
   margin-bottom: 0;
   line-height: var(--line-height-normal);
+}
+
+.footer-contact a {
+  color: var(--color-latte-soft);
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.footer-contact a:hover {
+  color: var(--color-white);
 }
 
 .footer-bottom {

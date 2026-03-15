@@ -1240,7 +1240,7 @@ export default function Home() {
           <div className="footer-content">
             {/* Brand Column */}
             <div className="footer-column footer-brand">
-              <Link href="/admin" aria-label="NoTime Storage admin sign-in">
+              <Link href="/" aria-label="NoTime Storage homepage">
                 <Image
                   src="/brand/notime-storage-logo.png?v=2"
                   alt="NoTime Storage Logo"
@@ -1259,10 +1259,10 @@ export default function Home() {
             <div className="footer-column">
               <h4 className="footer-heading">Services</h4>
               <ul className="footer-links">
-                <li><a href="#pricing">Pricing</a></li>
-                <li><a href="#how-it-works">How It Works</a></li>
-                <li><a href="#pricing">Storage Options</a></li>
-                <li><a href="#how-it-works">Pickup & Delivery</a></li>
+                <li><Link href="/#pricing">Pricing</Link></li>
+                <li><Link href="/#how-it-works">How It Works</Link></li>
+                <li><Link href="/#box-specifications">Storage Options</Link></li>
+                <li><Link href="/#how-it-works">Pickup & Delivery</Link></li>
               </ul>
             </div>
 
@@ -1270,10 +1270,10 @@ export default function Home() {
             <div className="footer-column">
               <h4 className="footer-heading">Company</h4>
               <ul className="footer-links">
-                <li><a href="#about">About Us</a></li>
-                <li><a href="#faq">FAQ</a></li>
+                <li><Link href="/about">About Us</Link></li>
+                <li><Link href="/#faq">FAQ</Link></li>
                 <li><Link href="/contact">Contact</Link></li>
-                <li><a href="#careers">Careers</a></li>
+                <li><Link href="/careers">Careers</Link></li>
               </ul>
             </div>
 
@@ -1281,8 +1281,8 @@ export default function Home() {
             <div className="footer-column">
               <h4 className="footer-heading">Contact</h4>
               <ul className="footer-contact">
-                <li>notimestorage@gmail.com</li>
-                <li>(555) 123-4567</li>
+                <li><a href="mailto:notimestorage@gmail.com">notimestorage@gmail.com</a></li>
+                <li><a href="tel:+15551234567">(555) 123-4567</a></li>
                 <li>Mon-Fri: 8am - 8pm</li>
                 <li>Sat-Sun: 9am - 6pm</li>
               </ul>
@@ -1293,8 +1293,8 @@ export default function Home() {
           <div className="footer-bottom">
             <p className="footer-copyright">© 2026 NoTime Storage. All rights reserved.</p>
             <div className="footer-legal">
-              <a href="#privacy">Privacy Policy</a>
-              <a href="#terms">Terms of Service</a>
+              <Link href="/privacy">Privacy Policy</Link>
+              <Link href="/terms">Terms of Service</Link>
             </div>
           </div>
         </motion.div>
