@@ -50,6 +50,7 @@ function PaymentPageContent() {
   const cardInstanceRef = useRef<any>(null);
   const applePayRef = useRef<any>(null);
   const googlePayRef = useRef<any>(null);
+  const paymentsRef = useRef<any>(null);
   const paymentProcessorRef = useRef<((token: string) => Promise<void>) | null>(null);
   const initializingRef = useRef(false);
 
@@ -154,6 +155,26 @@ function PaymentPageContent() {
     };
   }, [userId, moveOutDate, moveInDate, moveOutTime, dorm, elevator, stairs, room, instructions, school, boxQty, monthlyTotalCents, paymentPlan, searchParams]);
 
+  const verifyAndProcess = useCallback(async (token: string) => {
+    // 3DS / SCA — triggers in-app confirmation on Revolut, Monzo, etc.
+    let verifiedToken = token;
+    const payments = paymentsRef.current;
+    if (payments?.verifyBuyer) {
+      try {
+        const verificationResult = await payments.verifyBuyer(token, {
+          amount: (dueTodayCents / 100).toFixed(2),
+          currencyCode: 'USD',
+          intent: 'CHARGE',
+          billingContact: {},
+        });
+        if (verificationResult?.token) verifiedToken = verificationResult.token;
+      } catch (err) {
+        console.warn('[3DS] verifyBuyer failed, proceeding without:', err);
+      }
+    }
+    await paymentProcessorRef.current?.(verifiedToken);
+  }, [dueTodayCents]);
+
   const processPaymentWithToken = useCallback(async (token: string) => {
     const payload = buildBookingPayload();
     if (!payload) {
@@ -257,6 +278,7 @@ function PaymentPageContent() {
         const sq = await waitForSquare().catch(() => null);
         if (!sq) { initializingRef.current = false; return; }
         const payments = sq.payments(appId, locationId);
+        paymentsRef.current = payments;
         const cardContainer = document.getElementById('sq-card-booking');
         if (cardContainer) cardContainer.innerHTML = '';
 
@@ -335,6 +357,7 @@ function PaymentPageContent() {
               setProcessing(false);
             }
           };
+          // Google Pay handles its own authentication natively — no verifyBuyer needed
           googlePayEl?.addEventListener('click', onGooglePayClick);
           googlePayCleanup = () => googlePayEl?.removeEventListener('click', onGooglePayClick);
         } catch (e) {
@@ -385,7 +408,7 @@ function PaymentPageContent() {
     try {
       const result = await applePayRef.current.tokenize();
       if (result.status === 'OK' && result.token) {
-        await processPaymentWithToken(result.token);
+        await verifyAndProcess(result.token);
       } else {
         setError(result.errors?.[0]?.message ?? 'Apple Pay failed');
       }
@@ -414,7 +437,7 @@ function PaymentPageContent() {
         setProcessing(false);
         return;
       }
-      await processPaymentWithToken(tokenResult.token);
+      await verifyAndProcess(tokenResult.token);
     } catch (err: any) {
       setError(err?.message ?? 'Payment processing failed. Please try again.');
       setProcessing(false);

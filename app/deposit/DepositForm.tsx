@@ -182,8 +182,27 @@ export function DepositForm({ applicationId, locationId, isSandbox, customerName
     };
   }, [applicationId, locationId, isSandbox]);
 
-  async function processDepositWithToken(token: string) {
-    const res = await chargeDeposit(token);
+  async function verifyAndCharge(token: string) {
+    // 3DS / SCA — required for European cards (Revolut, Monzo, etc.)
+    let verificationToken = token;
+    const payments = paymentsRef.current;
+    if (payments?.verifyBuyer) {
+      try {
+        const verificationResult = await payments.verifyBuyer(token, {
+          amount: '1.00', // must match the actual charge amount
+          currencyCode: 'USD',
+          intent: 'CHARGE',
+          billingContact: {},
+        });
+        if (verificationResult?.token) {
+          verificationToken = verificationResult.token;
+        }
+      } catch (err) {
+        // 3DS failed or not supported — proceed with original token
+        console.warn('[3DS] verifyBuyer failed, proceeding without:', err);
+      }
+    }
+    const res = await chargeDeposit(verificationToken);
     if (!res.success) {
       setError(res.error);
       return;
@@ -199,7 +218,7 @@ export function DepositForm({ applicationId, locationId, isSandbox, customerName
     try {
       const result = await applePayRef.current.tokenize();
       if (result.status === 'OK' && result.token) {
-        await processDepositWithToken(result.token);
+        await verifyAndCharge(result.token);
       } else {
         setError(result.errors?.[0]?.message ?? 'Apple Pay failed.');
       }
@@ -220,7 +239,7 @@ export function DepositForm({ applicationId, locationId, isSandbox, customerName
         setError(result.errors?.[0]?.message ?? 'Card tokenization failed.');
         return;
       }
-      await processDepositWithToken(result.token);
+      await verifyAndCharge(result.token);
     } catch (err: any) {
       setError(err?.message ?? 'Unexpected error. Please try again.');
     } finally {
