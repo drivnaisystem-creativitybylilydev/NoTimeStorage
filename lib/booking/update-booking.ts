@@ -140,12 +140,13 @@ export async function updateBookingItems(bookingId: string, items: BookingItemIn
   const authClient = await createClient();
   const check = await getUnpaidBookingOwnership(authClient, bookingId);
   if (!check.ok) return { success: false, error: check.error };
-  if (!items?.length) return { success: false, error: 'At least one item (boxes or additional items) is required.' };
-
-  const supabase = createAdminClient();
+  if (!items?.length) return { success: false, error: 'At least one item is required.' };
 
   const boxItem = items.find((i) => i.item_type === 'box');
   const boxQuantity = boxItem ? boxItem.quantity : 0;
+  if (boxQuantity < 1) return { success: false, error: 'At least one storage box is required.' };
+
+  const supabase = createAdminClient();
   const { data: existing } = await supabase
     .from('bookings')
     .select('move_out_date, move_in_date')

@@ -5,9 +5,10 @@ import { motion, AnimatePresence, useInView } from 'framer-motion';
 import Image from 'next/image';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
-import { submitContactForm } from '@/lib/contact/submit';
 import { submitReminderSignup } from '@/lib/reminder/signup';
 import { SCHOOLS } from '@/lib/schools/config';
+import { CircularCarousel } from '@/app/components/CircularCarousel';
+import { SiteHeader } from '@/app/components/SiteHeader';
 // #region agent log
 const DEBUG_LOG = (data: Record<string, unknown>) => { fetch('http://127.0.0.1:7791/ingest/e0f7eab6-ff14-43bf-bf05-6812e1535afb', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '104cb8' }, body: JSON.stringify({ sessionId: '104cb8', location: 'page.tsx', timestamp: Date.now(), ...data }) }).catch(() => {}); };
 // #endregion
@@ -41,10 +42,10 @@ function FixedCarousel({ images, title, fullHeight = false }: { images: { src: s
             loading="lazy"
             decoding="async"
             onLoad={() => setLoaded(true)}
-            initial={{ opacity: 0, scale: 0.97 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.97 }}
-            transition={{ duration: 0.4, ease: [0.25, 0.1, 0.25, 1] }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.35, ease: [0.32, 0.72, 0, 1] }}
           />
         </AnimatePresence>
         {/* Dark brown vignette overlay for full-height real-life images */}
@@ -83,7 +84,7 @@ function BoxShowcase() {
         <motion.div
           className="trigger-rule"
           animate={{ scaleX: isOpen ? 0.3 : 1, opacity: isOpen ? 0 : 1 }}
-          transition={{ duration: 0.45, ease: [0.25, 0.1, 0.25, 1] }}
+          transition={{ duration: 0.35, ease: [0.32, 0.72, 0, 1] }}
         />
 
         {/* Box icon — fades out when open */}
@@ -142,7 +143,7 @@ function BoxShowcase() {
         <motion.div
           className="box-showcase-trigger-arrow"
           animate={{ rotate: isOpen ? 180 : 0 }}
-          transition={{ duration: 0.42, ease: [0.25, 0.1, 0.25, 1] }}
+          transition={{ duration: 0.35, ease: [0.32, 0.72, 0, 1] }}
         >
           <svg width="22" height="22" viewBox="0 0 20 20" fill="none">
             <path d="M4 7l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
@@ -158,7 +159,7 @@ function BoxShowcase() {
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.58, ease: [0.25, 0.1, 0.25, 1] }}
+            transition={{ duration: 0.5, ease: [0.32, 0.72, 0, 1] }}
             style={{ overflow: 'hidden' }}
           >
             <div className="box-showcase-inner">
@@ -172,7 +173,7 @@ function BoxShowcase() {
                   className="box-carousels-left"
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
-                  transition={{ duration: 0.45, delay: 0.05 }}
+                  transition={{ duration: 0.4, delay: 0.08, ease: [0.32, 0.72, 0, 1] }}
                 >
                   <FixedCarousel
                     title="Our Boxes in Action"
@@ -188,7 +189,7 @@ function BoxShowcase() {
                   className="box-specs-panel"
                   initial={{ x: '-100%' }}
                   animate={{ x: 0 }}
-                  transition={{ duration: 0.72, delay: 0.12, ease: [0.22, 1, 0.36, 1] }}
+                  transition={{ duration: 0.5, delay: 0.1, ease: [0.32, 0.72, 0, 1] }}
                 >
                   <p className="box-specs-intro" style={{
                     fontSize: 'clamp(1.2rem, 2vw, 1.5rem)',
@@ -320,63 +321,13 @@ export default function Home() {
   // FAQ accordion state
   const [openFaq, setOpenFaq] = useState<number | null>(null);
   
-  // Carousel state
-  const [currentCard, setCurrentCard] = useState(0);
-
   // Additional items dropdown state
   const [additionalItemsOpen, setAdditionalItemsOpen] = useState(false);
-
-  // Mobile nav state
-  const [mobileNavOpen, setMobileNavOpen] = useState(false);
-
-  // Contact form state
-  const [contactName, setContactName] = useState('');
-  const [contactEmail, setContactEmail] = useState('');
-  const [contactSubject, setContactSubject] = useState('');
-  const [contactSubjectOther, setContactSubjectOther] = useState('');
-  const [contactMessage, setContactMessage] = useState('');
-  const [contactSubmitting, setContactSubmitting] = useState(false);
-  const [contactSubmitted, setContactSubmitted] = useState(false);
-  const [contactError, setContactError] = useState<string | null>(null);
 
   const [reminderEmail, setReminderEmail] = useState('');
   const [reminderSubmitting, setReminderSubmitting] = useState(false);
   const [reminderSuccess, setReminderSuccess] = useState(false);
   const [reminderError, setReminderError] = useState<string | null>(null);
-
-  const CONTACT_SUBJECT_OPTIONS = [
-    'Booking & scheduling',
-    'Pricing & payment',
-    'Technical support',
-    'Partnership / Campus',
-    'Billing or refund',
-    'Other',
-  ] as const;
-  const isSubjectOther = contactSubject === 'Other';
-
-  const handleContactSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setContactError(null);
-    setContactSubmitting(true);
-    const result = await submitContactForm({
-      name: contactName,
-      email: contactEmail,
-      subject: contactSubject,
-      subject_other: isSubjectOther ? contactSubjectOther : null,
-      message: contactMessage,
-    });
-    setContactSubmitting(false);
-    if (result.success) {
-      setContactSubmitted(true);
-      setContactName('');
-      setContactEmail('');
-      setContactSubject('');
-      setContactSubjectOther('');
-      setContactMessage('');
-    } else {
-      setContactError(result.error);
-    }
-  };
 
   const handleReminderSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -394,51 +345,6 @@ export default function Home() {
 
   const toggleFaq = (index: number) => {
     setOpenFaq(openFaq === index ? null : index);
-  };
-
-  // Value cards data
-  const valueCards = [
-    {
-      icon: '📦',
-      title: 'Stress-Free & Convenient',
-      description: 'No trucks, no storage units, no hassle. We pick up and deliver to your door.'
-    },
-    {
-      icon: '🔒',
-      title: 'Secure & Climate-Controlled',
-      description: '24/7 monitoring, climate control, and full insurance protection for your belongings.'
-    },
-    {
-      icon: '💰',
-      title: 'Transparent Student Pricing',
-      description: 'Affordable rates built for students. No hidden fees, no surprises.'
-    },
-    {
-      icon: '🚚',
-      title: 'Door-to-Door Pickup & Return',
-      description: 'We come to you. Schedule online and track your items anytime.'
-    }
-  ];
-
-  // Auto-play carousel
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentCard((prev) => (prev + 1) % valueCards.length);
-    }, 5000); // Change slide every 5 seconds
-
-    return () => clearInterval(interval);
-  }, []);
-
-  const goToCard = (index: number) => {
-    setCurrentCard(index);
-  };
-
-  const shiftLeft = () => {
-    setCurrentCard((prev) => (prev + 1) % valueCards.length);
-  };
-
-  const shiftRight = () => {
-    setCurrentCard((prev) => (prev - 1 + valueCards.length) % valueCards.length);
   };
 
   // Animation variants for hero elements
@@ -470,77 +376,7 @@ export default function Home() {
 
   return (
     <div>
-      {/* Header */}
-      <header className="header">
-        <div className="header-container">
-          <a href="/" className="header-logo">
-            <Image
-              src="/brand/notime-storage-logo.png?v=2"
-              alt="NoTime Storage Logo"
-              width={50}
-              height={50}
-              className="header-logo-image"
-              priority
-              unoptimized
-            />
-            <span className="header-logo-text">NoTime Storage</span>
-          </a>
-          <nav className="header-nav">
-            <a href="#how-it-works">How It Works</a>
-            <a href="#box-specifications">Box Specifications</a>
-            <a href="#pricing">Pricing</a>
-            <a href="#faq">FAQ</a>
-            <a href="#contact">Contact</a>
-            {(loading || !user) ? (
-              <>
-                <a href="/auth/signup" className="header-cta">Get Started</a>
-                <a href="/auth/login" className="header-login">Login</a>
-              </>
-            ) : (
-              <>
-                <a href="/booking/configure" className="header-cta">Book Storage</a>
-                <a href="/dashboard" className="header-login">Dashboard</a>
-              </>
-            )}
-          </nav>
-          <a href="https://www.instagram.com/notimestorage/" target="_blank" rel="noopener noreferrer" className="header-social" aria-label="Follow us on Instagram">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z" fill="currentColor"/>
-            </svg>
-          </a>
-          {/* Hamburger button — only visible on mobile via CSS */}
-          <button
-            className={`hamburger-btn${mobileNavOpen ? ' open' : ''}`}
-            onClick={() => setMobileNavOpen(!mobileNavOpen)}
-            aria-label="Toggle navigation"
-            aria-expanded={mobileNavOpen}
-          >
-            <span />
-            <span />
-            <span />
-          </button>
-        </div>
-      </header>
-
-      {/* Mobile nav drawer */}
-      <div className={`mobile-nav-drawer${mobileNavOpen ? ' open' : ''}`}>
-        <a href="#how-it-works" onClick={() => setMobileNavOpen(false)}>How It Works</a>
-        <a href="#box-specifications" onClick={() => setMobileNavOpen(false)}>Box Specifications</a>
-        <a href="#pricing" onClick={() => setMobileNavOpen(false)}>Pricing</a>
-        <a href="#faq" onClick={() => setMobileNavOpen(false)}>FAQ</a>
-        <a href="#contact" onClick={() => setMobileNavOpen(false)}>Contact</a>
-        {(loading || !user) ? (
-          <>
-            <a href="/auth/login" onClick={() => setMobileNavOpen(false)}>Login</a>
-            <a href="/auth/signup" className="mobile-nav-cta" onClick={() => setMobileNavOpen(false)}>Get Started</a>
-          </>
-        ) : (
-          <>
-            <a href="/dashboard" onClick={() => setMobileNavOpen(false)}>Dashboard</a>
-            <a href="/booking/configure" className="mobile-nav-cta" onClick={() => setMobileNavOpen(false)}>Book Storage</a>
-          </>
-        )}
-      </div>
+      <SiteHeader />
 
       {/* Hero Section */}
       <section className="hero">
@@ -674,112 +510,7 @@ export default function Home() {
             Built specifically for the needs of college students
           </motion.p>
           
-          {/* Circular Rotating Carousel */}
-          <div className="peek-carousel-wrapper">
-            <button 
-              className="carousel-arrow carousel-arrow-left"
-              onClick={shiftRight}
-              aria-label="Previous card"
-            >
-              ‹
-            </button>
-
-            <div className="peek-carousel-container">
-              <div className="peek-carousel-track">
-                {/* Render all cards with circular positioning */}
-                {valueCards.map((card, index) => {
-                  // Calculate position relative to currentCard
-                  const relativePosition = (index - currentCard + valueCards.length) % valueCards.length;
-                  
-                  // Show 4 positions to handle transitions smoothly: far-left, left, center, right
-                  // Map them to: -2 (far left/exiting), -1 (left), 0 (center), 1 (right)
-                  let displayPosition;
-                  if (relativePosition === 0) displayPosition = 0; // center
-                  else if (relativePosition === 1) displayPosition = 1; // right
-                  else if (relativePosition === valueCards.length - 1) displayPosition = -1; // left
-                  else if (relativePosition === valueCards.length - 2) displayPosition = -2; // far left (exiting)
-                  else return null; // hide other cards
-                  
-                  // Calculate circular motion with strong depth separation
-                  const radius = 400;
-                  const angle = displayPosition * 45; // wider angle spread
-                  const x = Math.sin((angle * Math.PI) / 180) * radius;
-                  
-                  // Exaggerated z-depth: cards further from center go much deeper back
-                  let z;
-                  if (displayPosition === 0) {
-                    z = 0; // center card at front
-                  } else if (displayPosition === -1 || displayPosition === 1) {
-                    z = -150; // side cards go back
-                  } else {
-                    z = -300; // far cards go way back
-                  }
-                  
-                  const isCenter = displayPosition === 0;
-                  
-                  // Z-index based on depth - closer cards on top
-                  const zIndex = 50 - Math.abs(displayPosition) * 10;
-                  
-                  // Opacity management - hide far cards
-                  let opacity;
-                  if (isCenter) opacity = 1;
-                  else if (displayPosition === -1 || displayPosition === 1) opacity = 0.5;
-                  else opacity = 0; // far cards invisible
-                  
-                  return (
-                    <motion.div
-                      key={index}
-                      className={`peek-carousel-card ${isCenter ? 'active' : ''}`}
-                      animate={{
-                        x: x,
-                        z: z,
-                        rotateY: -angle,
-                        scale: isCenter ? 1 : 0.85,
-                        opacity: opacity,
-                      }}
-                      transition={{
-                        duration: 0.8,
-                        ease: [0.45, 0.05, 0.55, 0.95],
-                      }}
-                      style={{
-                        position: 'absolute',
-                        left: '50%',
-                        top: '50%',
-                        zIndex: zIndex,
-                        pointerEvents: isCenter ? 'auto' : 'none',
-                      }}
-                    >
-                      <div className="value-card">
-                        <div className="value-icon">{card.icon}</div>
-                        <h3 className="value-title">{card.title}</h3>
-                        <p className="value-description">{card.description}</p>
-                      </div>
-                    </motion.div>
-                  );
-                })}
-              </div>
-            </div>
-
-            <button 
-              className="carousel-arrow carousel-arrow-right"
-              onClick={shiftLeft}
-              aria-label="Next card"
-            >
-              ›
-            </button>
-          </div>
-
-          {/* Carousel Dots */}
-          <div className="carousel-dots">
-            {valueCards.map((_, index) => (
-              <button
-                key={index}
-                className={`carousel-dot ${currentCard === index ? 'active' : ''}`}
-                onClick={() => goToCard(index)}
-                aria-label={`Go to card ${index + 1}`}
-              />
-            ))}
-          </div>
+          <CircularCarousel autoPlayInterval={5000} />
           <motion.div 
             className="section-cta"
             initial={{ opacity: 0, y: 12 }}
@@ -1437,11 +1168,7 @@ export default function Home() {
             viewport={{ once: true, margin: "-50px" }}
             transition={{ duration: 0.5, ease: [0.25, 0.1, 0.25, 1] }}
           >
-            {(loading || !user) ? (
-              <Link href="/auth/signup"><button className="button-primary">Create Your Account</button></Link>
-            ) : (
-              <Link href="/booking/configure"><button className="button-primary">Go to Booking</button></Link>
-            )}
+            <Link href="/contact"><button className="button-primary">Need More Answers?</button></Link>
           </motion.div>
         </div>
       </section>
@@ -1484,153 +1211,6 @@ export default function Home() {
           {!reminderSuccess && !reminderError && (
             <p className="reminder-note">We'll notify you when the next season opens.</p>
           )}
-        </div>
-      </section>
-
-      {/* Contact Section */}
-      <section id="contact" className="contact-section">
-        <div className="contact-container">
-          <motion.h2
-            className="contact-title"
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: "-80px" }}
-            transition={{ duration: 0.6, ease: [0.25, 0.1, 0.25, 1] }}
-          >
-            Get in Touch
-          </motion.h2>
-          <motion.p
-            className="contact-subtitle"
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: "-80px" }}
-            transition={{ duration: 0.6, delay: 0.08, ease: [0.25, 0.1, 0.25, 1] }}
-          >
-            Have a question or concern? We&apos;re here to help.
-          </motion.p>
-
-          <motion.div
-            className="contact-form-wrapper"
-            initial={{ opacity: 0, y: 24 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: "-60px" }}
-            transition={{ duration: 0.5, delay: 0.15, ease: [0.25, 0.1, 0.25, 1] }}
-          >
-            {contactSubmitted ? (
-              <motion.div
-                className="contact-success"
-                initial={{ opacity: 0, scale: 0.96 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.4, ease: [0.25, 0.1, 0.25, 1] }}
-              >
-                <span className="contact-success-icon">✓</span>
-                <h3 className="contact-success-title">Message sent</h3>
-                <p className="contact-success-text">Thanks for reaching out. We&apos;ll get back to you soon.</p>
-                <button
-                  type="button"
-                  className="button-secondary"
-                  onClick={() => { setContactSubmitted(false); setContactError(null); }}
-                >
-                  Send another message
-                </button>
-              </motion.div>
-            ) : (
-              <form className="contact-form" onSubmit={handleContactSubmit}>
-                <div className="contact-form-row">
-                  <label htmlFor="contact-name" className="contact-label">Name *</label>
-                  <input
-                    id="contact-name"
-                    type="text"
-                    required
-                    placeholder="Your name"
-                    className="contact-input"
-                    value={contactName}
-                    onChange={(e) => setContactName(e.target.value)}
-                    disabled={contactSubmitting}
-                  />
-                </div>
-                <div className="contact-form-row">
-                  <label htmlFor="contact-email" className="contact-label">Email *</label>
-                  <input
-                    id="contact-email"
-                    type="email"
-                    required
-                    placeholder="you@example.com"
-                    className="contact-input"
-                    value={contactEmail}
-                    onChange={(e) => setContactEmail(e.target.value)}
-                    disabled={contactSubmitting}
-                  />
-                </div>
-                <div className="contact-form-row">
-                  <label htmlFor="contact-subject" className="contact-label">Subject *</label>
-                  <select
-                    id="contact-subject"
-                    required
-                    className="contact-select"
-                    value={contactSubject}
-                    onChange={(e) => {
-                      setContactSubject(e.target.value);
-                      if (e.target.value !== 'Other') setContactSubjectOther('');
-                    }}
-                    disabled={contactSubmitting}
-                  >
-                    <option value="">Select a topic</option>
-                    {CONTACT_SUBJECT_OPTIONS.map((opt) => (
-                      <option key={opt} value={opt}>{opt}</option>
-                    ))}
-                  </select>
-                </div>
-                {isSubjectOther && (
-                  <motion.div
-                    className="contact-form-row"
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: 'auto' }}
-                    exit={{ opacity: 0, height: 0 }}
-                    transition={{ duration: 0.25 }}
-                  >
-                    <label htmlFor="contact-subject-other" className="contact-label">Please specify</label>
-                    <input
-                      id="contact-subject-other"
-                      type="text"
-                      placeholder="Describe your concern"
-                      className="contact-input"
-                      value={contactSubjectOther}
-                      onChange={(e) => setContactSubjectOther(e.target.value)}
-                      disabled={contactSubmitting}
-                    />
-                  </motion.div>
-                )}
-                <div className="contact-form-row contact-form-row--full">
-                  <label htmlFor="contact-message" className="contact-label">Your message *</label>
-                  <textarea
-                    id="contact-message"
-                    required
-                    rows={5}
-                    placeholder="Tell us how we can help..."
-                    className="contact-textarea"
-                    value={contactMessage}
-                    onChange={(e) => setContactMessage(e.target.value)}
-                    disabled={contactSubmitting}
-                  />
-                </div>
-                <div className="contact-form-actions">
-                  {contactError && (
-                    <p className="contact-form-error" role="alert">
-                      {contactError}
-                    </p>
-                  )}
-                  <button
-                    type="submit"
-                    className="button-primary contact-submit"
-                    disabled={contactSubmitting}
-                  >
-                    {contactSubmitting ? 'Sending…' : 'Send message'}
-                  </button>
-                </div>
-              </form>
-            )}
-          </motion.div>
         </div>
       </section>
 
@@ -1692,7 +1272,7 @@ export default function Home() {
               <ul className="footer-links">
                 <li><a href="#about">About Us</a></li>
                 <li><a href="#faq">FAQ</a></li>
-                <li><a href="#contact">Contact</a></li>
+                <li><Link href="/contact">Contact</Link></li>
                 <li><a href="#careers">Careers</a></li>
               </ul>
             </div>

@@ -62,7 +62,11 @@ function ConfigurePageContent() {
   const MAX_ADDITIONAL_ITEMS = 4;
   const totalAdditionalItems = Object.values(additionalItems).reduce((sum, v) => sum + v, 0);
 
+  const withBoxItemsUnlocked = boxQuantity >= 1;
+
   const updateItem = (key: keyof typeof additionalItems, delta: number) => {
+    const isWithBox = key === 'smallWithBox' || key === 'mediumWithBox';
+    if (isWithBox && !withBoxItemsUnlocked) return;
     setAdditionalItems(prev => {
       const next = Math.max(0, prev[key] + delta);
       const newTotal = totalAdditionalItems - prev[key] + next;
@@ -71,12 +75,10 @@ function ConfigurePageContent() {
     });
   };
 
-  const canContinue = boxQuantity >= 1 || totalAdditionalItems >= 1;
-  const zeroBoxesWithItems = boxQuantity === 0 && totalAdditionalItems >= 1 && totalAdditionalItems <= 4;
+  const canContinue = boxQuantity >= 1;
 
   const handleContinue = () => {
     if (!canContinue) return;
-    if (boxQuantity === 0 && (totalAdditionalItems < 1 || totalAdditionalItems > 4)) return;
     // Navigate to schedule page with configuration in URL
     const params = new URLSearchParams({
       boxes: boxQuantity.toString(),
@@ -119,14 +121,14 @@ function ConfigurePageContent() {
             Configure Your Storage
           </h1>
           <p style={{ fontSize: '1.05rem', color: 'var(--color-gray-600)' }}>
-            Choose boxes (optional) and/or additional items — up to 4 items if you skip boxes
+            Select at least 1 box to get started. Add optional items (max 4) once you have boxes.
           </p>
         </div>
 
         {/* Box Selection */}
         <div style={{ marginBottom: '24px', padding: 'clamp(10px, 2.5vw, 20px)', paddingTop: 'clamp(10px, 2.5vw, 14px)', background: 'var(--color-paper)', borderRadius: '14px', border: '2px solid var(--color-latte)' }}>
           <h2 style={{ fontSize: 'clamp(1.15rem, 3.5vw, 1.4rem)', fontWeight: '700', color: 'var(--color-coffee)', marginBottom: '16px', marginTop: 0 }}>
-            📦 Storage Boxes (optional)
+            📦 Storage Boxes (required)
           </h2>
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
             <label style={{ fontSize: '1rem', fontWeight: '600', color: 'var(--color-gray-700)' }}>
@@ -164,15 +166,24 @@ function ConfigurePageContent() {
               )}
               {boxQuantity === 0 && (
                 <div style={{ fontSize: '0.875rem', color: 'var(--color-gray-600)' }}>
-                  Add items only below
+                  Select at least 1 box to continue
                 </div>
               )}
             </div>
           </div>
         </div>
 
-        {/* Additional Items */}
-        <div style={{ marginBottom: '24px', padding: 'clamp(10px, 2.5vw, 20px)', paddingTop: 'clamp(10px, 2.5vw, 14px)', background: 'var(--color-white)', borderRadius: '14px', border: '2px solid var(--color-latte-soft)' }}>
+        {/* Additional Items — "With Box" items locked when no box selected */}
+        <div style={{ position: 'relative', marginBottom: '24px' }}>
+          <div
+            style={{
+              padding: 'clamp(10px, 2.5vw, 20px)',
+              paddingTop: 'clamp(10px, 2.5vw, 14px)',
+              background: 'var(--color-white)',
+              borderRadius: '14px',
+              border: '2px solid var(--color-latte-soft)',
+            }}
+          >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px', marginTop: 0 }}>
             <h2 style={{ fontSize: '1.4rem', fontWeight: '700', color: 'var(--color-coffee)', margin: 0 }}>
               ➕ Additional Items (Optional)
@@ -188,22 +199,19 @@ function ConfigurePageContent() {
             </span>
           </div>
           <p style={{ fontSize: '0.85rem', color: 'var(--color-gray-600)', marginBottom: '18px' }}>
-            {boxQuantity === 0
-              ? `Store up to ${MAX_ADDITIONAL_ITEMS} loose items without boxes (e.g. mini fridge, lamp).`
-              : `Items that don't fit in boxes — max ${MAX_ADDITIONAL_ITEMS} additional items.`
-            }
+            Items that don&apos;t fit in boxes — max {MAX_ADDITIONAL_ITEMS} additional items.
           </p>
 
           {/* Small Items */}
           <div style={{ marginBottom: '16px', paddingBottom: '16px', borderBottom: '1px solid var(--color-latte-soft)' }}>
             <div style={{ fontWeight: '600', marginBottom: '10px', color: 'var(--color-gray-800)' }}>Small Items (lamp, fan, small bin)</div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontSize: '0.875rem' }}>With box - $9/mo</span>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', opacity: withBoxItemsUnlocked ? 1 : 0.5, transition: 'opacity 0.2s ease' }}>
+                <span style={{ fontSize: '0.875rem' }}>With box - $9/mo{!withBoxItemsUnlocked && <span style={{ marginLeft: '6px', fontSize: '0.75rem', color: 'var(--color-gray-500)' }}>(requires box)</span>}</span>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <button onClick={() => updateItem('smallWithBox', -1)} className="button-secondary" style={{ padding: '4px 12px', fontSize: '1rem' }}>−</button>
+                  <button onClick={() => updateItem('smallWithBox', -1)} disabled={!withBoxItemsUnlocked} className="button-secondary" style={{ padding: '4px 12px', fontSize: '1rem', opacity: !withBoxItemsUnlocked ? 0.5 : 1, cursor: withBoxItemsUnlocked ? 'pointer' : 'not-allowed' }}>−</button>
                   <span style={{ minWidth: '30px', textAlign: 'center', fontWeight: '600' }}>{additionalItems.smallWithBox}</span>
-                  <button onClick={() => updateItem('smallWithBox', +1)} disabled={totalAdditionalItems >= MAX_ADDITIONAL_ITEMS} className="button-secondary" style={{ padding: '4px 12px', fontSize: '1rem', opacity: totalAdditionalItems >= MAX_ADDITIONAL_ITEMS ? 0.35 : 1 }}>+</button>
+                  <button onClick={() => updateItem('smallWithBox', +1)} disabled={!withBoxItemsUnlocked || totalAdditionalItems >= MAX_ADDITIONAL_ITEMS} className="button-secondary" style={{ padding: '4px 12px', fontSize: '1rem', opacity: (!withBoxItemsUnlocked || totalAdditionalItems >= MAX_ADDITIONAL_ITEMS) ? 0.35 : 1, cursor: withBoxItemsUnlocked && totalAdditionalItems < MAX_ADDITIONAL_ITEMS ? 'pointer' : 'not-allowed' }}>+</button>
                 </div>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -221,12 +229,12 @@ function ConfigurePageContent() {
           <div style={{ marginBottom: '16px', paddingBottom: '16px', borderBottom: '1px solid var(--color-latte-soft)' }}>
             <div style={{ fontWeight: '600', marginBottom: '10px', color: 'var(--color-gray-800)' }}>Medium Items (monitor, microwave, chair)</div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontSize: '0.875rem' }}>With box - $9/mo</span>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', opacity: withBoxItemsUnlocked ? 1 : 0.5, transition: 'opacity 0.2s ease' }}>
+                <span style={{ fontSize: '0.875rem' }}>With box - $9/mo{!withBoxItemsUnlocked && <span style={{ marginLeft: '6px', fontSize: '0.75rem', color: 'var(--color-gray-500)' }}>(requires box)</span>}</span>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <button onClick={() => updateItem('mediumWithBox', -1)} className="button-secondary" style={{ padding: '4px 12px', fontSize: '1rem' }}>−</button>
+                  <button onClick={() => updateItem('mediumWithBox', -1)} disabled={!withBoxItemsUnlocked} className="button-secondary" style={{ padding: '4px 12px', fontSize: '1rem', opacity: !withBoxItemsUnlocked ? 0.5 : 1, cursor: withBoxItemsUnlocked ? 'pointer' : 'not-allowed' }}>−</button>
                   <span style={{ minWidth: '30px', textAlign: 'center', fontWeight: '600' }}>{additionalItems.mediumWithBox}</span>
-                  <button onClick={() => updateItem('mediumWithBox', +1)} disabled={totalAdditionalItems >= MAX_ADDITIONAL_ITEMS} className="button-secondary" style={{ padding: '4px 12px', fontSize: '1rem', opacity: totalAdditionalItems >= MAX_ADDITIONAL_ITEMS ? 0.35 : 1 }}>+</button>
+                  <button onClick={() => updateItem('mediumWithBox', +1)} disabled={!withBoxItemsUnlocked || totalAdditionalItems >= MAX_ADDITIONAL_ITEMS} className="button-secondary" style={{ padding: '4px 12px', fontSize: '1rem', opacity: (!withBoxItemsUnlocked || totalAdditionalItems >= MAX_ADDITIONAL_ITEMS) ? 0.35 : 1, cursor: withBoxItemsUnlocked && totalAdditionalItems < MAX_ADDITIONAL_ITEMS ? 'pointer' : 'not-allowed' }}>+</button>
                 </div>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -252,6 +260,7 @@ function ConfigurePageContent() {
               </div>
             </div>
           </div>
+          </div>
         </div>
 
         {/* Total & Continue */}
@@ -264,9 +273,9 @@ function ConfigurePageContent() {
           </div>
           <button
             onClick={handleContinue}
-            disabled={!canContinue || (boxQuantity === 0 && (totalAdditionalItems < 1 || totalAdditionalItems > 4))}
+            disabled={!canContinue}
             className="button-primary"
-            style={{ padding: '12px 28px', fontSize: '1.05rem', flexShrink: 0, opacity: canContinue && (boxQuantity >= 1 || (totalAdditionalItems >= 1 && totalAdditionalItems <= 4)) ? 1 : 0.6 }}
+            style={{ padding: '12px 28px', fontSize: '1.05rem', flexShrink: 0, opacity: canContinue ? 1 : 0.6 }}
           >
             Continue to Schedule →
           </button>

@@ -18,9 +18,9 @@ export default async function DepositPage() {
   // Already paid — send straight to booking
   if (profile?.deposit_paid) redirect('/booking/configure');
 
-  const appId = process.env.SQUARE_SANDBOX_APPLICATION_ID ?? process.env.SQUARE_APPLICATION_ID ?? '';
-  const locationId = process.env.SQUARE_SANDBOX_LOCATION_ID ?? process.env.SQUARE_LOCATION_ID ?? '';
   const isSandbox = process.env.SQUARE_ENV !== 'production';
+  const appId = (isSandbox ? process.env.SQUARE_SANDBOX_APPLICATION_ID : process.env.SQUARE_APPLICATION_ID) ?? '';
+  const locationId = (isSandbox ? process.env.SQUARE_SANDBOX_LOCATION_ID : process.env.SQUARE_LOCATION_ID) ?? '';
 
   return (
     <DepositForm

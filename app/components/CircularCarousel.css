@@ -1,0 +1,232 @@
+/* CircularCarousel — NoTime Storage 3D carousel */
+
+.circular-carousel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: var(--spacing-md, 1rem) 0 var(--spacing-4xl, 3rem);
+  position: relative;
+}
+
+.circular-carousel__row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-xl, 1.5rem);
+  width: 100%;
+}
+
+.circular-carousel__viewport {
+  perspective: 1200px;
+  perspective-origin: center center;
+  width: 100%;
+  max-width: 900px;
+  min-height: 480px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: visible;
+}
+
+.circular-carousel__track {
+  position: relative;
+  width: 320px;
+  height: 420px;
+  transform-style: preserve-3d;
+  perspective: 1200px;
+  overflow: visible;
+}
+
+.circular-carousel__card {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 320px;
+  height: 420px;
+  margin-left: -160px;
+  margin-top: -210px;
+  transition: transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1),
+    opacity 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+  pointer-events: none;
+  backface-visibility: hidden;
+}
+
+.circular-carousel__card--active {
+  pointer-events: auto;
+}
+
+.circular-carousel__card-inner {
+  width: 100%;
+  height: 100%;
+  background: rgba(255, 255, 255, 0.96);
+  border: 2px solid rgba(201, 164, 126, 0.5);
+  border-radius: 16px;
+  box-shadow: 0 20px 60px rgba(75, 46, 37, 0.15);
+  padding: var(--spacing-2xl, 1.5rem) var(--spacing-xl, 1.25rem);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.circular-carousel__card--active .circular-carousel__card-inner {
+  box-shadow: 0 24px 60px rgba(75, 46, 37, 0.25);
+  border-color: #4B2E25;
+}
+
+.circular-carousel__card-icon {
+  width: 80px;
+  height: 80px;
+  font-size: 3rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #E7D3BF 0%, #C9A47E 100%);
+  border-radius: 20px;
+  margin-bottom: var(--spacing-lg, 1rem);
+}
+
+.circular-carousel__card-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #4B2E25;
+  margin-bottom: var(--spacing-md, 0.75rem);
+  letter-spacing: -0.01em;
+}
+
+.circular-carousel__card-description {
+  font-size: 1rem;
+  line-height: 1.7;
+  color: rgba(75, 46, 37, 0.85);
+}
+
+/* Arrows — NoTime: white bg, #C9A47E border, #4B2E25 text */
+.circular-carousel__arrow {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background: #ffffff;
+  border: 2px solid #C9A47E;
+  color: #4B2E25;
+  font-size: 2rem;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  flex-shrink: 0;
+  z-index: 100;
+  padding: 0;
+}
+
+.circular-carousel__arrow:hover {
+  background: #F7F3EE;
+  border-color: #4B2E25;
+  transform: scale(1.1);
+}
+
+.circular-carousel__arrow:active {
+  transform: scale(0.95);
+}
+
+.circular-carousel__arrow:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(75, 46, 37, 0.3);
+}
+
+/* Dots — #C9A47E inactive, #4B2E25 active */
+.circular-carousel__dots {
+  position: absolute;
+  bottom: var(--spacing-lg, 1rem);
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: var(--spacing-sm, 0.5rem);
+  z-index: 100;
+}
+
+.circular-carousel__dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 2px solid #C9A47E;
+  background: transparent;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  padding: 0;
+}
+
+.circular-carousel__dot:hover {
+  background: rgba(201, 164, 126, 0.5);
+  transform: scale(1.2);
+}
+
+.circular-carousel__dot--active {
+  background: #E7D3BF;
+  border-color: #E7D3BF;
+  width: 32px;
+  border-radius: 6px;
+}
+
+/* Mobile */
+@media (max-width: 768px) {
+  .circular-carousel {
+    gap: var(--spacing-md, 1rem);
+    padding: var(--spacing-md, 1rem) 0 var(--spacing-2xl, 2rem);
+  }
+
+  .circular-carousel__viewport {
+    min-height: 420px;
+  }
+
+  .circular-carousel__track {
+    width: 280px;
+    height: 380px;
+  }
+
+  .circular-carousel__card {
+    width: 280px;
+    height: 380px;
+    margin-left: -140px;
+    margin-top: -190px;
+  }
+
+  .circular-carousel__card-inner {
+    padding: var(--spacing-xl, 1.25rem);
+  }
+
+  .circular-carousel__card-icon {
+    width: 60px;
+    height: 60px;
+    font-size: 2.25rem;
+    margin-bottom: var(--spacing-md, 0.75rem);
+  }
+
+  .circular-carousel__card-title {
+    font-size: 1.125rem;
+  }
+
+  .circular-carousel__card-description {
+    font-size: 0.9375rem;
+  }
+
+  .circular-carousel__arrow {
+    width: 40px;
+    height: 40px;
+    font-size: 1.5rem;
+  }
+
+  .circular-carousel__dot {
+    width: 10px;
+    height: 10px;
+  }
+
+  .circular-carousel__dot--active {
+    width: 24px;
+  }
+}

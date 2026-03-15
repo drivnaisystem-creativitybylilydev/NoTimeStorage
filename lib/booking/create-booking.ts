@@ -37,7 +37,13 @@ export async function createBooking(input: CreateBookingInput): Promise<CreateBo
   }
 
   if (!input.items?.length) {
-    return { success: false, error: 'At least one item (boxes or additional items) is required.' };
+    return { success: false, error: 'At least one item is required.' };
+  }
+
+  const boxItem = input.items.find((i) => i.item_type === 'box');
+  const boxQuantity = boxItem ? boxItem.quantity : 0;
+  if (boxQuantity < 1) {
+    return { success: false, error: 'At least one storage box is required.' };
   }
 
   const slotCheck = await isTimeSlotAvailable(
@@ -61,8 +67,6 @@ export async function createBooking(input: CreateBookingInput): Promise<CreateBo
     return { success: false, error: 'Account not found. Please sign out and sign in again.' };
   }
 
-  const boxItem = input.items.find((i) => i.item_type === 'box');
-  const boxQuantity = boxItem ? boxItem.quantity : 0;
   const months = storageMonths(input.move_out_date, input.move_in_date);
   const totalMonthlyRate = input.monthly_total_cents / 100;
   const totalPrice = totalMonthlyRate * months;

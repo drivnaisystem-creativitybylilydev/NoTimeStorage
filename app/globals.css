@@ -2109,6 +2109,33 @@ button {
   padding: var(--spacing-4xl) var(--spacing-lg);
 }
 
+.contact-page-section {
+  min-height: calc(100vh - 80px);
+  padding-top: 48px;
+}
+
+.contact-page-with-bg {
+  position: relative;
+  isolation: isolate;
+  background: none;
+}
+
+.contact-bg-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background-image: linear-gradient(to bottom, rgba(58, 35, 28, 0.45), rgba(58, 35, 28, 0.6)), url('/brand/auth-bg.png');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  pointer-events: none;
+}
+
+.contact-page-with-bg .contact-content-layer {
+  position: relative;
+  z-index: 1;
+}
+
 .contact-container {
   max-width: 640px;
   margin: 0 auto;
@@ -2137,6 +2164,20 @@ button {
   padding: var(--spacing-2xl);
   box-shadow: 0 0 0 2px var(--color-latte), 0 18px 48px rgba(75, 46, 37, 0.12), 0 0 32px rgba(201, 164, 126, 0.2);
   border: 1px solid var(--color-latte-soft);
+}
+
+.contact-form-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  margin-bottom: var(--spacing-2xl);
+  padding-bottom: var(--spacing-2xl);
+  border-bottom: 1px solid var(--color-latte-soft);
+}
+
+.contact-form-header .contact-subtitle {
+  margin-bottom: 0;
 }
 
 .contact-form {
@@ -3128,6 +3169,36 @@ button {
   transform-style: preserve-3d;
 }
 
+.peek-carousel-track--slide {
+  overflow: hidden;
+  perspective: none;
+  transform-style: flat;
+}
+
+/* Peek layout: show center card + 60px tease of neighbors */
+.peek-carousel-container--peek {
+  overflow: hidden;
+  width: 520px;
+  margin: 0 auto;
+}
+
+.peek-carousel-track--peek {
+  display: flex;
+  gap: 20px;
+  width: max-content;
+  min-height: 520px;
+  align-items: center;
+  perspective: none;
+  transform-style: flat;
+}
+
+.peek-carousel-card--peek {
+  flex-shrink: 0;
+  width: 400px;
+  height: 480px;
+  margin: 0;
+}
+
 .peek-carousel-card {
   width: 400px;
   height: 480px;
@@ -3991,6 +4062,20 @@ button {
     height: 340px;
     margin-left: -130px;
     margin-top: -170px;
+  }
+
+  .peek-carousel-container--peek {
+    width: 340px;
+  }
+
+  .peek-carousel-track--peek {
+    gap: 12px;
+    min-height: 380px;
+  }
+
+  .peek-carousel-card--peek {
+    width: 260px;
+    height: 340px;
   }
 
   .value-card {
@@ -6138,9 +6223,10 @@ button {
   align-self: stretch;
   overflow: hidden;
   background: rgba(196, 155, 105, 0.22);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
   border-radius: 20px 0 0 20px;
+  transform: translateZ(0);
   border: 1.5px solid rgba(255, 232, 195, 0.45);
   border-right: none;
   padding: 20px;
@@ -6180,7 +6266,9 @@ button {
     0 0 0 1px rgba(90,45,8,0.1),
     0 8px 32px rgba(80,40,10,0.14),
     0 0 52px rgba(90,45,8,0.18);
-  transition: transform 0.4s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.3s ease, border-color 0.25s ease;
+  transition: transform 0.35s cubic-bezier(0.32, 0.72, 0, 1), box-shadow 0.3s ease, border-color 0.25s ease;
+  transform: translateZ(0);
+  contain: paint;
 }
 
 .carousel-container:hover {
@@ -6208,6 +6296,7 @@ button {
   width: 100%; height: 100%;
   object-fit: cover;
   object-position: center center;
+  transform: translateZ(0);
 }
 
 /* Full-height real-life images — objectPosition controlled per-image via inline style */
@@ -6259,9 +6348,10 @@ button {
 .box-specs-panel {
   display: flex; flex-direction: column; gap: 20px;
   background: rgba(196, 155, 105, 0.10);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   border-radius: 0 20px 20px 0;
+  transform: translateZ(0);
   border: 1.5px solid rgba(255, 232, 195, 0.52);
   border-left: none;
   padding: 24px 22px;
