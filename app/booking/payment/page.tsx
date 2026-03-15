@@ -22,11 +22,12 @@ const ITEM_TYPE_MAP: Record<string, BookingItemType> = {
 };
 
 const UNIT_PRICE_CENTS: Record<string, number> = {
-  small_with_box: 900,
-  small_without_box: 1100,
-  medium_with_box: 900,
-  medium_without_box: 1200,
-  large: 1500,
+  // TEST PRICES — change back to 900/1100/900/1200/1500 after testing
+  small_with_box: 100,
+  small_without_box: 100,
+  medium_with_box: 100,
+  medium_without_box: 100,
+  large: 100,
 };
 
 function PaymentPageContent() {
@@ -73,11 +74,9 @@ function PaymentPageContent() {
   })();
 
   const getBoxPrice = (qty: number) => {
+    // TEST PRICES — change back to 80/55/60 after testing
     if (qty === 0) return 0;
-    if (qty === 1) return 80;
-    if (qty === 2 || qty === 3) return 55;
-    if (qty >= 4) return 60;
-    return 80;
+    return 1;
   };
   const getBoxPriceCents = (qty: number) => getBoxPrice(qty) * 100;
 
