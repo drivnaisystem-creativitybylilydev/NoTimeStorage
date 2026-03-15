@@ -1270,10 +1270,8 @@ export default function Home() {
             <div className="footer-column">
               <h4 className="footer-heading">Company</h4>
               <ul className="footer-links">
-                <li><Link href="/about">About Us</Link></li>
                 <li><Link href="/#faq">FAQ</Link></li>
                 <li><Link href="/contact">Contact</Link></li>
-                <li><Link href="/careers">Careers</Link></li>
               </ul>
             </div>
 
