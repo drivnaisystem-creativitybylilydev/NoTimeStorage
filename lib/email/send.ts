@@ -129,3 +129,38 @@ export async function sendNewBookingAdmin(params: {
     html,
   );
 }
+
+export async function sendMoveInDetailsUpdatedAdmin(params: {
+  studentName: string;
+  studentEmail: string;
+  bookingId: string;
+  moveInDate: string;
+  school: string;
+  moveInDorm: string;
+  moveInRoom: string;
+  specialInstructions: string;
+}) {
+  if (!ADMIN_EMAIL) return;
+  const { studentName, studentEmail, bookingId, moveInDate, school, moveInDorm, moveInRoom, specialInstructions } = params;
+  const html = `
+    <div style="font-family:sans-serif;max-width:560px;margin:0 auto;padding:32px 24px;color:#1a1a1a">
+      <h2 style="color:#4B2E25;margin-bottom:4px">📍 Move-In Details Updated</h2>
+      <p style="color:#666;margin-top:0;margin-bottom:24px">A student has confirmed their delivery address.</p>
+      <table style="width:100%;border-collapse:collapse;font-size:0.9rem">
+        <tr><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;color:#666;width:140px">Student</td><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;font-weight:600">${studentName}</td></tr>
+        <tr><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;color:#666">Email</td><td style="padding:8px 0;border-bottom:1px solid #e5e7eb">${studentEmail}</td></tr>
+        <tr><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;color:#666">Move-In Date</td><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;font-weight:600">${moveInDate}</td></tr>
+        <tr><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;color:#666">School</td><td style="padding:8px 0;border-bottom:1px solid #e5e7eb">${school}</td></tr>
+        <tr><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;color:#666">Delivery Dorm</td><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;font-weight:600;color:#4B2E25">${moveInDorm || '—'}</td></tr>
+        <tr><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;color:#666">Room</td><td style="padding:8px 0;border-bottom:1px solid #e5e7eb">${moveInRoom || '—'}</td></tr>
+        <tr><td style="padding:8px 0;color:#666">Instructions</td><td style="padding:8px 0">${specialInstructions || 'None'}</td></tr>
+      </table>
+      <p style="margin-top:24px;font-size:0.8rem;color:#999">Booking ID: ${bookingId}</p>
+    </div>
+  `;
+  await sendEmail(
+    ADMIN_EMAIL,
+    `📍 Move-in details updated — ${studentName} · ${moveInDate}`,
+    html,
+  );
+}

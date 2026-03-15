@@ -352,6 +352,10 @@ export type BookingWithCustomer = {
   square_customer_id: string | null;
   square_card_id: string | null;
   square_invoice_id: string | null;
+  // Move-in delivery details (confirmed by student)
+  move_in_dorm: string | null;
+  move_in_room: string | null;
+  move_in_confirmed_at: string | null;
   customer: {
     full_name: string | null;
     email: string | null;
@@ -411,6 +415,9 @@ export async function getBookings(
       square_customer_id,
       square_card_id,
       square_invoice_id,
+      move_in_dorm,
+      move_in_room,
+      move_in_confirmed_at,
       users!bookings_user_id_fkey (
         full_name,
         email,
@@ -502,6 +509,9 @@ export async function getBookings(
       square_customer_id: row.square_customer_id ?? null,
       square_card_id: row.square_card_id ?? null,
       square_invoice_id: row.square_invoice_id ?? null,
+      move_in_dorm: row.move_in_dorm ?? null,
+      move_in_room: row.move_in_room ?? null,
+      move_in_confirmed_at: row.move_in_confirmed_at ?? null,
       customer,
     };
   });
@@ -754,6 +764,9 @@ export async function getCalendarBookings(): Promise<BookingWithCustomer[]> {
       square_customer_id,
       square_card_id,
       square_invoice_id,
+      move_in_dorm,
+      move_in_room,
+      move_in_confirmed_at,
       users!bookings_user_id_fkey (
         full_name,
         email,
@@ -807,6 +820,9 @@ export async function getCalendarBookings(): Promise<BookingWithCustomer[]> {
       square_customer_id: row.square_customer_id ?? null,
       square_card_id: row.square_card_id ?? null,
       square_invoice_id: row.square_invoice_id ?? null,
+      move_in_dorm: row.move_in_dorm ?? null,
+      move_in_room: row.move_in_room ?? null,
+      move_in_confirmed_at: row.move_in_confirmed_at ?? null,
       customer: pickUser(userRow),
     };
   });

@@ -134,6 +134,17 @@ export function BookingDetailModal({ booking, onClose }: BookingDetailModalProps
                 {booking.move_in_time_slot && (
                   <div style={{ fontSize: '0.875rem', color: 'var(--color-gray-600)' }}>{formatTimeSlot(booking.move_in_time_slot)}</div>
                 )}
+                {booking.move_in_dorm && (
+                  <div style={{ fontSize: '0.8rem', color: 'var(--color-gray-600)', marginTop: '4px' }}>
+                    📍 {booking.move_in_dorm}{booking.move_in_room ? `, Rm ${booking.move_in_room}` : ''}
+                    {booking.move_in_confirmed_at && (
+                      <span style={{ marginLeft: '6px', fontSize: '0.72rem', fontWeight: 700, color: '#166534', background: '#dcfce7', padding: '1px 6px', borderRadius: '6px' }}>Confirmed</span>
+                    )}
+                  </div>
+                )}
+                {!booking.move_in_dorm && (
+                  <div style={{ fontSize: '0.75rem', color: '#b45309', marginTop: '4px' }}>⚠️ Delivery dorm not confirmed</div>
+                )}
               </div>
               <div>
                 <div style={{ fontSize: '0.75rem', color: 'var(--color-gray-600)', marginBottom: '4px' }}>Storage Duration</div>

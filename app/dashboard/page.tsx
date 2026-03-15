@@ -7,6 +7,7 @@ import { PackingGuide } from './PackingGuide';
 import { AuthPageWrapper } from '@/app/components/AuthPageWrapper';
 import { ProfileEditor } from './ProfileEditor';
 import { LogoutButton } from './LogoutButton';
+import { MoveInConfirmCard } from './MoveInConfirmCard';
 
 type BookingItem = { item_type: string; quantity: number; monthly_rate: number; subtotal: number };
 type BookingRow = {
@@ -25,6 +26,10 @@ type BookingRow = {
   payment_status: string;
   box_quantity: number;
   created_at: string;
+  move_in_dorm: string | null;
+  move_in_room: string | null;
+  move_in_confirmed_at: string | null;
+  special_instructions: string | null;
   booking_items: BookingItem[] | null;
 };
 
@@ -87,6 +92,10 @@ export default async function DashboardPage() {
       payment_status,
       box_quantity,
       created_at,
+      move_in_dorm,
+      move_in_room,
+      move_in_confirmed_at,
+      special_instructions,
       booking_items ( item_type, quantity, monthly_rate, subtotal )
     `)
     .eq('user_id', profileId)
@@ -160,6 +169,29 @@ export default async function DashboardPage() {
               </Link>
             </div>
           )}
+
+          {/* Move-In Delivery Confirmation — shown 28 days before move-in for confirmed bookings */}
+          {(() => {
+            const now = new Date();
+            const upcoming = bookings.find(b => {
+              if (!b.move_in_date || b.status === 'cancelled') return false;
+              const moveIn = new Date(b.move_in_date + 'T12:00:00');
+              const daysUntil = (moveIn.getTime() - now.getTime()) / (1000 * 60 * 60 * 24);
+              return daysUntil <= 28 && daysUntil >= 0;
+            });
+            if (!upcoming) return null;
+            return (
+              <MoveInConfirmCard
+                bookingId={upcoming.id}
+                moveInDate={upcoming.move_in_date}
+                currentSchool={upcoming.school}
+                currentMoveInDorm={upcoming.move_in_dorm}
+                currentMoveInRoom={upcoming.move_in_room}
+                currentSpecialInstructions={upcoming.special_instructions}
+                confirmedAt={upcoming.move_in_confirmed_at}
+              />
+            );
+          })()}
 
           {/* Your Bookings */}
           <div style={{ marginBottom: '40px', padding: 'clamp(16px, 4vw, 32px)', background: 'var(--color-paper)', borderRadius: '12px', border: '2px solid var(--color-latte)' }}>

@@ -5832,13 +5832,16 @@ button {
 
 .payment-digital-wallets {
   display: flex;
-  flex-direction: row;
-  gap: 12px;
+  flex-direction: column;
+  gap: 10px;
   margin-bottom: 16px;
+  width: 100%;
 }
 
 .payment-wallet-button {
-  flex: 1;
+  flex: unset;
+  width: 100%;
+  height: 48px;
   min-height: 48px;
   border-radius: 8px;
   cursor: pointer;
@@ -5851,6 +5854,7 @@ button {
   border: none;
   display: block;
   width: 100%;
+  height: 48px;
 }
 
 .payment-wallet-button-apple:disabled {
