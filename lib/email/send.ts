@@ -5,6 +5,7 @@ import { DepositConfirmedUserEmail } from '@/emails/deposit-confirmed-user';
 import { OrderConfirmedUserEmail } from '@/emails/order-confirmed-user';
 import { DepositPaidAdminEmail } from '@/emails/deposit-paid-admin';
 import { NewBookingAdminEmail } from '@/emails/new-booking-admin';
+import { MoveInReminderUserEmail } from '@/emails/move-in-reminder-user';
 
 const FROM = 'NoTime Storage <noreply@notimestorage.co>';
 const ADMIN_EMAIL = process.env.BOOKING_NOTIFY_EMAIL || '';
@@ -161,6 +162,29 @@ export async function sendMoveInDetailsUpdatedAdmin(params: {
   await sendEmail(
     ADMIN_EMAIL,
     `📍 Move-in details updated — ${studentName} · ${moveInDate}`,
+    html,
+  );
+}
+
+export async function sendMoveInReminderUser({
+  to,
+  customerName,
+  moveInDate,
+  school,
+  currentDorm,
+}: {
+  to: string;
+  customerName: string;
+  moveInDate: string;
+  school: string;
+  currentDorm?: string;
+}) {
+  const html = await render(
+    MoveInReminderUserEmail({ customerName, moveInDate, school, currentDorm, dashboardUrl: 'https://notimestorage.co/dashboard' })
+  );
+  await sendEmail(
+    to,
+    `📦 Confirm your move-in delivery dorm — NoTime Storage`,
     html,
   );
 }
