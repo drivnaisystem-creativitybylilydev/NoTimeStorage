@@ -125,7 +125,7 @@ export function DepositForm({ applicationId, locationId, isSandbox, customerName
             try {
               const result = await googlePay.tokenize();
               if (result.status === 'OK' && result.token) {
-                await processDepositWithToken(result.token);
+                await verifyAndCharge(result.token);
               } else {
                 setError(result.errors?.[0]?.message ?? 'Google Pay failed.');
               }
