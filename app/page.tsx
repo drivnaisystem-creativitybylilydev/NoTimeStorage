@@ -1240,7 +1240,7 @@ export default function Home() {
           <div className="footer-content">
             {/* Brand Column */}
             <div className="footer-column footer-brand">
-              <Link href="/" aria-label="NoTime Storage homepage">
+              <Link href="/admin" aria-label="NoTime Storage admin sign-in">
                 <Image
                   src="/brand/notime-storage-logo.png?v=2"
                   alt="NoTime Storage Logo"

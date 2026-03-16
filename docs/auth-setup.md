@@ -63,8 +63,12 @@
    - **Secure email change**: ON
 
 6. Under "URL Configuration":
-   - **Site URL**: `http://localhost:3000` (dev) or your production URL
-   - **Redirect URLs**: Add `http://localhost:3000/auth/callback`
+   - **Site URL**: `http://localhost:3000` (dev) or your production URL (e.g. `https://notimestorage.co`)
+   - **Redirect URLs**: Add:
+     - `http://localhost:3000/auth/callback`
+     - `http://localhost:3000/auth/update-password`
+     - `https://notimestorage.co/auth/callback` (production)
+     - `https://notimestorage.co/auth/update-password` (production)
 
 ### 3. Test the Flow
 

@@ -74,6 +74,13 @@ function LoginPageContent() {
               </p>
             </div>
           )}
+          {from === 'password-reset' && (
+            <div className="auth-success" style={{ marginBottom: '1rem' }}>
+              <p style={{ margin: 0, color: '#4A3A34', fontSize: '0.95rem' }}>
+                Your password has been updated. Log in with your new password.
+              </p>
+            </div>
+          )}
           {error && (
             <div className="auth-error">
               {error}
