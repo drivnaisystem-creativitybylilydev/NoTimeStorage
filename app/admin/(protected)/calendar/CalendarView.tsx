@@ -17,10 +17,36 @@ const BOX_RANGES = [
 ];
 
 const SCHOOL_COLORS: Record<string, { bg: string; text: string; dot: string; light: string }> = {
-  'Stonehill College':       { bg: '#4B2E25', text: '#fff', dot: '#C9A47E', light: '#F5EDE8' },
-  'University of New Haven': { bg: '#1B4F72', text: '#fff', dot: '#7FB3D3', light: '#E8F1F8' },
+  'Stonehill College':                    { bg: '#4B2E25', text: '#fff', dot: '#C9A47E', light: '#F5EDE8' },
+  'University of New Haven':              { bg: '#1B4F72', text: '#fff', dot: '#7FB3D3', light: '#E8F1F8' },
+  'University of Dayton':                 { bg: '#6B2D5C', text: '#fff', dot: '#D4A5C8', light: '#F5EEF3' },
+  'University of Massachusetts':          { bg: '#0D5C2E', text: '#fff', dot: '#7FCC9A', light: '#E8F5EC' },
+  'Brevard College':                      { bg: '#8B4513', text: '#fff', dot: '#D4A574', light: '#F5EDE5' },
+  'Gordon College':                       { bg: '#2C5282', text: '#fff', dot: '#90CDF4', light: '#EBF8FF' },
+  'Central Connecticut State University': { bg: '#744210', text: '#fff', dot: '#D69E2E', light: '#FFFAF0' },
+  'Sacred Heart University':              { bg: '#553C9A', text: '#fff', dot: '#B794F4', light: '#FAF5FF' },
+  'Towson University':                    { bg: '#234E52', text: '#fff', dot: '#81E6D9', light: '#E6FFFA' },
+  'University of Notre Dame':             { bg: '#1A365D', text: '#fff', dot: '#63B3ED', light: '#EBF8FF' },
+  'James Madison University':             { bg: '#9C4221', text: '#fff', dot: '#FBD38D', light: '#FFFAF0' },
+  'Bridgewater State University':         { bg: '#2D3748', text: '#fff', dot: '#A0AEC0', light: '#F7FAFC' },
 };
 const FALLBACK_COLOR = { bg: '#5A5A5A', text: '#fff', dot: '#ccc', light: '#f0f0f0' };
+
+/** Get color for a school - exact match, then case-insensitive, then deterministic hash fallback */
+function getSchoolColor(school: string | null | undefined): { bg: string; text: string; dot: string; light: string } {
+  if (!school?.trim()) return FALLBACK_COLOR;
+  const s = school.trim();
+  if (SCHOOL_COLORS[s]) return SCHOOL_COLORS[s];
+  const match = SCHOOL_NAMES.find(n => n.toLowerCase() === s.toLowerCase());
+  if (match && SCHOOL_COLORS[match]) return SCHOOL_COLORS[match];
+  // Deterministic color from string hash so unknown schools still get distinct colors
+  let h = 0;
+  for (let i = 0; i < s.length; i++) h = ((h << 5) - h) + s.charCodeAt(i) | 0;
+  const hue = Math.abs(h % 360);
+  const bg = `hsl(${hue}, 45%, 28%)`;
+  const light = `hsl(${hue}, 30%, 95%)`;
+  return { bg, text: '#fff', dot: `hsl(${hue}, 50%, 70%)`, light };
+}
 
 // Distinct color for move-in delivery events
 const MOVE_IN_COLOR = { bg: '#1A7F4B', text: '#fff', light: '#E6F4EE' };
@@ -85,7 +111,7 @@ function DayDetailPanel({ date, moveOutBookings, moveInBookings, onClose, school
 
   const BookingCard = ({ b, type }: { b: BookingWithCustomer; type: 'move-out' | 'move-in' }) => {
     const matches = matchesFilter(b);
-    const color = type === 'move-in' ? MOVE_IN_COLOR : (SCHOOL_COLORS[b.school] || FALLBACK_COLOR);
+    const color = type === 'move-in' ? MOVE_IN_COLOR : getSchoolColor(b.school);
     const statusInfo = STATUS_LABELS[b.status] || { label: b.status, color: '#666' };
     const timeSlot = type === 'move-in' ? b.move_in_time_slot : b.move_out_time_slot;
     const dorm = type === 'move-in' ? (b.move_in_dorm || b.dorm) : b.dorm;
@@ -224,7 +250,7 @@ function WeekView({ weekStart, bookingsByDate, moveInByDate, matchesFilter, isFi
 
           const EventCard = ({ b, type }: { b: BookingWithCustomer; type: 'move-out' | 'move-in' }) => {
             const matches = matchesFilter(b);
-            const color = type === 'move-in' ? MOVE_IN_COLOR : (SCHOOL_COLORS[b.school] || FALLBACK_COLOR);
+            const color = type === 'move-in' ? MOVE_IN_COLOR : getSchoolColor(b.school);
             const statusInfo = STATUS_LABELS[b.status] || { label: b.status, color: '#666' };
             const timeSlot = type === 'move-in' ? b.move_in_time_slot : b.move_out_time_slot;
             const dorm = type === 'move-in' ? (b.move_in_dorm || b.dorm) : b.dorm;
@@ -252,7 +278,7 @@ function WeekView({ weekStart, bookingsByDate, moveInByDate, matchesFilter, isFi
                 <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#1a1a1a', marginBottom: '4px', lineHeight: 1.3 }}>
                   {b.customer?.full_name || 'Unknown Student'}
                 </div>
-                <div style={{ display: 'inline-block', fontSize: '0.65rem', fontWeight: 700, background: type === 'move-in' ? color.bg : (SCHOOL_COLORS[b.school] || FALLBACK_COLOR).bg, color: '#fff', padding: '1px 7px', borderRadius: '20px', marginBottom: '6px' }}>
+                <div style={{ display: 'inline-block', fontSize: '0.65rem', fontWeight: 700, background: type === 'move-in' ? color.bg : getSchoolColor(b.school).bg, color: '#fff', padding: '1px 7px', borderRadius: '20px', marginBottom: '6px' }}>
                   {b.school === 'Stonehill College' ? 'Stonehill' : b.school === 'University of New Haven' ? 'UNH' : b.school}
                 </div>
                 <div style={{ fontSize: '0.72rem', color: '#555', display: 'flex', flexDirection: 'column', gap: '2px' }}>
@@ -403,12 +429,27 @@ export function CalendarView({ bookings }: { bookings: BookingWithCustomer[] }) 
   return (
     <>
       {/* Stats strip */}
+      {(() => {
+        const schoolCounts = SCHOOL_NAMES.map(school => ({
+          school,
+          count: thisMonthBookings.filter(b => b.school === school && (schoolFilter === 'All Schools' || schoolFilter === school)).length,
+          color: getSchoolColor(school).bg,
+        })).filter(s => s.count > 0);
+        const shortName = (s: string) => {
+          const map: Record<string, string> = {
+            'Stonehill College': 'Stonehill', 'University of New Haven': 'UNH', 'University of Massachusetts': 'UMass',
+            'Central Connecticut State University': 'CCSU', 'Sacred Heart University': 'SHU', 'University of Notre Dame': 'Notre Dame',
+            'James Madison University': 'JMU', 'Bridgewater State University': 'Bridgewater', 'University of Dayton': 'Dayton',
+            'Brevard College': 'Brevard', 'Gordon College': 'Gordon', 'Towson University': 'Towson',
+          };
+          return map[s] ?? s;
+        };
+        return (
       <div style={{ display: 'flex', gap: '16px', marginBottom: '28px', flexWrap: 'wrap' }}>
         {[
           { label: 'Move-outs this month', value: isFiltered ? filteredThisMonth.length : thisMonthBookings.length },
           { label: 'Move-ins this month', value: thisMonthMoveIns.length, color: MOVE_IN_COLOR.bg },
-          { label: 'Stonehill', value: thisMonthBookings.filter(b => b.school === 'Stonehill College' && (schoolFilter === 'All Schools' || schoolFilter === 'Stonehill College')).length, color: SCHOOL_COLORS['Stonehill College'].bg },
-          { label: 'Univ. of New Haven', value: thisMonthBookings.filter(b => b.school === 'University of New Haven' && (schoolFilter === 'All Schools' || schoolFilter === 'University of New Haven')).length, color: SCHOOL_COLORS['University of New Haven'].bg },
+          ...schoolCounts.map(s => ({ label: shortName(s.school), value: s.count, color: s.color })),
         ].map(stat => (
           <div key={stat.label} style={{ background: '#fff', border: '1px solid #E7D3BF', borderRadius: '12px', padding: '16px 24px', display: 'flex', flexDirection: 'column', gap: '4px', minWidth: '160px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -419,6 +460,8 @@ export function CalendarView({ bookings }: { bookings: BookingWithCustomer[] }) 
           </div>
         ))}
       </div>
+        );
+      })()}
 
       {/* Toolbar */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', flexWrap: 'wrap', gap: '16px' }}>
@@ -517,7 +560,7 @@ export function CalendarView({ bookings }: { bookings: BookingWithCustomer[] }) 
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
                     {visibleEvents.map(({ b, type }) => {
                       const matches = matchesFilter(b);
-                      const color = type === 'move-in' ? MOVE_IN_COLOR : (SCHOOL_COLORS[b.school] || FALLBACK_COLOR);
+                      const color = type === 'move-in' ? MOVE_IN_COLOR : getSchoolColor(b.school);
                       const timeSlot = type === 'move-in' ? b.move_in_time_slot : b.move_out_time_slot;
                       return (
                         <div key={b.id + '-' + type} title={`${type === 'move-in' ? '📦 Move-in' : '📤 Move-out'} · ${b.customer?.full_name || 'Student'} · ${b.school} · ${b.box_quantity} boxes`} style={{ padding: '3px 7px', borderRadius: '5px', fontSize: '0.71rem', fontWeight: 600, background: color.bg, color: color.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', display: 'flex', alignItems: 'center', gap: '5px', transition: 'opacity 0.2s, filter 0.2s', opacity: isFiltered && !matches ? 0.15 : 1, filter: isFiltered && !matches ? 'grayscale(1) brightness(1.2)' : 'none' }}>
