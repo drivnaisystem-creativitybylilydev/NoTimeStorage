@@ -155,7 +155,7 @@ export default function SignUpPage() {
               Click the link in the email to activate your account.
             </p>
             <p style={{ color: '#9B8880', fontSize: '0.8rem', marginTop: '12px', padding: '8px 12px', background: 'var(--color-paper)', borderRadius: '8px', border: '1px solid var(--color-latte)' }}>
-              📬 Don&apos;t see it? Check your <strong>junk or spam folder</strong> — it may have landed there.
+              📬 Don&apos;t see it? Check <strong>junk or spam</strong>. If you used a <strong>.edu</strong> address, the email may be blocked — sign up again with a <strong>personal email</strong> if nothing arrives within a few minutes.
             </p>
           </div>
         </div>
@@ -180,6 +180,27 @@ export default function SignUpPage() {
         <div className="auth-header">
           <h1>Create your account</h1>
           <p>Start storing your belongings with NoTime Storage</p>
+        </div>
+
+        <div
+          role="note"
+          style={{
+            marginBottom: '20px',
+            padding: '14px 16px',
+            borderRadius: '12px',
+            border: '1px solid rgba(92, 64, 51, 0.25)',
+            background: 'linear-gradient(135deg, rgba(250, 247, 242, 0.95) 0%, rgba(232, 220, 208, 0.5) 100%)',
+            fontSize: '0.875rem',
+            lineHeight: 1.5,
+            color: '#3d2f26',
+          }}
+        >
+          <strong style={{ display: 'block', marginBottom: '6px', color: 'var(--color-coffee)' }}>
+            Use a personal email for this account
+          </strong>
+          Sign up with <strong>Gmail, Outlook, iCloud, or Yahoo</strong> — not your school (.edu) address. We send a{' '}
+          <strong>confirmation link</strong> and <strong>password resets</strong> to this email, and many colleges block
+          or delay those messages.
         </div>
 
         <form onSubmit={handleSubmit} className="auth-form">
@@ -214,16 +235,18 @@ export default function SignUpPage() {
           </div>
 
           <div className="form-group">
-            <label htmlFor="email">Email</label>
+            <label htmlFor="email">Email (login &amp; confirmations)</label>
             <input
               type="email"
               id="email"
               value={formData.email}
               onChange={(e) => setFormData({ ...formData, email: e.target.value })}
               required
+              autoComplete="email"
+              placeholder="you@gmail.com"
             />
-            <small style={{ display: 'block', marginTop: '6px', color: '#7a6a62', lineHeight: 1.4 }}>
-              Use an address you check often. School (.edu) mail sometimes blocks or delays automated messages — a personal Gmail or Outlook account is most reliable for the confirmation link.
+            <small style={{ display: 'block', marginTop: '8px', color: '#6b5a52', lineHeight: 1.45 }}>
+              This must be an inbox you can open anytime — same email for logging in and resetting your password.
             </small>
           </div>
 
