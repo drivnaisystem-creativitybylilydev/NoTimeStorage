@@ -3,6 +3,7 @@
  * @see https://supabase.com/docs/guides/auth/auth-hooks/send-email-hook
  */
 import { Webhook } from 'standardwebhooks';
+import type { AuthVerifyEmailProps } from '@/emails/auth-verify-email';
 
 const REPLY_TO = 'support@notimestorage.co';
 
@@ -96,106 +97,69 @@ function usesVerifyLink(action: string): boolean {
   ].includes(action);
 }
 
-export function buildAuthEmailHtml(opts: {
-  title: string;
-  intro: string;
-  actionUrl?: string;
-  buttonLabel?: string;
-  otpCode?: string;
-}): string {
-  const { title, intro, actionUrl, buttonLabel = 'Continue', otpCode } = opts;
-  const safeIntro = escapeHtml(intro);
-  const button = actionUrl
-    ? `<a href="${escapeAttr(actionUrl)}" style="display:inline-block;padding:14px 28px;background:#5c4033;color:#faf7f2;text-decoration:none;border-radius:10px;font-weight:600;font-size:16px;">${escapeHtml(buttonLabel)}</a>`
-    : '';
-  const otpBlock = otpCode
-    ? `<p style="margin:24px 0 8px;color:#4A3A34;font-size:14px;">Or enter this code:</p>
-       <p style="font-size:28px;letter-spacing:6px;font-weight:700;color:#1a1a1a;margin:0;padding:16px 20px;background:#f4f0eb;border-radius:8px;display:inline-block;">${escapeHtml(otpCode)}</p>`
-    : '';
-  return `<!DOCTYPE html>
-<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"></head>
-<body style="margin:0;padding:24px;background:#faf7f2;font-family:system-ui,-apple-system,sans-serif;color:#2d2419;">
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center">
-    <table width="100%" style="max-width:520px;background:#ffffff;border-radius:16px;padding:32px 28px;box-shadow:0 2px 12px rgba(0,0,0,0.06);">
-      <tr><td>
-        <h1 style="margin:0 0 16px;font-size:22px;color:#3d2f26;">${escapeHtml(title)}</h1>
-        <p style="margin:0 0 24px;line-height:1.55;color:#4A3A34;font-size:15px;">${safeIntro}</p>
-        ${button ? `<p style="margin:0 0 8px;">${button}</p>` : ''}
-        ${otpBlock}
-        <p style="margin-top:28px;font-size:12px;color:#9B8880;line-height:1.5;">If you didn’t request this, you can ignore this email.</p>
-      </td></tr>
-    </table>
-  </td></tr></table>
-</body></html>`;
-}
-
-function escapeHtml(s: string): string {
-  return s
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
-}
-
-function escapeAttr(s: string): string {
-  return escapeHtml(s).replace(/'/g, '&#39;');
-}
-
 export function introForAction(
   action: string,
   email: string
-): { title: string; intro: string; buttonLabel: string } {
-  const e = escapeHtml(email);
+): { title: string; body: string; buttonLabel: string; preview: string } {
   switch (action) {
     case 'signup':
       return {
         title: 'Confirm your email',
-        intro: `Thanks for signing up. Confirm your email address for ${e} to finish creating your account.`,
+        body: `Thanks for signing up. Confirm your email address for ${email} to finish creating your account.`,
         buttonLabel: 'Confirm email',
+        preview: 'Confirm your email to finish creating your NoTime Storage account',
       };
     case 'recovery':
       return {
         title: 'Reset your password',
-        intro: `We received a request to reset the password for ${e}. Click below to choose a new password.`,
+        body: `We received a request to reset the password for ${email}. Click the button below to choose a new password.`,
         buttonLabel: 'Reset password',
+        preview: 'Reset your NoTime Storage password',
       };
     case 'magiclink':
       return {
         title: 'Sign in to NoTime Storage',
-        intro: `Use the link below to sign in as ${e}.`,
+        body: `Use the sign-in link below for ${email}.`,
         buttonLabel: 'Sign in',
+        preview: 'Your NoTime Storage sign-in link',
       };
     case 'invite':
       return {
         title: "You're invited",
-        intro: `You’ve been invited to join NoTime Storage. Click below to accept.`,
+        body: `You've been invited to join NoTime Storage. Click below to accept.`,
         buttonLabel: 'Accept invite',
+        preview: "You're invited to NoTime Storage",
       };
     case 'email_change':
       return {
         title: 'Confirm email change',
-        intro: `Confirm this change for your NoTime Storage account.`,
+        body: `Confirm this change for your NoTime Storage account.`,
         buttonLabel: 'Confirm',
+        preview: 'Confirm your email change — NoTime Storage',
       };
     default:
       return {
         title: 'NoTime Storage',
-        intro: `Account notification for ${e}.`,
+        body: `Account notification for ${email}.`,
         buttonLabel: 'Open',
+        preview: 'NoTime Storage account notification',
       };
   }
 }
 
-export type PreparedAuthEmail = { to: string; subject: string; html: string };
+export type PreparedAuthEmail = {
+  to: string;
+  subject: string;
+  emailProps: AuthVerifyEmailProps;
+};
 
-/** Build one or more outbound auth emails for Resend */
+/** Build one or more outbound auth emails for Resend (render HTML in route with @react-email/render) */
 export function prepareAuthEmails(
   supabaseUrl: string,
   user: HookUser,
   email_data: HookEmailData
 ): PreparedAuthEmail[] {
-  const { email_action_type, token, token_hash, redirect_to, token_new, token_hash_new } =
-    email_data;
+  const { email_action_type, token_hash, redirect_to, token_hash_new } = email_data;
   const out: PreparedAuthEmail[] = [];
 
   // Secure email change: two emails — https://supabase.com/docs/guides/auth/auth-hooks/send-email-hook
@@ -207,52 +171,52 @@ export function prepareAuthEmails(
   ) {
     const linkCurrent = buildVerifyLink(supabaseUrl, token_hash_new, 'email_change', redirect_to);
     const linkNew = buildVerifyLink(supabaseUrl, token_hash, 'email_change', redirect_to);
-    const { title, intro, buttonLabel } = introForAction('email_change', user.email);
+    const base = introForAction('email_change', user.email);
 
     out.push({
       to: user.email,
       subject: 'Confirm email change (current address) — NoTime Storage',
-      html: buildAuthEmailHtml({
-        title,
-        intro: `${intro} This confirmation is for your current email address.`,
-        actionUrl: linkCurrent,
-        buttonLabel,
-        otpCode: token || undefined,
-      }),
+      emailProps: {
+        preview: `${base.preview} — current address`,
+        title: base.title,
+        body: `${base.body} This confirmation is for your current email address.`,
+        ctaUrl: linkCurrent,
+        ctaLabel: base.buttonLabel,
+      },
     });
 
     const introNew = introForAction('email_change', user.new_email);
     out.push({
       to: user.new_email,
       subject: 'Confirm your new email — NoTime Storage',
-      html: buildAuthEmailHtml({
+      emailProps: {
+        preview: `${introNew.preview} — new address`,
         title: introNew.title,
-        intro: `${introNew.intro} This confirmation is for your new email address.`,
-        actionUrl: linkNew,
-        buttonLabel: introNew.buttonLabel,
-        otpCode: token_new || undefined,
-      }),
+        body: `${introNew.body} This confirmation is for your new email address.`,
+        ctaUrl: linkNew,
+        ctaLabel: introNew.buttonLabel,
+      },
     });
 
     return out;
   }
 
-  const { title, intro, buttonLabel } = introForAction(email_action_type, user.email);
-  let actionUrl: string | undefined;
+  const { title, body, buttonLabel, preview } = introForAction(email_action_type, user.email);
+  let ctaUrl: string | undefined;
   if (usesVerifyLink(email_action_type) && token_hash) {
-    actionUrl = buildVerifyLink(supabaseUrl, token_hash, email_action_type, redirect_to);
+    ctaUrl = buildVerifyLink(supabaseUrl, token_hash, email_action_type, redirect_to);
   }
 
   out.push({
     to: user.email,
     subject: subjectForAction(email_action_type),
-    html: buildAuthEmailHtml({
+    emailProps: {
+      preview,
       title,
-      intro,
-      actionUrl,
-      buttonLabel,
-      otpCode: token || undefined,
-    }),
+      body,
+      ctaUrl,
+      ctaLabel: buttonLabel,
+    },
   });
 
   return out;

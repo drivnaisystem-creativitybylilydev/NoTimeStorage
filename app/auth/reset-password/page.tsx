@@ -31,7 +31,15 @@ export default function ResetPasswordPage() {
 
       setSuccess(true);
     } catch (err: any) {
-      setError(err.message || 'An error occurred');
+      const raw = String(err?.message ?? err ?? '');
+      const lower = raw.toLowerCase();
+      if (lower.includes('rate limit') || lower.includes('over_email_send')) {
+        setError(
+          'Too many reset emails were requested. Please wait about an hour and try again, or contact support if you need help immediately.'
+        );
+      } else {
+        setError(raw || 'An error occurred');
+      }
     } finally {
       setLoading(false);
     }

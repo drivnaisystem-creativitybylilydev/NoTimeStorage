@@ -1,5 +1,23 @@
 # Auth emails not arriving (signup confirmation / password reset)
 
+## “Email rate limit exceeded” (password reset / signup)
+
+This message comes from **Supabase Auth**, not from your Next.js app. It protects against abuse: each project has limits on how many auth-related emails can be sent per time window (per email / per IP), especially on the **free tier**.
+
+### Where to change it
+
+1. **Supabase Dashboard** → **Authentication** → **Rate limits** (wording may be **Attack Protection** or **Rate Limits** depending on dashboard version).
+2. Adjust **email** / **token** / **signup** limits if your plan allows (some options require **Pro** or **custom SMTP** — see [Supabase Auth rate limits](https://supabase.com/docs/guides/auth/rate-limits)).
+
+### What to do without changing settings
+
+- **Wait** — limits are time-windowed (often ~1 hour for repeated requests to the same address). Heavy testing triggers this quickly.
+- **Don’t spam reset** while debugging — use one test email or increase limits in the dashboard.
+
+The app cannot bypass Supabase’s auth rate limits from the frontend; only **Supabase project settings** (or upgrading the project) change the caps.
+
+---
+
 ## Recommended fix: Send Email hook (Resend API)
 
 We implemented **HTTPS Send Email hook** so auth mail uses the same **Resend API** as booking emails. See **`docs/AUTH-SEND-EMAIL-HOOK.md`** for setup (`SEND_EMAIL_HOOK_SECRET` + Supabase Auth Hooks). This is the most reliable fix, especially if **school / .edu** addresses don’t receive SMTP-based auth mail.

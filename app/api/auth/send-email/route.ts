@@ -1,5 +1,8 @@
 import { NextResponse } from 'next/server';
+import { createElement } from 'react';
+import { render } from '@react-email/render';
 import { Resend } from 'resend';
+import { AuthVerifyEmail } from '@/emails/auth-verify-email';
 import {
   verifySendEmailPayload,
   prepareAuthEmails,
@@ -51,12 +54,14 @@ export async function POST(request: Request) {
 
   try {
     for (const mail of emails) {
+      const html = await render(createElement(AuthVerifyEmail, mail.emailProps));
+
       const { error } = await resend.emails.send({
         from: FROM,
         to: [mail.to],
         replyTo: REPLY_TO,
         subject: mail.subject,
-        html: mail.html,
+        html,
       });
       if (error) {
         console.error('[auth/send-email] Resend error:', error);
