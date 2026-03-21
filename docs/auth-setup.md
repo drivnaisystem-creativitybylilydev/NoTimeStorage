@@ -70,7 +70,11 @@
      - `https://notimestorage.co/auth/callback` (production)
      - `https://notimestorage.co/auth/update-password` (production)
 
-### 3. Test the Flow
+### 3. Auth emails not arriving?
+
+Signup and password reset are sent by **Supabase**, not by the app’s Resend API. You must enable **Custom SMTP** in Supabase (see step 2). See **`docs/AUTH-EMAIL-TROUBLESHOOTING.md`** for a full checklist.
+
+### 4. Test the Flow
 
 1. Start your dev server: `npm run dev`
 2. Go to http://localhost:3000

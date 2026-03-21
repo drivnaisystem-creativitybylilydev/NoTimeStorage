@@ -8,6 +8,7 @@ import { NewBookingAdminEmail } from '@/emails/new-booking-admin';
 import { MoveInReminderUserEmail } from '@/emails/move-in-reminder-user';
 
 const FROM = 'NoTime Storage <noreply@notimestorage.co>';
+const REPLY_TO = 'support@notimestorage.co';
 const ADMIN_EMAIL = process.env.BOOKING_NOTIFY_EMAIL || '';
 
 async function sendEmail(to: string | string[], subject: string, html: string) {
@@ -20,7 +21,13 @@ async function sendEmail(to: string | string[], subject: string, html: string) {
   try {
     const { Resend } = await import('resend');
     const resend = new Resend(apiKey);
-    const { error } = await resend.emails.send({ from: FROM, to: recipients, subject, html });
+    const { error } = await resend.emails.send({
+      from: FROM,
+      to: recipients,
+      replyTo: REPLY_TO,
+      subject,
+      html,
+    });
     if (error) console.error('[email] Send error:', error);
     else console.log('[email] Sent to', recipients.join(', '), '–', subject);
   } catch (err) {

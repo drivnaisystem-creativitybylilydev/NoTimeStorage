@@ -20,9 +20,9 @@ export default function ResetPasswordPage() {
     setLoading(true);
 
     try {
-      const baseUrl = typeof process.env.NEXT_PUBLIC_SITE_URL === 'string' && process.env.NEXT_PUBLIC_SITE_URL
-        ? process.env.NEXT_PUBLIC_SITE_URL.replace(/\/$/, '')
-        : window.location.origin;
+      // Match signup flow: use current origin so redirect matches Supabase allowlist for
+      // localhost, production, or preview (avoid NEXT_PUBLIC_SITE_URL pointing elsewhere).
+      const baseUrl = window.location.origin.replace(/\/$/, '');
       const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: `${baseUrl}/auth/update-password`,
       });

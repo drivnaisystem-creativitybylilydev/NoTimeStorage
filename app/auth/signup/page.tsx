@@ -222,6 +222,9 @@ export default function SignUpPage() {
               onChange={(e) => setFormData({ ...formData, email: e.target.value })}
               required
             />
+            <small style={{ display: 'block', marginTop: '6px', color: '#7a6a62', lineHeight: 1.4 }}>
+              Use an address you check often. School (.edu) mail sometimes blocks or delays automated messages — a personal Gmail or Outlook account is most reliable for the confirmation link.
+            </small>
           </div>
 
           <div className="form-group">

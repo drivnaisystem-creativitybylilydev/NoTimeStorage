@@ -8,6 +8,18 @@ import { createClient } from '@/lib/supabase/client';
 import { submitReminderSignup } from '@/lib/reminder/signup';
 import { SCHOOLS } from '@/lib/schools/config';
 import { CircularCarousel } from '@/app/components/CircularCarousel';
+
+const FAQ_ITEMS = [
+  { q: "How does the move-out pickup work?", a: "After booking, you choose a move-out date and time slot (8:00 AM–4:40 PM). On your scheduled day, our team comes to your dorm room, loads your belongings into our truck, and takes them to our secure warehouse. We handle everything — no lugging boxes to a facility yourself. Each pickup takes about 5 minutes. If you have multiple students in the same hall, we can schedule pickups within 5 minutes of each other." },
+  { q: "How does the move-in delivery (box distribution) work?", a: "At checkout, you select your preferred move-in delivery date. When the semester starts, we deliver your belongings directly to your new room. You confirm your dorm and room before delivery so we know exactly where to bring everything. We'll reach out before your delivery date to confirm your move-in location." },
+  { q: "What exactly counts as a 'box'?", a: "Our boxes are large, durable storage containers (40″ × 30″ × 30″, 225 lbs max, 20.8 ft³). Each fits a full dorm room's worth of belongings — bedding, clothes, books, small appliances, and decor. You can use our boxes or your own as long as they're sealed and sturdy. Oversized items like mini-fridges, fans, lamps, rugs, and chairs are listed separately as add-ons when you configure your order." },
+  { q: "What are the move-out and move-in date windows?", a: "Move-out windows are set per campus and aligned with each school's official checkout schedule — typically mid-to-late April through mid-May. Move-in delivery windows open in late August through September. You select your preferred dates and time slots at checkout. Exact windows for your school are shown during booking." },
+  { q: "Is my stuff safe while in storage?", a: "All belongings are stored in our climate-controlled, secure warehouse facility. Items are tracked and logged at pickup. While we take every precaution to ensure items are handled carefully, we recommend not storing irreplaceable valuables. If you have questions about a specific item, reach out before booking." },
+  { q: "How much does it cost and what's included?", a: "Pricing is based on the number of boxes and any additional items (mini-fridge, fan, rug, etc.) you need stored. A $50 deposit is collected at booking to secure your spot, and the remaining balance is due before pickup. We also offer a monthly payment plan that splits the remaining balance into 3 equal installments — great if you want to spread the cost over the summer." },
+  { q: "Can I add extra items after I've already booked?", a: "Yes — reach out to us before your pickup date and we can update your order. Additional items may affect your total price. We do our best to accommodate last-minute changes, especially if you contact us at least 48 hours before your scheduled pickup." },
+  { q: "What if I need to cancel my booking?", a: "If you need to cancel, contact us as soon as possible. The $50 deposit is non-refundable once a pickup is scheduled, but any remaining balance paid will be refunded. If you cancel well in advance before a pickup date is confirmed, we'll work with you on a case-by-case basis." },
+  { q: "Which schools do you currently serve?", a: "We serve Stonehill College, University of New Haven, University of Dayton, University of Massachusetts, Brevard College, Gordon College, Central Connecticut State University, Sacred Heart University, Towson University, University of Notre Dame, James Madison University, and Bridgewater State University. If your school isn't listed yet, sign up for our reminder list and we'll notify you when we launch at your campus." },
+];
 import { SiteHeader } from '@/app/components/SiteHeader';
 // #region agent log
 const DEBUG_LOG = (data: Record<string, unknown>) => { fetch('http://127.0.0.1:7791/ingest/e0f7eab6-ff14-43bf-bf05-6812e1535afb', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '104cb8' }, body: JSON.stringify({ sessionId: '104cb8', location: 'page.tsx', timestamp: Date.now(), ...data }) }).catch(() => {}); };
@@ -374,8 +386,22 @@ export default function Home() {
     }
   };
 
+  const faqJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: FAQ_ITEMS.map(({ q, a }) => ({
+      '@type': 'Question',
+      name: q,
+      acceptedAnswer: { '@type': 'Answer', text: a },
+    })),
+  };
+
   return (
     <div>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
+      />
       <SiteHeader />
 
       {/* Hero Section */}
@@ -1095,40 +1121,7 @@ export default function Home() {
           </motion.p>
           
           <div className="faq-list">
-            {[
-              {
-                q: "How does the pickup and delivery process work?",
-                a: "After booking online, we show up at your dorm on your scheduled move-out day — no lugging boxes to a facility yourself. We carefully load everything into our truck and store it at our secure warehouse over the summer. When move-in rolls around, we deliver everything directly back to your new room on the date you chose at checkout."
-              },
-              {
-                q: "How much does it cost and what's included?",
-                a: "Pricing is based on the number of boxes and any additional items (mini-fridge, fan, rug, etc.) you need stored. A $50 deposit is collected at booking to secure your spot, and the remaining balance is due before pickup. We also offer a monthly payment plan that splits the remaining balance into 3 equal installments — great if you want to spread the cost over the summer."
-              },
-              {
-                q: "What exactly counts as a 'box'?",
-                a: "Our standard box is a medium-sized moving box (roughly 18\" × 18\" × 16\"). You can use your own boxes as long as they're sealed and sturdy. Oversized items like mini-fridges, fans, lamps, rugs, and chairs are listed separately as add-ons when you configure your order. If you have something unusual, reach out and we'll let you know how to list it."
-              },
-              {
-                q: "What are the move-out and move-in date windows?",
-                a: "Move-out windows are set per campus and aligned with each school's official checkout schedule — typically mid-to-late April through mid-May. Move-in delivery windows open in late August through September. You select your preferred dates and time slots at checkout, and we coordinate from there. Exact windows for your school are shown during booking."
-              },
-              {
-                q: "Is my stuff safe while in storage?",
-                a: "All belongings are stored in our climate-controlled, secure warehouse facility. Items are tracked and logged at pickup. While we take every precaution to ensure items are handled carefully, we recommend not storing irreplaceable valuables. If you have questions about a specific item, reach out before booking."
-              },
-              {
-                q: "Can I add extra items after I've already booked?",
-                a: "Yes — reach out to us before your pickup date and we can update your order. Additional items may affect your total price. We do our best to accommodate last-minute changes, especially if you contact us at least 48 hours before your scheduled pickup."
-              },
-              {
-                q: "What if I need to cancel my booking?",
-                a: "If you need to cancel, contact us as soon as possible. The $50 deposit is non-refundable once a pickup is scheduled, but any remaining balance paid will be refunded. If you cancel well in advance before a pickup date is confirmed, we'll work with you on a case-by-case basis."
-              },
-              {
-                q: "Which schools do you currently serve?",
-                a: "We currently serve Stonehill College, with plans to expand to additional campuses each semester. If your school isn't listed yet, sign up for our reminder list and we'll notify you when we launch at your campus. We're a student-run business founded at Stonehill, so new schools are added based on demand."
-              },
-            ].map((item, i) => (
+            {FAQ_ITEMS.map((item, i) => (
               <motion.div
                 key={i}
                 className={`faq-item ${openFaq === i ? 'active' : ''}`}
