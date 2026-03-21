@@ -23,8 +23,12 @@ export default function ResetPasswordPage() {
       // Match signup flow: use current origin so redirect matches Supabase allowlist for
       // localhost, production, or preview (avoid NEXT_PUBLIC_SITE_URL pointing elsewhere).
       const baseUrl = window.location.origin.replace(/\/$/, '');
+      // Route through /auth/callback so PKCE runs on the server (fixes "invalid link" when
+      // the reset email is opened in a different app/browser than where reset was requested).
+      const callback = new URL('/auth/callback', baseUrl);
+      callback.searchParams.set('next', '/auth/update-password');
       const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${baseUrl}/auth/update-password`,
+        redirectTo: callback.toString(),
       });
 
       if (resetError) throw resetError;

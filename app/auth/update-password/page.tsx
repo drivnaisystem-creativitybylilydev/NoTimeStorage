@@ -41,13 +41,12 @@ export default function UpdatePasswordPage() {
       const type = hashParams.get('type');
       const code = searchParams.get('code');
 
+      // PKCE: exchange on server at /auth/callback (not here). Old emails may still open this page with ?code=.
       if (code) {
-        const { data: { session }, error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
-        if (!cancelled && !exchangeError && session) {
-          markReady();
-        } else if (!cancelled && exchangeError) {
-          setInvalidLink(true);
-        }
+        const u = new URL('/auth/callback', window.location.origin);
+        u.searchParams.set('code', code);
+        u.searchParams.set('next', '/auth/update-password');
+        window.location.replace(u.toString());
         return;
       }
 
