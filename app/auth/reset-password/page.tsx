@@ -2,15 +2,16 @@
 
 import { useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { createClient } from '@/lib/supabase/client';
+import { createRecoveryEmailClient } from '@/lib/supabase/implicit-recovery';
 import Link from 'next/link';
 import Image from 'next/image';
 import { AuthPageWrapper } from '@/app/components/AuthPageWrapper';
 
 function ResetPasswordForm() {
   const searchParams = useSearchParams();
-  const linkError = searchParams.get('error') === 'link';
-  const supabase = createClient();
+  const errorKind = searchParams.get('error');
+  const linkError = errorKind === 'link';
+  const expiredError = errorKind === 'expired';
   
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
@@ -26,11 +27,11 @@ function ResetPasswordForm() {
       // Match signup flow: use current origin so redirect matches Supabase allowlist for
       // localhost, production, or preview (avoid NEXT_PUBLIC_SITE_URL pointing elsewhere).
       const baseUrl = window.location.origin.replace(/\/$/, '');
-      // Route through /auth/callback so the browser can exchange PKCE (same storage as this request).
-      const callback = new URL('/auth/callback', baseUrl);
-      callback.searchParams.set('next', '/auth/update-password');
-      const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: callback.toString(),
+      // Implicit flow: email links use hash tokens — works in any browser/app (not PKCE).
+      const redirectTo = `${baseUrl}/auth/update-password`;
+      const recovery = createRecoveryEmailClient();
+      const { error: resetError } = await recovery.auth.resetPasswordForEmail(email, {
+        redirectTo,
       });
 
       if (resetError) throw resetError;
@@ -71,9 +72,8 @@ function ResetPasswordForm() {
             <p>We've sent password reset instructions to <strong>{email}</strong></p>
             <p>Click the link in the email to reset your password.</p>
             <p style={{ fontSize: '0.8rem', color: '#5c4f48', marginTop: '8px', padding: '8px 12px', background: 'var(--color-paper)', borderRadius: '8px', border: '1px solid var(--color-latte)', lineHeight: 1.5 }}>
-              <strong>On a phone:</strong> open the link in <strong>Safari or Chrome</strong> (use
-              &quot;Open in Browser&quot; from your mail app) so it works with the browser where you
-              requested the reset.
+              Open the link <strong>within about an hour</strong>. Each link works <strong>once</strong>{' '}
+              — if you already tapped it, request a new email.
             </p>
             <p style={{ fontSize: '0.8rem', color: '#9B8880', marginTop: '8px', padding: '8px 12px', background: 'var(--color-paper)', borderRadius: '8px', border: '1px solid var(--color-latte)' }}>
               📬 Don&apos;t see it? Check your <strong>junk or spam folder</strong> — it may have landed there.
@@ -107,6 +107,24 @@ function ResetPasswordForm() {
         </div>
 
         <form onSubmit={handleSubmit} className="auth-form">
+          {expiredError && (
+            <div
+              className="auth-success"
+              style={{ marginBottom: '1rem', textAlign: 'left' }}
+              role="alert"
+            >
+              <p style={{ margin: '0 0 0.5rem', fontWeight: 600, color: '#4A3A34' }}>
+                This reset link has expired or was already used
+              </p>
+              <p style={{ margin: 0, fontSize: '0.9rem', color: '#5c4f48', lineHeight: 1.5 }}>
+                Supabase only allows each link to be used once, and links time out after a limited
+                window (often about an hour). Request a <strong>new</strong> reset email below and
+                open it soon in the same browser you use to submit this form. If you tried Safari
+                and then Chrome, request a fresh link in the browser you&apos;ll use to open the
+                email.
+              </p>
+            </div>
+          )}
           {linkError && (
             <div
               className="auth-success"
@@ -114,7 +132,7 @@ function ResetPasswordForm() {
               role="alert"
             >
               <p style={{ margin: '0 0 0.5rem', fontWeight: 600, color: '#4A3A34' }}>
-                We couldn&apos;t open your reset link
+                We couldn&apos;t complete your reset link
               </p>
               <p style={{ margin: 0, fontSize: '0.9rem', color: '#5c4f48', lineHeight: 1.5 }}>
                 This often happens on phones when the link opens inside the email app instead of

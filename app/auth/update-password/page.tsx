@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import { createImplicitRedirectClient } from '@/lib/supabase/implicit-recovery';
 import Link from 'next/link';
 import Image from 'next/image';
 import { AuthPageWrapper } from '@/app/components/AuthPageWrapper';
@@ -10,7 +11,9 @@ import { finalizeAuthCallback } from '@/app/auth/callback/actions';
 
 export default function UpdatePasswordPage() {
   const router = useRouter();
-  const supabase = createClient();
+  /** Set after bootstrap so PKCE client is never initialized while the URL still has implicit hash tokens. */
+  const supabaseRef = useRef<ReturnType<typeof createClient> | null>(null);
+
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -36,26 +39,69 @@ export default function UpdatePasswordPage() {
       if (typeof window === 'undefined') return;
 
       const hash = window.location.hash;
-      const search = window.location.search;
-      const hashParams = new URLSearchParams(hash.replace('#', ''));
-      const searchParams = new URLSearchParams(search);
-      const type = hashParams.get('type');
+      const searchParams = new URLSearchParams(window.location.search);
       const code = searchParams.get('code');
 
-      // PKCE: exchange in the browser (same cookie storage as resetPasswordForEmail). Do not send
-      // to server-only /auth/callback — mobile Safari often fails server-side exchange.
+      // Implicit recovery (#access_token / type=recovery): must use implicit client first.
+      // The app PKCE client rejects implicit callback URLs (flow type mismatch).
+      if (
+        hash &&
+        (hash.includes('access_token') ||
+          hash.includes('type=recovery') ||
+          hash.includes('error='))
+      ) {
+        if (hash.includes('error=') && !hash.includes('access_token')) {
+          if (!cancelled) setInvalidLink(true);
+          return;
+        }
+        try {
+          const implicit = createImplicitRedirectClient();
+          await implicit.auth.getSession();
+          const {
+            data: { session },
+            error: sessErr,
+          } = await implicit.auth.getSession();
+          if (cancelled) return;
+          if (sessErr || !session) {
+            if (!cancelled) setInvalidLink(true);
+            return;
+          }
+          const main = createClient();
+          const { error: setErr } = await main.auth.setSession({
+            access_token: session.access_token,
+            refresh_token: session.refresh_token,
+          });
+          if (setErr) {
+            console.error('[update-password] setSession:', setErr);
+            if (!cancelled) setInvalidLink(true);
+            return;
+          }
+          supabaseRef.current = main;
+          await finalizeAuthCallback();
+          markReady();
+        } catch (e) {
+          console.error('[update-password] implicit recovery:', e);
+          if (!cancelled) setInvalidLink(true);
+        }
+        return;
+      }
+
+      // PKCE (?code=): older reset emails or signup-style links — exchange in browser.
+      const main = createClient();
+      supabaseRef.current = main;
+
       if (code) {
         const {
           data: { session: existing },
-        } = await supabase.auth.getSession();
+        } = await main.auth.getSession();
         if (!existing) {
-          const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
+          const { error: exchangeError } = await main.auth.exchangeCodeForSession(code);
           if (exchangeError) {
             const {
               data: { session: afterFail },
-            } = await supabase.auth.getSession();
+            } = await main.auth.getSession();
             if (!afterFail) {
-              setInvalidLink(true);
+              if (!cancelled) setInvalidLink(true);
               return;
             }
           }
@@ -65,31 +111,20 @@ export default function UpdatePasswordPage() {
         return;
       }
 
-      if (type === 'recovery' || hash.includes('access_token')) {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!cancelled && session) {
-          markReady();
-          return;
-        }
-        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-          if (!cancelled && session) markReady();
-        });
-        sub = subscription;
-        invalidTimer = setTimeout(() => {
-          if (!cancelled && !resolvedRef.current) setInvalidLink(true);
-        }, 5000);
-        return;
-      }
-
-      const { data: { session } } = await supabase.auth.getSession();
+      const { data: { session } } = await main.auth.getSession();
       if (!cancelled && session) {
+        await finalizeAuthCallback();
         markReady();
         return;
       }
 
+      const { data: { subscription } } = main.auth.onAuthStateChange((_event, session) => {
+        if (!cancelled && session) markReady();
+      });
+      sub = subscription;
       invalidTimer = setTimeout(() => {
-        if (!cancelled) setInvalidLink(true);
-      }, 2000);
+        if (!cancelled && !resolvedRef.current) setInvalidLink(true);
+      }, 5000);
     };
 
     checkRecovery();
@@ -98,7 +133,7 @@ export default function UpdatePasswordPage() {
       clearTimeout(invalidTimer);
       sub?.unsubscribe();
     };
-  }, [supabase.auth]);
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -110,6 +145,12 @@ export default function UpdatePasswordPage() {
     }
     if (password !== confirmPassword) {
       setError('Passwords do not match');
+      return;
+    }
+
+    const supabase = supabaseRef.current;
+    if (!supabase) {
+      setError('Session not ready. Please refresh the page.');
       return;
     }
 

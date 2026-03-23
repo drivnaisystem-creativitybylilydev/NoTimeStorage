@@ -69,12 +69,12 @@ Save, then send a test from Supabase if the UI offers one.
 - `https://notimestorage.co/**`
 - Any Vercel preview: `https://*.vercel.app/**` (if you test previews)
 
-**Password reset** uses `https://notimestorage.co/auth/callback?next=/auth/update-password` as `redirect_to` so PKCE runs on the server. Ensure **`/auth/callback`** is allowed (a `https://notimestorage.co/**` wildcard covers it).
+**Password reset** uses **`{origin}/auth/update-password`** as `redirect_to` (implicit flow: tokens in the URL hash so **any** mail app / browser can open the link). Ensure that path is allowed — a `https://notimestorage.co/**` wildcard covers it.
 
 Our app uses:
 
-- Signup confirmation: `{origin}/auth/callback` (then redirects to dashboard)
-- Password reset: `{origin}/auth/callback?next=/auth/update-password` (server exchanges PKCE, then redirects to set new password)
+- Signup confirmation: `{origin}/auth/callback` (PKCE `?code=`, then redirects to dashboard)
+- Password reset: `{origin}/auth/update-password` (implicit hash session, then set new password)
 
 If the redirect is not allowed, Supabase may refuse or behave oddly—always match **Site URL** and **Redirect URLs** to where you actually run the app.
 
