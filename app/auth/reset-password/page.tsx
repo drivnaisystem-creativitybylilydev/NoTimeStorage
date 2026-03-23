@@ -1,12 +1,15 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import Link from 'next/link';
 import Image from 'next/image';
 import { AuthPageWrapper } from '@/app/components/AuthPageWrapper';
 
-export default function ResetPasswordPage() {
+function ResetPasswordForm() {
+  const searchParams = useSearchParams();
+  const linkError = searchParams.get('error') === 'link';
   const supabase = createClient();
   
   const [email, setEmail] = useState('');
@@ -23,8 +26,7 @@ export default function ResetPasswordPage() {
       // Match signup flow: use current origin so redirect matches Supabase allowlist for
       // localhost, production, or preview (avoid NEXT_PUBLIC_SITE_URL pointing elsewhere).
       const baseUrl = window.location.origin.replace(/\/$/, '');
-      // Route through /auth/callback so PKCE runs on the server (fixes "invalid link" when
-      // the reset email is opened in a different app/browser than where reset was requested).
+      // Route through /auth/callback so the browser can exchange PKCE (same storage as this request).
       const callback = new URL('/auth/callback', baseUrl);
       callback.searchParams.set('next', '/auth/update-password');
       const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
@@ -68,6 +70,11 @@ export default function ResetPasswordPage() {
             <h1>Check your email</h1>
             <p>We've sent password reset instructions to <strong>{email}</strong></p>
             <p>Click the link in the email to reset your password.</p>
+            <p style={{ fontSize: '0.8rem', color: '#5c4f48', marginTop: '8px', padding: '8px 12px', background: 'var(--color-paper)', borderRadius: '8px', border: '1px solid var(--color-latte)', lineHeight: 1.5 }}>
+              <strong>On a phone:</strong> open the link in <strong>Safari or Chrome</strong> (use
+              &quot;Open in Browser&quot; from your mail app) so it works with the browser where you
+              requested the reset.
+            </p>
             <p style={{ fontSize: '0.8rem', color: '#9B8880', marginTop: '8px', padding: '8px 12px', background: 'var(--color-paper)', borderRadius: '8px', border: '1px solid var(--color-latte)' }}>
               📬 Don&apos;t see it? Check your <strong>junk or spam folder</strong> — it may have landed there.
             </p>
@@ -100,6 +107,23 @@ export default function ResetPasswordPage() {
         </div>
 
         <form onSubmit={handleSubmit} className="auth-form">
+          {linkError && (
+            <div
+              className="auth-success"
+              style={{ marginBottom: '1rem', textAlign: 'left' }}
+              role="alert"
+            >
+              <p style={{ margin: '0 0 0.5rem', fontWeight: 600, color: '#4A3A34' }}>
+                We couldn&apos;t open your reset link
+              </p>
+              <p style={{ margin: 0, fontSize: '0.9rem', color: '#5c4f48', lineHeight: 1.5 }}>
+                This often happens on phones when the link opens inside the email app instead of
+                Safari or Chrome. Use <strong>Open in Browser</strong> (or copy the link), then
+                request a new reset email and open it in that same browser. You can also request
+                the reset on the device where you read email so the app and browser match.
+              </p>
+            </div>
+          )}
           {error && (
             <div className="auth-error">
               {error}
@@ -132,5 +156,13 @@ export default function ResetPasswordPage() {
         </form>
       </div>
     </AuthPageWrapper>
+  );
+}
+
+export default function ResetPasswordPage() {
+  return (
+    <Suspense fallback={<AuthPageWrapper><div className="auth-card" /></AuthPageWrapper>}>
+      <ResetPasswordForm />
+    </Suspense>
   );
 }

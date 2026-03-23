@@ -13,6 +13,7 @@ function LoginPageContent() {
   const supabase = createClient();
   const redirectTo = searchParams.get('redirect');
   const from = searchParams.get('from');
+  const authError = searchParams.get('error');
   
   const [formData, setFormData] = useState({
     email: '',
@@ -78,6 +79,19 @@ function LoginPageContent() {
             <div className="auth-success" style={{ marginBottom: '1rem' }}>
               <p style={{ margin: 0, color: '#4A3A34', fontSize: '0.95rem' }}>
                 Your password has been updated. Log in with your new password.
+              </p>
+            </div>
+          )}
+          {authError === 'auth' && (
+            <div className="auth-error" style={{ marginBottom: '1rem' }}>
+              <p style={{ margin: 0, fontSize: '0.95rem', lineHeight: 1.5 }}>
+                This sign-in or confirmation link couldn&apos;t be completed (wrong browser, expired
+                link, or session issue). If you were confirming email or using OAuth, try again in
+                the same browser. For password reset,{' '}
+                <Link href="/auth/reset-password" style={{ textDecoration: 'underline' }}>
+                  request a new link
+                </Link>{' '}
+                and open it in Safari or Chrome, not only inside your mail app.
               </p>
             </div>
           )}

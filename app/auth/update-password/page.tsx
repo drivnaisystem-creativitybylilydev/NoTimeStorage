@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/client';
 import Link from 'next/link';
 import Image from 'next/image';
 import { AuthPageWrapper } from '@/app/components/AuthPageWrapper';
+import { finalizeAuthCallback } from '@/app/auth/callback/actions';
 
 export default function UpdatePasswordPage() {
   const router = useRouter();
@@ -41,12 +42,26 @@ export default function UpdatePasswordPage() {
       const type = hashParams.get('type');
       const code = searchParams.get('code');
 
-      // PKCE: exchange on server at /auth/callback (not here). Old emails may still open this page with ?code=.
+      // PKCE: exchange in the browser (same cookie storage as resetPasswordForEmail). Do not send
+      // to server-only /auth/callback — mobile Safari often fails server-side exchange.
       if (code) {
-        const u = new URL('/auth/callback', window.location.origin);
-        u.searchParams.set('code', code);
-        u.searchParams.set('next', '/auth/update-password');
-        window.location.replace(u.toString());
+        const {
+          data: { session: existing },
+        } = await supabase.auth.getSession();
+        if (!existing) {
+          const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
+          if (exchangeError) {
+            const {
+              data: { session: afterFail },
+            } = await supabase.auth.getSession();
+            if (!afterFail) {
+              setInvalidLink(true);
+              return;
+            }
+          }
+        }
+        await finalizeAuthCallback();
+        markReady();
         return;
       }
 
