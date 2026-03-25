@@ -602,12 +602,27 @@ footer {
 .hero-title {
   font-size: clamp(2.5rem, 8vw, 5rem);
   font-weight: 700;
-  line-height: 1.1;
+  line-height: 1.14;
   color: #ffffff;
   margin-bottom: 0;
   letter-spacing: -0.02em;
-  max-width: 900px;
+  max-width: 920px;
   text-shadow: 0 3px 12px rgba(0, 0, 0, 0.4);
+}
+
+.hero-title-line {
+  display: block;
+}
+
+.hero-title-highlight {
+  color: #c9a47e;
+  font-weight: 800;
+  text-shadow:
+    0 0 9px rgba(201, 164, 126, 0.48),
+    0 0 18px rgba(201, 164, 126, 0.28),
+    0 0 28px rgba(232, 201, 168, 0.18),
+    0 2px 8px rgba(0, 0, 0, 0.25);
+  filter: drop-shadow(0 2px 4px rgba(42, 22, 12, 0.22));
 }
 
 .hero-buttons {
@@ -615,35 +630,85 @@ footer {
   gap: var(--spacing-md);
   flex-wrap: wrap;
   justify-content: center;
+  align-items: stretch;
 }
 
-.hero-buttons .button-primary {
-  background-color: #ffffff;
-  color: var(--color-coffee-dark);
-  border-color: #ffffff;
-  font-weight: 600;
-  padding: 1.125rem 3rem;
+.hero-cta-wrap {
+  display: inline-flex;
+  text-decoration: none;
+  margin: 0;
+}
+
+.hero-cta-primary,
+.hero-cta-secondary {
+  font-family: inherit;
+  min-height: 3.375rem;
+  padding: 1rem 2.25rem;
   font-size: var(--font-size-lg);
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+  font-weight: 600;
+  border-radius: 2rem;
+  cursor: pointer;
+  transition: transform 0.25s ease, box-shadow 0.25s ease, background 0.25s ease, border-color 0.25s ease;
+  border: 2px solid transparent;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
 }
 
-.hero-buttons .button-primary:hover {
-  background-color: #ffffff;
-  border-color: #ffffff;
-  transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
-}
-
-.hero-buttons .button-secondary {
-  background-color: transparent;
+.hero-cta-primary {
+  background: linear-gradient(155deg, #6b4536 0%, #4b2e25 42%, #3a231c 100%);
   color: #ffffff;
-  border-color: #ffffff;
-  border-width: 2px;
+  border-color: rgba(201, 164, 126, 0.45);
+  box-shadow:
+    0 4px 24px rgba(201, 164, 126, 0.5),
+    0 0 40px rgba(201, 164, 126, 0.28),
+    inset 0 1px 0 rgba(255, 255, 255, 0.18);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 }
 
-.hero-buttons .button-secondary:hover {
-  background-color: rgba(255, 255, 255, 0.15);
+.hero-cta-primary:hover {
+  transform: translateY(-2px);
+  border-color: rgba(255, 232, 195, 0.65);
+  box-shadow:
+    0 8px 32px rgba(201, 164, 126, 0.58),
+    0 0 48px rgba(232, 201, 168, 0.32),
+    inset 0 1px 0 rgba(255, 255, 255, 0.22);
+}
+
+.hero-cta-primary:focus-visible {
+  outline: 3px solid rgba(255, 248, 235, 0.95);
+  outline-offset: 3px;
+}
+
+.hero-cta-secondary {
+  background: rgba(0, 0, 0, 0.22);
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+}
+
+.hero-cta-secondary:hover {
+  background: rgba(255, 255, 255, 0.14);
+  transform: translateY(-2px);
   border-color: #ffffff;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.3);
+}
+
+.hero-cta-secondary:focus-visible {
+  outline: 3px solid rgba(255, 255, 255, 0.85);
+  outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-cta-primary:hover,
+  .hero-cta-secondary:hover {
+    transform: none;
+  }
 }
 
 /* Buttons */
@@ -729,17 +794,16 @@ button {
     margin-top: var(--spacing-sm);
   }
 
-  .hero-buttons button,
-  .hero-buttons a {
+  .hero-cta-wrap {
     width: 100%;
+    justify-content: stretch;
   }
 
-  .hero-buttons .button-primary,
-  .hero-buttons .button-secondary {
-    padding: 1.125rem 2rem;
-    font-size: var(--font-size-lg);
-    font-weight: 600;
+  .hero-cta-primary,
+  .hero-cta-secondary {
     width: 100%;
+    min-height: 3.5rem;
+    padding: 1.125rem 2rem;
   }
 }
 
@@ -762,10 +826,11 @@ button {
     letter-spacing: -0.01em;
   }
 
-  .hero-buttons .button-primary,
-  .hero-buttons .button-secondary {
+  .hero-cta-primary,
+  .hero-cta-secondary {
     padding: 1rem 1.5rem;
     font-size: var(--font-size-base);
+    min-height: 3.25rem;
   }
 }
 

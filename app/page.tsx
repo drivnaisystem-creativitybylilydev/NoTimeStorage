@@ -181,7 +181,14 @@ function BoxShowcase() {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
-    <section id="box-specifications" className="box-showcase-section">
+    <motion.section
+      id="box-specifications"
+      className="box-showcase-section"
+      initial={{ opacity: 0, y: 28 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: '-80px' }}
+      transition={{ duration: 0.55, ease: [0.25, 0.1, 0.25, 1] }}
+    >
       {/* ── Trigger ── */}
       <button
         className={`box-showcase-trigger${isOpen ? ' open' : ''}`}
@@ -380,7 +387,7 @@ function BoxShowcase() {
           </motion.div>
         )}
       </AnimatePresence>
-    </section>
+    </motion.section>
   );
 }
 
@@ -484,6 +491,14 @@ export default function Home() {
     }
   };
 
+  /** Scroll-in for every major homepage section */
+  const sectionEntrance = {
+    initial: { opacity: 0, y: 32 },
+    whileInView: { opacity: 1, y: 0 },
+    viewport: { once: true, margin: '-70px' as const },
+    transition: { duration: 0.55, ease: [0.25, 0.1, 0.25, 1] as [number, number, number, number] },
+  };
+
   const faqJsonLd = {
     '@context': 'https://schema.org',
     '@type': 'FAQPage',
@@ -516,34 +531,46 @@ export default function Home() {
           >
             Secure, climate-controlled storage with easy pickup & delivery
           </motion.p>
-          <motion.h1 
+          <motion.h1
             className="hero-title"
             variants={fadeInUp}
           >
-            Stress-Free, Door-to-Door Storage for College Students
+            <span className="hero-title-line">Stress-Free</span>
+            <span className="hero-title-line">
+              Door-to-Door <span className="hero-title-highlight">Storage</span>
+            </span>
+            <span className="hero-title-line">
+              for <span className="hero-title-highlight">College Students</span>
+            </span>
           </motion.h1>
-          <motion.div 
+          <motion.div
             className="hero-buttons"
             variants={fadeInUp}
           >
             {(loading || !user) ? (
-              <a href="/auth/signup">
-                <button className="button-primary" type="button">Get Started</button>
+              <a href="/auth/signup" className="hero-cta-wrap">
+                <button className="hero-cta-primary" type="button">
+                  Get Started
+                </button>
               </a>
             ) : (
-              <a href="/booking/configure">
-                <button className="button-primary" type="button">Book Your Storage</button>
+              <a href="/booking/configure" className="hero-cta-wrap">
+                <button className="hero-cta-primary" type="button">
+                  Book Your Storage
+                </button>
               </a>
             )}
-            <a href="#how-it-works">
-              <button className="button-secondary">Learn More</button>
+            <a href="#how-it-works" className="hero-cta-wrap">
+              <button className="hero-cta-secondary" type="button">
+                Learn More
+              </button>
             </a>
           </motion.div>
         </motion.div>
       </section>
 
       {/* Trust & Social Proof Strip - Campus logos from lib/schools/config */}
-      <section className="trust-strip">
+      <motion.section className="trust-strip" {...sectionEntrance}>
         <div className="trust-strip-content">
           <div className="trust-heading-wrapper">
             <motion.p
@@ -569,7 +596,7 @@ export default function Home() {
             initial={{ opacity: 0, y: 16 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: '-60px' }}
-            transition={{ duration: 0.6, delay: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
+            transition={{ duration: 0.6, delay: 0.15, ease: [0.25, 0.1, 0.25, 1] }}
           >
             <div className="trust-social-proof-item">
               <span className="trust-social-stars">★★★★★</span>
@@ -582,7 +609,13 @@ export default function Home() {
               <span className="trust-social-label">Students Served</span>
             </div>
           </motion.div>
-          <div className="campus-cards-row">
+          <motion.div
+            className="campus-cards-row"
+            initial={{ opacity: 0, y: 22 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: '-50px' }}
+            transition={{ duration: 0.55, delay: 0.12, ease: [0.25, 0.1, 0.25, 1] }}
+          >
             <div>
               {[...SCHOOLS, ...SCHOOLS].map((school, idx) => {
                 const logoSlug = school.logoSlug ?? school.shortName;
@@ -608,12 +641,12 @@ export default function Home() {
                 );
               })}
             </div>
-          </div>
+          </motion.div>
         </div>
-      </section>
+      </motion.section>
 
       {/* Why NoTime Storage */}
-      <section className="why-section">
+      <motion.section className="why-section" {...sectionEntrance}>
         <div className="why-container">
           <motion.h2 
             className="why-title"
@@ -649,10 +682,10 @@ export default function Home() {
             )}
           </motion.div>
         </div>
-      </section>
+      </motion.section>
 
       {/* How It Works Section */}
-      <section id="how-it-works" className="how-it-works">
+      <motion.section id="how-it-works" className="how-it-works" {...sectionEntrance}>
         <div className="how-it-works-container">
           <motion.h2 
             className="how-it-works-title"
@@ -747,13 +780,13 @@ export default function Home() {
             )}
           </motion.div>
         </div>
-      </section>
+      </motion.section>
 
       {/* Storage Box Showcase */}
       <BoxShowcase />
 
       {/* Pricing Section */}
-      <section className="pricing" id="pricing" data-section="pricing">
+      <motion.section className="pricing" id="pricing" data-section="pricing" {...sectionEntrance}>
         <div className="pricing-container">
           {/* Hero Text Above Box */}
           <div className="pricing-hero">
@@ -1030,10 +1063,10 @@ export default function Home() {
           </AnimatePresence>
           </div>
         </div>
-      </section>
+      </motion.section>
 
       {/* Comparison Table - before reviews for conversion */}
-      <section className="comparison-section">
+      <motion.section className="comparison-section" {...sectionEntrance}>
         <div className="comparison-container">
           <motion.h2 
             className="comparison-title"
@@ -1144,16 +1177,30 @@ export default function Home() {
             )}
           </motion.div>
         </div>
-      </section>
+      </motion.section>
 
       {/* Testimonials */}
-      <section className="testimonials-section">
+      <motion.section className="testimonials-section" {...sectionEntrance}>
         <div className="testimonials-container">
-          <h2 className="testimonials-title">
+          <motion.h2
+            className="testimonials-title"
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: '-100px' }}
+            transition={{ duration: 0.55, ease: [0.25, 0.1, 0.25, 1] }}
+          >
             Student Reviews
             <span className="testimonials-title-accent" />
-          </h2>
-          <p className="testimonials-subtitle">Here's what students have to say about NoTime Storage</p>
+          </motion.h2>
+          <motion.p
+            className="testimonials-subtitle"
+            initial={{ opacity: 0, y: 16 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: '-100px' }}
+            transition={{ duration: 0.5, delay: 0.08, ease: [0.25, 0.1, 0.25, 1] }}
+          >
+            Here&apos;s what students have to say about NoTime Storage
+          </motion.p>
           
           {(() => {
             const reviews = [
@@ -1164,7 +1211,13 @@ export default function Home() {
               { name: 'Hannah W.', sub: 'Stonehill Sophomore · Massachusetts', text: '"I didn\'t think I needed the service since I live an hour away, but I\'m so glad I did. Saves so much time and stress — sooo worth it!"' },
             ];
             return (
-              <div className="reviews-scroll-row">
+              <motion.div
+                className="reviews-scroll-row"
+                initial={{ opacity: 0, y: 26 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: '-60px' }}
+                transition={{ duration: 0.58, delay: 0.1, ease: [0.25, 0.1, 0.25, 1] }}
+              >
                 <div>
                   {[...reviews, ...reviews].map((r, idx) => (
                     <div key={idx} aria-hidden={idx >= reviews.length} className="testimonial-card" style={{ width: '300px', flexShrink: 0 }}>
@@ -1177,7 +1230,7 @@ export default function Home() {
                     </div>
                   ))}
                 </div>
-              </div>
+              </motion.div>
             );
           })()}
           <motion.div 
@@ -1194,10 +1247,10 @@ export default function Home() {
             )}
           </motion.div>
         </div>
-      </section>
+      </motion.section>
 
       {/* FAQ Section */}
-      <section id="faq" className="faq">
+      <motion.section id="faq" className="faq" {...sectionEntrance}>
         <div className="faq-container">
           <motion.h2 
             className="faq-title"
@@ -1262,15 +1315,38 @@ export default function Home() {
             <Link href="/contact"><button className="button-primary">Need More Answers?</button></Link>
           </motion.div>
         </div>
-      </section>
+      </motion.section>
 
       {/* Early Reminder CTA */}
-      <section className="reminder-cta-section">
+      <motion.section className="reminder-cta-section" {...sectionEntrance}>
         <div className="reminder-cta-container">
-          <h2 className="reminder-cta-title">Get Reminders for Next Semester</h2>
-          <p className="reminder-cta-subtitle">Get notified when storage booking opens for your campus</p>
+          <motion.h2
+            className="reminder-cta-title"
+            initial={{ opacity: 0, y: 18 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: '-80px' }}
+            transition={{ duration: 0.5, ease: [0.25, 0.1, 0.25, 1] }}
+          >
+            Get Reminders for Next Semester
+          </motion.h2>
+          <motion.p
+            className="reminder-cta-subtitle"
+            initial={{ opacity: 0, y: 14 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: '-80px' }}
+            transition={{ duration: 0.48, delay: 0.06, ease: [0.25, 0.1, 0.25, 1] }}
+          >
+            Get notified when storage booking opens for your campus
+          </motion.p>
           
-          <form className="reminder-form" onSubmit={handleReminderSubmit}>
+          <motion.form
+            className="reminder-form"
+            onSubmit={handleReminderSubmit}
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: '-60px' }}
+            transition={{ duration: 0.5, delay: 0.12, ease: [0.25, 0.1, 0.25, 1] }}
+          >
             <input 
               type="email" 
               placeholder="Enter your email address" 
@@ -1287,7 +1363,7 @@ export default function Home() {
             >
               {reminderSubmitting ? 'Saving…' : reminderSuccess ? 'Signed up' : 'Set Reminder'}
             </button>
-          </form>
+          </motion.form>
 
           {reminderSuccess && (
             <p className="reminder-note reminder-success">
@@ -1303,10 +1379,10 @@ export default function Home() {
             <p className="reminder-note">We'll notify you when the next season opens.</p>
           )}
         </div>
-      </section>
+      </motion.section>
 
       {/* Footer Section */}
-      <footer className="footer">
+      <motion.footer className="footer" {...sectionEntrance}>
         <motion.div 
           className="footer-container"
           initial={{ opacity: 0, y: 20 }}
@@ -1387,7 +1463,7 @@ export default function Home() {
             </div>
           </div>
         </motion.div>
-      </footer>
+      </motion.footer>
     </div>
   );
 }
