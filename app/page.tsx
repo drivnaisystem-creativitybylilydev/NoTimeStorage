@@ -1433,6 +1433,16 @@ export default function Home() {
           {/* Footer Bottom */}
           <div className="footer-bottom">
             <p className="footer-copyright">© 2026 NoTime Storage. All rights reserved.</p>
+            <p className="footer-attribution">
+              powered by{' '}
+              <a
+                href="https://drivn-ai-website.vercel.app"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                drivn.ai
+              </a>
+            </p>
             <div className="footer-legal">
               <Link href="/privacy">Privacy Policy</Link>
               <Link href="/terms">Terms of Service</Link>
