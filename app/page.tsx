@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence, useInView } from 'framer-motion';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -25,44 +26,98 @@ import { SiteHeader } from '@/app/components/SiteHeader';
 const DEBUG_LOG = (data: Record<string, unknown>) => { fetch('http://127.0.0.1:7791/ingest/e0f7eab6-ff14-43bf-bf05-6812e1535afb', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '104cb8' }, body: JSON.stringify({ sessionId: '104cb8', location: 'page.tsx', timestamp: Date.now(), ...data }) }).catch(() => {}); };
 // #endregion
 
-function FixedCarousel({ images, title, fullHeight = false }: { images: { src: string; alt: string; objectPosition?: string }[]; title: string; fullHeight?: boolean }) {
+function FixedCarousel({
+  images,
+  title,
+  fullHeight = false,
+  expandable = false,
+}: {
+  images: { src: string; alt: string; objectPosition?: string }[];
+  title: string;
+  fullHeight?: boolean;
+  /** Tap / click opens full-screen view (better on small screens). */
+  expandable?: boolean;
+}) {
   const [current, setCurrent] = useState(0);
   const [loaded, setLoaded] = useState(false);
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+  const [portalEl, setPortalEl] = useState<Element | null>(null);
 
   useEffect(() => { setLoaded(false); }, [current]);
 
   useEffect(() => {
+    setPortalEl(document.body);
+  }, []);
+
+  useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
+      if (lightboxIndex !== null) {
+        if (e.key === 'Escape') setLightboxIndex(null);
+        return;
+      }
       if (e.key === 'ArrowLeft') setCurrent(p => (p === 0 ? images.length - 1 : p - 1));
       if (e.key === 'ArrowRight') setCurrent(p => (p === images.length - 1 ? 0 : p + 1));
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [images.length]);
+  }, [images.length, lightboxIndex]);
+
+  useEffect(() => {
+    if (lightboxIndex === null) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [lightboxIndex]);
+
+  const carouselInner = (
+    <>
+      <AnimatePresence mode="wait">
+        <motion.img
+          key={current}
+          src={images[current].src}
+          alt={images[current].alt}
+          className={`carousel-image${fullHeight ? ' carousel-image--full' : ''}`}
+          style={images[current].objectPosition ? { objectPosition: images[current].objectPosition } : undefined}
+          loading="lazy"
+          decoding="async"
+          onLoad={() => setLoaded(true)}
+          draggable={false}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.35, ease: [0.32, 0.72, 0, 1] }}
+        />
+      </AnimatePresence>
+      {fullHeight && <div className="carousel-vignette" aria-hidden="true" />}
+    </>
+  );
+
+  const containerClass = `carousel-container${fullHeight ? ' carousel-container--full' : ''}${loaded ? '' : ' loading'}${expandable ? ' carousel-container--expandable' : ''}`;
 
   return (
     <div className={`carousel-section${fullHeight ? ' carousel-section--full' : ''}`} role="region" aria-label={title}>
-      {title && <p className="carousel-title">{title}</p>}
-      <div className={`carousel-container${fullHeight ? ' carousel-container--full' : ''}${loaded ? '' : ' loading'}`} role="img" aria-label={images[current].alt}>
-        <AnimatePresence mode="wait">
-          <motion.img
-            key={current}
-            src={images[current].src}
-            alt={images[current].alt}
-            className={`carousel-image${fullHeight ? ' carousel-image--full' : ''}`}
-            style={images[current].objectPosition ? { objectPosition: images[current].objectPosition } : undefined}
-            loading="lazy"
-            decoding="async"
-            onLoad={() => setLoaded(true)}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.35, ease: [0.32, 0.72, 0, 1] }}
-          />
-        </AnimatePresence>
-        {/* Dark brown vignette overlay for full-height real-life images */}
-        {fullHeight && <div className="carousel-vignette" aria-hidden="true" />}
-      </div>
+      {title && (
+        <p className="carousel-title">
+          {title}
+          {expandable && <span className="carousel-title-hint"> · Tap image to enlarge</span>}
+        </p>
+      )}
+      {expandable ? (
+        <button
+          type="button"
+          className={containerClass}
+          onClick={() => setLightboxIndex(current)}
+          aria-label={`${images[current].alt} — open full screen`}
+        >
+          {carouselInner}
+        </button>
+      ) : (
+        <div className={containerClass} role="img" aria-label={images[current].alt}>
+          {carouselInner}
+        </div>
+      )}
       {images.length > 1 && (
         <div className="carousel-dots" role="tablist" aria-label={`${title} image selector`}>
           {images.map((_, i) => (
@@ -77,6 +132,47 @@ function FixedCarousel({ images, title, fullHeight = false }: { images: { src: s
           ))}
         </div>
       )}
+      {expandable && lightboxIndex !== null && portalEl &&
+        createPortal(
+          <motion.div
+            className="carousel-lightbox-root"
+            role="dialog"
+            aria-modal="true"
+            aria-label={images[lightboxIndex].alt}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.2 }}
+          >
+            <button
+              type="button"
+              className="carousel-lightbox-backdrop"
+              aria-label="Close full screen image"
+              onClick={() => setLightboxIndex(null)}
+            />
+            <img
+              src={images[lightboxIndex].src}
+              alt={images[lightboxIndex].alt}
+              className="carousel-lightbox-img"
+              style={
+                images[lightboxIndex].objectPosition
+                  ? { objectPosition: images[lightboxIndex].objectPosition }
+                  : undefined
+              }
+              decoding="async"
+            />
+            <button
+              type="button"
+              className="carousel-lightbox-close"
+              aria-label="Close"
+              onClick={() => setLightboxIndex(null)}
+            >
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
+              </svg>
+            </button>
+          </motion.div>,
+          portalEl
+        )}
     </div>
   );
 }
@@ -190,6 +286,7 @@ function BoxShowcase() {
                   <FixedCarousel
                     title="Our Boxes in Action"
                     fullHeight
+                    expandable
                     images={[
                       { src: '/brand/box-scale-side.png', alt: 'Person standing next to NoTime Storage box showing scale', objectPosition: 'center center' },
                       { src: '/brand/box-scale-inside.png', alt: 'Person standing inside NoTime Storage box showing depth', objectPosition: 'center 75%' },
@@ -218,6 +315,7 @@ function BoxShowcase() {
                   <div className="box-specs-carousel-wrap">
                     <FixedCarousel
                       title="Technical Specs"
+                      expandable
                       images={[
                         { src: '/brand/box-3d-view.png', alt: '3D isometric view showing 40×30×30 inch dimensions' },
                         { src: '/brand/box-birdseye-view.png', alt: "Bird's-eye view showing 40×30 inch floor area" },
