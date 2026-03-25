@@ -1179,29 +1179,17 @@ export default function Home() {
         </div>
       </motion.section>
 
-      {/* Testimonials */}
-      <motion.section className="testimonials-section" {...sectionEntrance}>
+      {/* Testimonials — plain section: Framer on .reviews-scroll-row breaks its translateX(-50%) centering vs CSS keyframe transform */}
+      <section className="testimonials-section">
         <div className="testimonials-container">
-          <motion.h2
-            className="testimonials-title"
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: '-100px' }}
-            transition={{ duration: 0.55, ease: [0.25, 0.1, 0.25, 1] }}
-          >
+          <h2 className="testimonials-title">
             Student Reviews
             <span className="testimonials-title-accent" />
-          </motion.h2>
-          <motion.p
-            className="testimonials-subtitle"
-            initial={{ opacity: 0, y: 16 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: '-100px' }}
-            transition={{ duration: 0.5, delay: 0.08, ease: [0.25, 0.1, 0.25, 1] }}
-          >
+          </h2>
+          <p className="testimonials-subtitle">
             Here&apos;s what students have to say about NoTime Storage
-          </motion.p>
-          
+          </p>
+
           {(() => {
             const reviews = [
               { name: 'Sammy F.', sub: 'Stonehill Junior · California', text: '"It was overall a great experience, and it made my life so much easier and less stressful."' },
@@ -1211,13 +1199,7 @@ export default function Home() {
               { name: 'Hannah W.', sub: 'Stonehill Sophomore · Massachusetts', text: '"I didn\'t think I needed the service since I live an hour away, but I\'m so glad I did. Saves so much time and stress — sooo worth it!"' },
             ];
             return (
-              <motion.div
-                className="reviews-scroll-row"
-                initial={{ opacity: 0, y: 26 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, margin: '-60px' }}
-                transition={{ duration: 0.58, delay: 0.1, ease: [0.25, 0.1, 0.25, 1] }}
-              >
+              <div className="reviews-scroll-row">
                 <div>
                   {[...reviews, ...reviews].map((r, idx) => (
                     <div key={idx} aria-hidden={idx >= reviews.length} className="testimonial-card" style={{ width: '300px', flexShrink: 0 }}>
@@ -1230,24 +1212,18 @@ export default function Home() {
                     </div>
                   ))}
                 </div>
-              </motion.div>
+              </div>
             );
           })()}
-          <motion.div 
-            className="section-cta"
-            initial={{ opacity: 0, y: 12 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: "-50px" }}
-            transition={{ duration: 0.5, ease: [0.25, 0.1, 0.25, 1] }}
-          >
+          <div className="section-cta">
             {(loading || !user) ? (
               <Link href="/auth/signup"><button className="button-primary">Join Happy Students</button></Link>
             ) : (
               <Link href="/booking/configure"><button className="button-primary">Book Storage Now</button></Link>
             )}
-          </motion.div>
+          </div>
         </div>
-      </motion.section>
+      </section>
 
       {/* FAQ Section */}
       <motion.section id="faq" className="faq" {...sectionEntrance}>
