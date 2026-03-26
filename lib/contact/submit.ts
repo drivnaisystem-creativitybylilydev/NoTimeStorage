@@ -1,6 +1,7 @@
 'use server';
 
 import { createAdminClient } from '@/lib/supabase/admin';
+import { sendContactFormAdminNotification } from '@/lib/email/send';
 
 export type SubmitContactResult =
   | { success: true }
@@ -48,6 +49,18 @@ export async function submitContactForm(payload: {
     if (error) {
       console.error('[submitContactForm]', error);
       return { success: false, error: 'Failed to send. Please try again or email us directly.' };
+    }
+
+    try {
+      await sendContactFormAdminNotification({
+        name: trimmedName,
+        email: trimmedEmail,
+        subject: trimmedSubject,
+        subject_other: subject_other?.trim() || null,
+        message: trimmedMessage,
+      });
+    } catch (notifyErr) {
+      console.error('[submitContactForm] admin notify email failed', notifyErr);
     }
 
     return { success: true };

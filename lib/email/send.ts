@@ -12,20 +12,34 @@ const FROM = 'NoTime Storage <noreply@notimestorage.co>';
 const REPLY_TO = SITE_CONTACT_EMAIL;
 const ADMIN_EMAIL = process.env.BOOKING_NOTIFY_EMAIL || '';
 
-async function sendEmail(to: string | string[], subject: string, html: string) {
+function escapeHtml(text: string) {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+async function sendEmail(
+  to: string | string[],
+  subject: string,
+  html: string,
+  replyToOverride?: string | null,
+) {
   const apiKey = process.env.RESEND_API_KEY?.trim();
   const recipients = Array.isArray(to) ? to.filter(Boolean) : [to];
   if (!apiKey || !recipients.length) {
     console.warn('[email] Skipped — missing RESEND_API_KEY or recipient');
     return;
   }
+  const replyTo = (replyToOverride && replyToOverride.trim()) || REPLY_TO;
   try {
     const { Resend } = await import('resend');
     const resend = new Resend(apiKey);
     const { error } = await resend.emails.send({
       from: FROM,
       to: recipients,
-      replyTo: REPLY_TO,
+      replyTo,
       subject,
       html,
     });
@@ -194,5 +208,44 @@ export async function sendMoveInReminderUser({
     to,
     `📦 Confirm your move-in delivery dorm — NoTime Storage`,
     html,
+  );
+}
+
+/** Notify business inbox when someone uses /contact (same destination as booking alerts, else admin@). */
+export async function sendContactFormAdminNotification(params: {
+  name: string;
+  email: string;
+  subject: string;
+  subject_other?: string | null;
+  message: string;
+}) {
+  const notifyTo = (process.env.BOOKING_NOTIFY_EMAIL || SITE_CONTACT_EMAIL).trim();
+  if (!notifyTo) return;
+
+  const subj =
+    params.subject_other?.trim() && params.subject === 'Other'
+      ? `${params.subject}: ${params.subject_other.trim()}`
+      : params.subject;
+
+  const html = `
+    <div style="font-family:sans-serif;max-width:560px;margin:0 auto;padding:32px 24px;color:#1a1a1a">
+      <h2 style="color:#4B2E25;margin-bottom:4px">📬 New contact form</h2>
+      <p style="color:#666;margin-top:0;margin-bottom:24px">Someone submitted the website contact form.</p>
+      <table style="width:100%;border-collapse:collapse;font-size:0.9rem">
+        <tr><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;color:#666;width:140px">Name</td><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;font-weight:600">${escapeHtml(params.name)}</td></tr>
+        <tr><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;color:#666">Email</td><td style="padding:8px 0;border-bottom:1px solid #e5e7eb"><a href="mailto:${params.email.trim().replace(/[\s<>"']/g, '')}">${escapeHtml(params.email)}</a></td></tr>
+        <tr><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;color:#666">Subject</td><td style="padding:8px 0;border-bottom:1px solid #e5e7eb">${escapeHtml(subj)}</td></tr>
+      </table>
+      <p style="margin-top:20px;margin-bottom:8px;font-weight:600;color:#4B2E25">Message</p>
+      <div style="white-space:pre-wrap;border:1px solid #e5e7eb;border-radius:8px;padding:16px;background:#fafafa;font-size:0.9rem;line-height:1.5">${escapeHtml(params.message)}</div>
+      <p style="margin-top:24px;font-size:0.8rem;color:#999">Reply in your mail client goes to the sender&apos;s address.</p>
+    </div>
+  `;
+
+  await sendEmail(
+    notifyTo,
+    `📬 Contact: ${subj.slice(0, 60)}${subj.length > 60 ? '…' : ''} — ${params.name}`,
+    html,
+    params.email.trim(),
   );
 }
