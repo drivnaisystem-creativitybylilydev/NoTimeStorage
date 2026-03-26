@@ -163,6 +163,25 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* Homepage (mobile): keep document scroll vertical-only — limits sideways pan/rubber-band across phones */
+@media (max-width: 768px) {
+  html:has(.home-page),
+  body:has(.home-page) {
+    overflow-x: hidden;
+    overscroll-behavior-x: none;
+  }
+
+  body:has(.home-page) {
+    touch-action: pan-y pinch-zoom;
+  }
+
+  .home-page {
+    max-width: 100%;
+    min-width: 0;
+    overflow-x: clip;
+  }
+}
+
 
 /* Typography - Headings */
 h1 {
