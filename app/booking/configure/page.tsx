@@ -29,6 +29,15 @@ function ConfigurePageContent() {
     else if (plan === '4boxes') setBoxQuantity(4);
   }, [plan]);
 
+  // If customer selects storage boxes, small/medium "without box" tier is disabled — use "with box" rates.
+  useEffect(() => {
+    if (boxQuantity < 1) return;
+    setAdditionalItems((prev) => {
+      if (prev.smallWithoutBox === 0 && prev.mediumWithoutBox === 0) return prev;
+      return { ...prev, smallWithoutBox: 0, mediumWithoutBox: 0 };
+    });
+  }, [boxQuantity]);
+
   // Pricing logic (0 boxes = $0; no box required)
   const getBoxPrice = (qty: number) => {
     if (qty === 0) return 0;
@@ -63,10 +72,13 @@ function ConfigurePageContent() {
   const totalAdditionalItems = Object.values(additionalItems).reduce((sum, v) => sum + v, 0);
 
   const withBoxItemsUnlocked = boxQuantity >= 1;
+  const withoutBoxItemsUnlocked = boxQuantity < 1;
 
   const updateItem = (key: keyof typeof additionalItems, delta: number) => {
     const isWithBox = key === 'smallWithBox' || key === 'mediumWithBox';
+    const isWithoutBox = key === 'smallWithoutBox' || key === 'mediumWithoutBox';
     if (isWithBox && !withBoxItemsUnlocked) return;
+    if (isWithoutBox && !withoutBoxItemsUnlocked) return;
     setAdditionalItems(prev => {
       const next = Math.max(0, prev[key] + delta);
       const newTotal = totalAdditionalItems - prev[key] + next;
@@ -173,7 +185,7 @@ function ConfigurePageContent() {
           </div>
         </div>
 
-        {/* Additional Items — "With Box" items locked when no box selected */}
+        {/* Additional Items — "With box" locked at 0 storage boxes; "Without box" locked when ≥1 box */}
         <div style={{ position: 'relative', marginBottom: '24px' }}>
           <div
             style={{
@@ -199,7 +211,7 @@ function ConfigurePageContent() {
             </span>
           </div>
           <p style={{ fontSize: '0.85rem', color: 'var(--color-gray-600)', marginBottom: '18px' }}>
-            Items that don&apos;t fit in boxes — max {MAX_ADDITIONAL_ITEMS} additional items.
+            Items that don&apos;t fit in boxes — max {MAX_ADDITIONAL_ITEMS} additional items. Small/medium &quot;without box&quot; pricing is only before you add a storage box; with boxes, use &quot;with box&quot; rates.
           </p>
 
           {/* Small Items */}
@@ -214,12 +226,12 @@ function ConfigurePageContent() {
                   <button onClick={() => updateItem('smallWithBox', +1)} disabled={!withBoxItemsUnlocked || totalAdditionalItems >= MAX_ADDITIONAL_ITEMS} className="button-secondary" style={{ padding: '4px 12px', fontSize: '1rem', opacity: (!withBoxItemsUnlocked || totalAdditionalItems >= MAX_ADDITIONAL_ITEMS) ? 0.35 : 1, cursor: withBoxItemsUnlocked && totalAdditionalItems < MAX_ADDITIONAL_ITEMS ? 'pointer' : 'not-allowed' }}>+</button>
                 </div>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontSize: '0.875rem' }}>Without box - $11/mo</span>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', opacity: withoutBoxItemsUnlocked ? 1 : 0.5, transition: 'opacity 0.2s ease' }}>
+                <span style={{ fontSize: '0.875rem' }}>Without box - $11/mo{!withoutBoxItemsUnlocked && <span style={{ marginLeft: '6px', fontSize: '0.75rem', color: 'var(--color-gray-500)' }}>(locked — you have storage boxes)</span>}</span>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <button onClick={() => updateItem('smallWithoutBox', -1)} className="button-secondary" style={{ padding: '4px 12px', fontSize: '1rem' }}>−</button>
+                  <button onClick={() => updateItem('smallWithoutBox', -1)} disabled={!withoutBoxItemsUnlocked} className="button-secondary" style={{ padding: '4px 12px', fontSize: '1rem', opacity: !withoutBoxItemsUnlocked ? 0.5 : 1, cursor: withoutBoxItemsUnlocked ? 'pointer' : 'not-allowed' }}>−</button>
                   <span style={{ minWidth: '30px', textAlign: 'center', fontWeight: '600' }}>{additionalItems.smallWithoutBox}</span>
-                  <button onClick={() => updateItem('smallWithoutBox', +1)} disabled={totalAdditionalItems >= MAX_ADDITIONAL_ITEMS} className="button-secondary" style={{ padding: '4px 12px', fontSize: '1rem', opacity: totalAdditionalItems >= MAX_ADDITIONAL_ITEMS ? 0.35 : 1 }}>+</button>
+                  <button onClick={() => updateItem('smallWithoutBox', +1)} disabled={!withoutBoxItemsUnlocked || totalAdditionalItems >= MAX_ADDITIONAL_ITEMS} className="button-secondary" style={{ padding: '4px 12px', fontSize: '1rem', opacity: (!withoutBoxItemsUnlocked || totalAdditionalItems >= MAX_ADDITIONAL_ITEMS) ? 0.35 : 1, cursor: withoutBoxItemsUnlocked && totalAdditionalItems < MAX_ADDITIONAL_ITEMS ? 'pointer' : 'not-allowed' }}>+</button>
                 </div>
               </div>
             </div>
@@ -237,12 +249,12 @@ function ConfigurePageContent() {
                   <button onClick={() => updateItem('mediumWithBox', +1)} disabled={!withBoxItemsUnlocked || totalAdditionalItems >= MAX_ADDITIONAL_ITEMS} className="button-secondary" style={{ padding: '4px 12px', fontSize: '1rem', opacity: (!withBoxItemsUnlocked || totalAdditionalItems >= MAX_ADDITIONAL_ITEMS) ? 0.35 : 1, cursor: withBoxItemsUnlocked && totalAdditionalItems < MAX_ADDITIONAL_ITEMS ? 'pointer' : 'not-allowed' }}>+</button>
                 </div>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontSize: '0.875rem' }}>Without box - $12/mo</span>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', opacity: withoutBoxItemsUnlocked ? 1 : 0.5, transition: 'opacity 0.2s ease' }}>
+                <span style={{ fontSize: '0.875rem' }}>Without box - $12/mo{!withoutBoxItemsUnlocked && <span style={{ marginLeft: '6px', fontSize: '0.75rem', color: 'var(--color-gray-500)' }}>(locked — you have storage boxes)</span>}</span>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <button onClick={() => updateItem('mediumWithoutBox', -1)} className="button-secondary" style={{ padding: '4px 12px', fontSize: '1rem' }}>−</button>
+                  <button onClick={() => updateItem('mediumWithoutBox', -1)} disabled={!withoutBoxItemsUnlocked} className="button-secondary" style={{ padding: '4px 12px', fontSize: '1rem', opacity: !withoutBoxItemsUnlocked ? 0.5 : 1, cursor: withoutBoxItemsUnlocked ? 'pointer' : 'not-allowed' }}>−</button>
                   <span style={{ minWidth: '30px', textAlign: 'center', fontWeight: '600' }}>{additionalItems.mediumWithoutBox}</span>
-                  <button onClick={() => updateItem('mediumWithoutBox', +1)} disabled={totalAdditionalItems >= MAX_ADDITIONAL_ITEMS} className="button-secondary" style={{ padding: '4px 12px', fontSize: '1rem', opacity: totalAdditionalItems >= MAX_ADDITIONAL_ITEMS ? 0.35 : 1 }}>+</button>
+                  <button onClick={() => updateItem('mediumWithoutBox', +1)} disabled={!withoutBoxItemsUnlocked || totalAdditionalItems >= MAX_ADDITIONAL_ITEMS} className="button-secondary" style={{ padding: '4px 12px', fontSize: '1rem', opacity: (!withoutBoxItemsUnlocked || totalAdditionalItems >= MAX_ADDITIONAL_ITEMS) ? 0.35 : 1, cursor: withoutBoxItemsUnlocked && totalAdditionalItems < MAX_ADDITIONAL_ITEMS ? 'pointer' : 'not-allowed' }}>+</button>
                 </div>
               </div>
             </div>
