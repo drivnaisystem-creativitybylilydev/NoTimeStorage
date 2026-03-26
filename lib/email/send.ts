@@ -7,6 +7,7 @@ import { DepositPaidAdminEmail } from '@/emails/deposit-paid-admin';
 import { NewBookingAdminEmail } from '@/emails/new-booking-admin';
 import { MoveInReminderUserEmail } from '@/emails/move-in-reminder-user';
 import { SITE_CONTACT_EMAIL } from '@/lib/site/contact';
+import { emailInlineLogoHeaderHtml } from '@/lib/email/branding';
 
 const FROM = 'NoTime Storage <noreply@notimestorage.co>';
 const REPLY_TO = SITE_CONTACT_EMAIL;
@@ -174,6 +175,7 @@ export async function sendMoveInDetailsUpdatedAdmin(params: {
   const { studentName, studentEmail, bookingId, moveInDate, school, moveInDorm, moveInRoom, specialInstructions } = params;
   const html = `
     <div style="font-family:sans-serif;max-width:560px;margin:0 auto;padding:32px 24px;color:#1a1a1a">
+      ${emailInlineLogoHeaderHtml()}
       <h2 style="color:#4B2E25;margin-bottom:4px">📍 Move-In Details Updated</h2>
       <p style="color:#666;margin-top:0;margin-bottom:24px">A student has confirmed their delivery address.</p>
       <table style="width:100%;border-collapse:collapse;font-size:0.9rem">
@@ -236,6 +238,7 @@ export async function sendContactFormAdminNotification(params: {
 
   const html = `
     <div style="font-family:sans-serif;max-width:560px;margin:0 auto;padding:32px 24px;color:#1a1a1a">
+      ${emailInlineLogoHeaderHtml()}
       <h2 style="color:#4B2E25;margin-bottom:4px">📬 New contact form</h2>
       <p style="color:#666;margin-top:0;margin-bottom:24px">Someone submitted the website contact form.</p>
       <table style="width:100%;border-collapse:collapse;font-size:0.9rem">

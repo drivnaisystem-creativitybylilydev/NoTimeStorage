@@ -12,9 +12,7 @@ import {
 } from '@react-email/components';
 import * as React from 'react';
 import { SITE_CONTACT_EMAIL } from '@/lib/site/contact';
-
-const SITE_URL = 'https://notimestorage.co';
-const LOGO_URL = `${SITE_URL}/brand/notime-storage-logo.png`;
+import { EMAIL_LOGO_URL, EMAIL_PUBLIC_BASE } from '@/lib/email/branding';
 
 const colors = {
   coffee: '#4B2E25',
@@ -175,7 +173,7 @@ export function EmailLayout({ preview, children }: EmailLayoutProps) {
           {/* Header */}
           <Section style={emailStyles.header}>
             <Img
-              src={LOGO_URL}
+              src={EMAIL_LOGO_URL}
               width="56"
               height="56"
               alt="NoTime Storage"
@@ -197,7 +195,7 @@ export function EmailLayout({ preview, children }: EmailLayoutProps) {
               </Link>
             </Text>
             <Text style={emailStyles.footerText}>
-              <Link href={SITE_URL} style={emailStyles.footerLink}>
+              <Link href={EMAIL_PUBLIC_BASE} style={emailStyles.footerLink}>
                 notimestorage.co
               </Link>
               {' · '}Student Storage for Stonehill College & University of New Haven

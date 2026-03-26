@@ -27,7 +27,9 @@ One step at a time. Complete each before moving to the next.
 
 ## Current setup
 - **Sending:** Automated emails (booking confirmations, deposit, etc.) from `noreply@notimestorage.co`
-- **Receiving:** Not set up yet — no inbox for your domain
+- **Receiving:** Zoho inbox at `admin@notimestorage.co`
+- **Logo in app-sent mail:** All React Email templates use `EmailLayout` (header image). Shared URL: `lib/email/branding.ts` → `EMAIL_LOGO_URL` (absolute `https://…/brand/notime-storage-logo.png?v=2`). Plain-HTML admin alerts embed the same via `emailInlineLogoHeaderHtml()`.
+- **Manual mail (Zoho):** The app cannot brand messages you type in Zoho. In Zoho Mail → **Settings → Signatures**, add the same logo URL (or upload the PNG) so personal replies match automated mail.
 
 ---
 
