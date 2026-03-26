@@ -22,6 +22,7 @@ const FAQ_ITEMS = [
   { q: "Which schools do you currently serve?", a: "We serve Stonehill College, University of New Haven, University of Dayton, University of Massachusetts, Brevard College, Gordon College, Central Connecticut State University, Sacred Heart University, Towson University, University of Notre Dame, James Madison University, and Bridgewater State University. If your school isn't listed yet, sign up for our reminder list and we'll notify you when we launch at your campus." },
 ];
 import { SiteHeader } from '@/app/components/SiteHeader';
+import { SITE_CONTACT_EMAIL } from '@/lib/site/contact';
 // #region agent log
 const DEBUG_LOG = (data: Record<string, unknown>) => { fetch('http://127.0.0.1:7791/ingest/e0f7eab6-ff14-43bf-bf05-6812e1535afb', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '104cb8' }, body: JSON.stringify({ sessionId: '104cb8', location: 'page.tsx', timestamp: Date.now(), ...data }) }).catch(() => {}); };
 // #endregion
@@ -1422,7 +1423,7 @@ export default function Home() {
             <div className="footer-column">
               <h4 className="footer-heading">Contact</h4>
               <ul className="footer-contact">
-                <li><a href="mailto:notimestorage@gmail.com">notimestorage@gmail.com</a></li>
+                <li><a href={`mailto:${SITE_CONTACT_EMAIL}`}>{SITE_CONTACT_EMAIL}</a></li>
                 <li><a href="tel:+15551234567">(555) 123-4567</a></li>
                 <li>Mon-Fri: 8am - 8pm</li>
                 <li>Sat-Sun: 9am - 6pm</li>

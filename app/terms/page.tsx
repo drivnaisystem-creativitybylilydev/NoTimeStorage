@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { SITE_CONTACT_EMAIL } from '@/lib/site/contact';
 import { SiteHeader } from '@/app/components/SiteHeader';
 
 export const metadata: Metadata = {
@@ -107,7 +108,7 @@ export default function TermsOfServicePage() {
             <h2>13. Contact</h2>
             <p>
               For questions about these Terms, contact us at{' '}
-              <a href="mailto:notimestorage@gmail.com">notimestorage@gmail.com</a>.
+              <a href={`mailto:${SITE_CONTACT_EMAIL}`}>{SITE_CONTACT_EMAIL}</a>.
             </p>
           </section>
 

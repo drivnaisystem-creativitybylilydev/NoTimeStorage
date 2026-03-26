@@ -6,6 +6,7 @@ import {
 } from '@react-email/components';
 import * as React from 'react';
 import { EmailLayout, emailStyles, colors } from './components/EmailLayout';
+import { SITE_CONTACT_EMAIL } from '@/lib/site/contact';
 
 interface OrderConfirmedUserEmailProps {
   customerName: string;
@@ -247,7 +248,7 @@ export function OrderConfirmedUserEmail({
         <Hr style={emailStyles.divider} />
 
         <Text style={{ ...emailStyles.paragraph, fontSize: '13px', color: colors.muted }}>
-          Need to make changes? Visit your dashboard or contact us at support@notimestorage.co
+          Need to make changes? Visit your dashboard or contact us at {SITE_CONTACT_EMAIL}
           before your move-out date.
         </Text>
       </Section>

@@ -7,6 +7,7 @@ import {
   verifySendEmailPayload,
   prepareAuthEmails,
 } from '@/lib/email/auth-hook-send';
+import { SITE_CONTACT_EMAIL } from '@/lib/site/contact';
 
 /**
  * Supabase Auth — Send Email hook (HTTPS).
@@ -18,7 +19,7 @@ import {
 export const runtime = 'nodejs';
 
 const FROM = 'NoTime Storage <noreply@notimestorage.co>';
-const REPLY_TO = 'support@notimestorage.co';
+const REPLY_TO = SITE_CONTACT_EMAIL;
 
 function webhookHeaderRecord(request: Request): Record<string, string> {
   const h = request.headers;

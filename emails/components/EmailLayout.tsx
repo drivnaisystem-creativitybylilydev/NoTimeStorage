@@ -11,6 +11,7 @@ import {
   Link,
 } from '@react-email/components';
 import * as React from 'react';
+import { SITE_CONTACT_EMAIL } from '@/lib/site/contact';
 
 const SITE_URL = 'https://notimestorage.co';
 const LOGO_URL = `${SITE_URL}/brand/notime-storage-logo.png`;
@@ -191,8 +192,8 @@ export function EmailLayout({ preview, children }: EmailLayoutProps) {
           <Section style={emailStyles.footer}>
             <Text style={emailStyles.footerText}>
               Questions? Email us at{' '}
-              <Link href="mailto:support@notimestorage.co" style={emailStyles.footerLink}>
-                support@notimestorage.co
+              <Link href={`mailto:${SITE_CONTACT_EMAIL}`} style={emailStyles.footerLink}>
+                {SITE_CONTACT_EMAIL}
               </Link>
             </Text>
             <Text style={emailStyles.footerText}>

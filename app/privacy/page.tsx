@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { SITE_CONTACT_EMAIL } from '@/lib/site/contact';
 import { SiteHeader } from '@/app/components/SiteHeader';
 
 export const metadata: Metadata = {
@@ -76,7 +77,7 @@ export default function PrivacyPolicyPage() {
           <section>
             <h2>7. Your Rights</h2>
             <p>
-              Depending on your location, you may have the right to access, correct, delete, or restrict processing of your personal data. To exercise these rights, contact us at notimestorage@gmail.com.
+              Depending on your location, you may have the right to access, correct, delete, or restrict processing of your personal data. To exercise these rights, contact us at {SITE_CONTACT_EMAIL}.
             </p>
           </section>
 
@@ -105,7 +106,7 @@ export default function PrivacyPolicyPage() {
             <h2>11. Contact Us</h2>
             <p>
               For questions about this Privacy Policy or our data practices, contact us at{' '}
-              <a href="mailto:notimestorage@gmail.com">notimestorage@gmail.com</a>.
+              <a href={`mailto:${SITE_CONTACT_EMAIL}`}>{SITE_CONTACT_EMAIL}</a>.
             </p>
           </section>
 

@@ -6,6 +6,7 @@ import {
 } from '@react-email/components';
 import * as React from 'react';
 import { EmailLayout, emailStyles, colors } from './components/EmailLayout';
+import { SITE_CONTACT_EMAIL } from '@/lib/site/contact';
 
 interface DepositConfirmedUserEmailProps {
   customerName: string;
@@ -67,7 +68,7 @@ export function DepositConfirmedUserEmail({
 
         <Text style={{ ...emailStyles.paragraph, fontSize: '13px', color: colors.muted }}>
           Your deposit will be deducted from your final storage total. If you have any questions,
-          reply to this email or contact us at support@notimestorage.co.
+          reply to this email or contact us at {SITE_CONTACT_EMAIL}.
         </Text>
       </Section>
     </EmailLayout>

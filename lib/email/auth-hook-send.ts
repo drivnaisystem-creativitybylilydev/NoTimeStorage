@@ -4,8 +4,9 @@
  */
 import { Webhook } from 'standardwebhooks';
 import type { AuthVerifyEmailProps } from '@/emails/auth-verify-email';
+import { SITE_CONTACT_EMAIL } from '@/lib/site/contact';
 
-const REPLY_TO = 'support@notimestorage.co';
+const REPLY_TO = SITE_CONTACT_EMAIL;
 
 export { REPLY_TO as AUTH_EMAIL_REPLY_TO };
 

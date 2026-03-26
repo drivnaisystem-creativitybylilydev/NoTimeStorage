@@ -8,6 +8,7 @@ import { AuthPageWrapper } from '@/app/components/AuthPageWrapper';
 import { ProfileEditor } from './ProfileEditor';
 import { LogoutButton } from './LogoutButton';
 import { MoveInConfirmCard } from './MoveInConfirmCard';
+import { SITE_CONTACT_EMAIL } from '@/lib/site/contact';
 
 type BookingItem = { item_type: string; quantity: number; monthly_rate: number; subtotal: number };
 type BookingRow = {
@@ -239,14 +240,14 @@ export default async function DashboardPage() {
 
               {/* Email */}
               <a
-                href="mailto:notimestorage@gmail.com"
+                href={`mailto:${SITE_CONTACT_EMAIL}`}
                 style={{ textDecoration: 'none', display: 'block', padding: '4px 0' }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '4px' }}>
                   <span style={{ fontSize: '1.6rem', lineHeight: 1 }}>✉️</span>
                   <span style={{ fontSize: '1.1rem', fontWeight: '700', color: 'var(--color-coffee)', textDecoration: 'none' }}>Email us</span>
                 </div>
-                <div style={{ fontSize: '0.875rem', color: 'var(--color-gray-500)', paddingLeft: '2px', textDecoration: 'none' }}>notimestorage@gmail.com</div>
+                <div style={{ fontSize: '0.875rem', color: 'var(--color-gray-500)', paddingLeft: '2px', textDecoration: 'none' }}>{SITE_CONTACT_EMAIL}</div>
               </a>
 
               {/* FAQ / Contact page */}

@@ -6,9 +6,10 @@ import { OrderConfirmedUserEmail } from '@/emails/order-confirmed-user';
 import { DepositPaidAdminEmail } from '@/emails/deposit-paid-admin';
 import { NewBookingAdminEmail } from '@/emails/new-booking-admin';
 import { MoveInReminderUserEmail } from '@/emails/move-in-reminder-user';
+import { SITE_CONTACT_EMAIL } from '@/lib/site/contact';
 
 const FROM = 'NoTime Storage <noreply@notimestorage.co>';
-const REPLY_TO = 'support@notimestorage.co';
+const REPLY_TO = SITE_CONTACT_EMAIL;
 const ADMIN_EMAIL = process.env.BOOKING_NOTIFY_EMAIL || '';
 
 async function sendEmail(to: string | string[], subject: string, html: string) {

@@ -84,7 +84,7 @@ Set all of the following in **Vercel → Project → Settings → Environment Va
 | `SQUARE_ACCESS_TOKEN` | *(your production token — starts with EAAAl)* |
 | `SQUARE_APPLICATION_ID` | *(starts with sq0idp-)* |
 | `SQUARE_LOCATION_ID` | `LYKH0VGXG3J8T` |
-| `BOOKING_NOTIFY_EMAIL` | *(client's email address)* |
+| `BOOKING_NOTIFY_EMAIL` | `admin@notimestorage.co` *(new-booking alerts)* |
 | `CRON_SECRET` | `79a5c778163f6dd5e988aa77cf48dc0d45e831e87d3b26151a55193e983a4ac8` |
 | `NEXT_PUBLIC_SITE_URL` | `https://notimestorage.co` |
 | `NEXT_PUBLIC_APP_URL` | `https://notimestorage.co` |
@@ -126,7 +126,7 @@ After a sandbox test payment confirm these are correct in Supabase:
 ## SECTION 6 — Go Live
 
 1. Set `SQUARE_ENV=production` in Vercel Production environment variables
-2. Update `BOOKING_NOTIFY_EMAIL` to client's email in Vercel
+2. Set `BOOKING_NOTIFY_EMAIL=admin@notimestorage.co` in Vercel (same inbox as public contact mail)
 3. **Redeploy** from Vercel → Deployments
 
 ---
@@ -138,7 +138,7 @@ After a sandbox test payment confirm these are correct in Supabase:
 1. Make a real booking as a test customer using a real card
 2. Pay the **$50 deposit** — confirm it appears in Square Dashboard → Payments
 3. Confirm the deposit email arrives at the student email address
-4. Confirm the admin notification email arrives at the **client's email**
+4. Confirm the admin notification email arrives at **`admin@notimestorage.co`**
 5. Check Supabase: deposit + booking records written correctly
 6. **Immediately issue a refund** from Square Dashboard → Payments → find the charge → **Issue Refund**
    - The refund processes immediately on Square's end; it appears on the card in 2–7 business days
@@ -166,7 +166,7 @@ After a sandbox test payment confirm these are correct in Supabase:
 - [ ] Remove the old dev admin account if not already done (Section 1.2)
 - [ ] Confirm client can log into `/admin` with their new credentials
 - [ ] Share admin dashboard URL and credentials securely with client
-- [ ] Set up support email forwarding so `support@notimestorage.co` reaches the client's inbox
+- [ ] Confirm Zoho inbox **`admin@notimestorage.co`** receives booking alerts (`BOOKING_NOTIFY_EMAIL`) and customer contact
 - [ ] Monitor Vercel → Functions logs + Resend → Logs for the first 48 hours
 
 ---
