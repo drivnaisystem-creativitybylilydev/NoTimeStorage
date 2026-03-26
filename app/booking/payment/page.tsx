@@ -492,9 +492,9 @@ function PaymentPageContent() {
           <p>Confirm your details and complete payment</p>
         </div>
 
-        <div className="booking-payment-content">
-          {/* Left: Order Summary */}
-          <div className="booking-order-summary">
+      <div className="booking-payment-content">
+        {/* Order summary: first in DOM for mobile; CSS order places it right on ≥768px */}
+        <div className="booking-order-summary">
             <h2>Booking Summary</h2>
 
             <div className="booking-summary-section booking-summary-details">
@@ -635,8 +635,8 @@ function PaymentPageContent() {
             )}
           </div>
 
-          {/* Right: Payment */}
-          <div className="booking-payment-card">
+        {/* Payment: CSS order places it left on ≥768px */}
+        <div className="booking-payment-card">
             <h2>Payment</h2>
             <div className="payment-trust-message">
               {paymentPlan === 'monthly' && monthlyBreakdown
