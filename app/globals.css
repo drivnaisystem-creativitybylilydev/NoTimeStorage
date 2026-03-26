@@ -4318,6 +4318,25 @@ button {
   justify-content: center;
   width: 100%;
   max-width: 1200px;
+  min-width: 0;
+}
+
+/* Long checkout — allow vertical scroll; avoid horizontal crop from overflow + wide flex children */
+.auth-container:has(.booking-payment-page) {
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.auth-content-layer:has(.booking-payment-page) {
+  max-width: min(1200px, 100%);
+  align-self: stretch;
+}
+
+.auth-content-layer > .booking-payment-page {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
 }
 
 .auth-content-layer > * {
@@ -5811,6 +5830,9 @@ button {
   min-height: 100vh;
   padding-top: 100px;
   padding-bottom: 80px;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 .booking-payment-page:not(.auth-container) {
   background: var(--color-paper);
@@ -5818,8 +5840,10 @@ button {
 
 .booking-payment-container {
   max-width: 1000px;
+  width: 100%;
   margin: 0 auto;
-  padding: 0 24px;
+  padding: 0 clamp(14px, 4vw, 24px);
+  box-sizing: border-box;
 }
 
 /* Header */
@@ -5846,11 +5870,13 @@ button {
   display: grid;
   grid-template-columns: 1fr;
   gap: 32px;
+  min-width: 0;
+  width: 100%;
 }
 
 @media (min-width: 768px) {
   .booking-payment-content {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   }
 }
 
@@ -5862,6 +5888,11 @@ button {
   padding: 32px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
   height: fit-content;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow-wrap: anywhere;
+  word-wrap: break-word;
 }
 
 .booking-order-summary h2 {
@@ -5903,10 +5934,24 @@ button {
 .booking-summary-line {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
+  gap: 10px 14px;
   padding: 8px 0;
   color: var(--color-ink);
   font-size: 15px;
+}
+
+.booking-summary-line > span {
+  min-width: 0;
+}
+
+.booking-summary-line > span:first-child {
+  flex: 1 1 auto;
+}
+
+.booking-summary-line > span:last-child {
+  flex: 0 1 auto;
+  text-align: right;
 }
 
 .booking-summary-line.highlight {
@@ -5990,6 +6035,11 @@ button {
   justify-content: space-between;
   align-items: flex-start;
   padding: 10px 0;
+  gap: 12px;
+}
+
+.payment-schedule-row > div {
+  min-width: 0;
 }
 
 .payment-schedule-row.today {
@@ -6010,6 +6060,24 @@ button {
   border-bottom: none;
 }
 
+.payment-schedule-footer-total {
+  border-top: 1px solid var(--color-latte);
+  margin-top: 12px;
+  padding-top: 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 640px) {
+  .payment-schedule-footer-total {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
 /* Payment Card */
 .booking-payment-card {
   background: white;
@@ -6018,6 +6086,10 @@ button {
   padding: 32px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
   height: fit-content;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow-wrap: anywhere;
 }
 
 .booking-payment-card h2 {
@@ -6037,6 +6109,7 @@ button {
   font-size: 14px;
   color: var(--color-coffee);
   line-height: 1.5;
+  overflow-wrap: anywhere;
 }
 
 /* Sandbox warning */
@@ -6135,6 +6208,8 @@ button {
 .square-card-container {
   margin-bottom: 20px;
   min-height: 89px;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 /* Error message */
@@ -6232,7 +6307,7 @@ button {
   }
 
   .booking-payment-container {
-    padding: 0 20px;
+    padding: 0 clamp(12px, 4vw, 20px);
   }
 
   .booking-payment-header h1 {
@@ -6241,7 +6316,7 @@ button {
 
   .booking-order-summary,
   .booking-payment-card {
-    padding: 24px 20px;
+    padding: 24px clamp(14px, 3.5vw, 20px);
   }
 
   .booking-summary-total {
@@ -6254,6 +6329,34 @@ button {
   }
 }
 
+/* Stack summary label / value so nothing is clipped on narrow phones */
+@media (max-width: 640px) {
+  .booking-summary-line {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 4px;
+  }
+
+  .booking-summary-line > span:last-child {
+    text-align: left;
+  }
+
+  .booking-summary-total {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+  }
+
+  .payment-schedule-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .payment-schedule-row > div:last-child {
+    align-self: flex-start;
+  }
+}
+
 @media (max-width: 480px) {
   .booking-payment-header {
     margin-bottom: 32px;
@@ -6261,7 +6364,7 @@ button {
 
   .booking-order-summary,
   .booking-payment-card {
-    padding: 20px 16px;
+    padding: 20px 14px;
   }
 
   .booking-summary-line {
@@ -6271,6 +6374,10 @@ button {
   .payment-trust-badges {
     flex-direction: column;
     gap: 8px;
+  }
+
+  .booking-payment-header h1 {
+    font-size: clamp(1.35rem, 6vw, 1.75rem);
   }
 }
 

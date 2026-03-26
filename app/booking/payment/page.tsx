@@ -619,7 +619,7 @@ function PaymentPageContent() {
                   </div>
                 </div>
 
-                <div style={{ borderTop: '1px solid var(--color-latte)', marginTop: '12px', paddingTop: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div className="payment-schedule-footer-total">
                   <span style={{ fontWeight: '700', color: 'var(--color-coffee)' }}>Total</span>
                   <span style={{ fontWeight: '700', color: 'var(--color-coffee)' }}>${(monthlyBreakdown.totalCents / 100).toFixed(2)}</span>
                 </div>
