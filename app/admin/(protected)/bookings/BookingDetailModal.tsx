@@ -1,8 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { createClient } from '@/lib/supabase/client';
 import type { BookingWithCustomer } from '@/lib/admin/actions';
+import { formatBookingItemTypeLabel } from '@/lib/booking/item-display';
 
 type BookingDetailModalProps = {
   booking: BookingWithCustomer;
@@ -25,20 +24,7 @@ function formatTimeSlot(s: string) {
 }
 
 export function BookingDetailModal({ booking, onClose }: BookingDetailModalProps) {
-  const [items, setItems] = useState<Array<{ item_type: string; quantity: number; unit_price_cents: number }>>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const supabase = createClient();
-    supabase
-      .from('booking_items')
-      .select('item_type, quantity, unit_price_cents')
-      .eq('booking_id', booking.id)
-      .then(({ data }) => {
-        setItems(data || []);
-        setLoading(false);
-      });
-  }, [booking.id]);
+  const items = booking.items ?? [];
 
   return (
     <div
@@ -187,18 +173,18 @@ export function BookingDetailModal({ booking, onClose }: BookingDetailModalProps
             <h3 style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--color-gray-600)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '12px' }}>
               Items
             </h3>
-            {loading ? (
-              <div style={{ color: 'var(--color-gray-600)' }}>Loading...</div>
-            ) : items.length === 0 ? (
-              <div style={{ color: 'var(--color-gray-600)' }}>No items</div>
+            {items.length === 0 ? (
+              <div style={{ color: 'var(--color-gray-600)' }}>No line items on file for this booking.</div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 {items.map((item, i) => (
-                  <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 12px', background: 'var(--color-white)', borderRadius: '8px' }}>
+                  <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: '12px', padding: '8px 12px', background: 'var(--color-white)', borderRadius: '8px' }}>
                     <span style={{ color: 'var(--color-gray-700)' }}>
-                      {item.quantity}× {item.item_type.replace(/_/g, ' ')}
+                      {item.quantity}× {formatBookingItemTypeLabel(item.item_type)}
                     </span>
-                    <span style={{ fontWeight: 600, color: 'var(--color-coffee)' }}>${(item.unit_price_cents / 100).toFixed(2)}/mo</span>
+                    <span style={{ fontWeight: 600, color: 'var(--color-coffee)', flexShrink: 0 }}>
+                      ${item.monthly_rate.toFixed(2)}/mo each · ${item.subtotal.toFixed(2)}/mo line
+                    </span>
                   </div>
                 ))}
               </div>

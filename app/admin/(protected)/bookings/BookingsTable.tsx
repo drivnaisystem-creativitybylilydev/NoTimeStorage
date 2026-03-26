@@ -20,6 +20,7 @@ type BookingsTableProps = {
 
 import { formatDateShort } from '@/lib/utils/date';
 import { SCHOOL_DORMS, SCHOOL_NAMES } from '@/lib/schools/config';
+import { summarizeBookingItemsLine } from '@/lib/booking/item-display';
 
 function formatDate(d: string) { return formatDateShort(d); }
 
@@ -291,6 +292,7 @@ function BookingsTableContent({ initialBookings, total, currentPage, filters, so
                 </th>
                 <th>Customer</th>
                 <th>Dorm / Room</th>
+                <th>What&apos;s stored</th>
                 <th>Status</th>
                 <th style={{ textAlign: 'right' }}>Total</th>
                 <th style={{ textAlign: 'center' }}>Actions</th>
@@ -299,7 +301,7 @@ function BookingsTableContent({ initialBookings, total, currentPage, filters, so
             <tbody>
               {initialBookings.length === 0 ? (
                 <tr>
-                  <td colSpan={6} style={{ padding: '48px 24px', textAlign: 'center', fontSize: '15px', color: 'var(--color-gray-600)' }}>
+                  <td colSpan={7} style={{ padding: '48px 24px', textAlign: 'center', fontSize: '15px', color: 'var(--color-gray-600)' }}>
                     No bookings found matching your filters.
                   </td>
                 </tr>
@@ -317,6 +319,14 @@ function BookingsTableContent({ initialBookings, total, currentPage, filters, so
                     <td style={{ color: 'var(--color-coffee)' }}>
                       <div>{b.dorm || '—'}</div>
                       {(b as any).room && <div style={{ fontSize: '13px', color: 'var(--color-gray-600)', marginTop: '2px' }}>Room {(b as any).room}</div>}
+                    </td>
+                    <td style={{ maxWidth: '280px' }}>
+                      <div
+                        style={{ fontSize: '13px', color: 'var(--color-gray-700)', lineHeight: 1.45 }}
+                        title={summarizeBookingItemsLine(b.items, 500)}
+                      >
+                        {summarizeBookingItemsLine(b.items)}
+                      </div>
                     </td>
                     <td>
                       <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>

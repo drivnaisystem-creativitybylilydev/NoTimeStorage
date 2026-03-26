@@ -5,6 +5,7 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 import type { BookingWithCustomer } from '@/lib/admin/actions';
 import { formatDate } from '@/lib/utils/date';
 import { SCHOOL_NAMES } from '@/lib/schools/config';
+import { summarizeBookingItemsLine } from '@/lib/booking/item-display';
 
 const SCHOOLS = ['All Schools', ...SCHOOL_NAMES];
 
@@ -130,6 +131,11 @@ function DayDetailPanel({ date, moveOutBookings, moveInBookings, onClose, school
           <span>🕐 {formatTime(timeSlot || '') || '—'}</span>
           <span>🏠 {dorm || '—'}{room ? ` · Room ${room}` : ''}</span>
           <span>📦 {b.box_quantity} box{b.box_quantity !== 1 ? 'es' : ''}</span>
+          {!!(b.items?.length) && (
+            <span style={{ gridColumn: '1 / -1', fontSize: '0.78rem', color: '#444' }}>
+              🧾 {summarizeBookingItemsLine(b.items, 120)}
+            </span>
+          )}
           {b.customer?.email && <span style={{ gridColumn: '1 / -1' }}>✉️ {b.customer.email}</span>}
           {b.customer?.phone && <span>📞 {b.customer.phone}</span>}
           {type === 'move-in' && b.move_in_confirmed_at && (
@@ -284,6 +290,11 @@ function WeekView({ weekStart, bookingsByDate, moveInByDate, matchesFilter, isFi
                 <div style={{ fontSize: '0.72rem', color: '#555', display: 'flex', flexDirection: 'column', gap: '2px' }}>
                   {dorm && <span>🏠 {dorm}</span>}
                   <span>📦 {b.box_quantity} box{b.box_quantity !== 1 ? 'es' : ''}</span>
+                  {!!(b.items?.length) && (
+                    <span style={{ fontSize: '0.68rem', color: '#444', lineHeight: 1.35 }} title={summarizeBookingItemsLine(b.items, 400)}>
+                      🧾 {summarizeBookingItemsLine(b.items, 70)}
+                    </span>
+                  )}
                 </div>
                 <div style={{ marginTop: '6px' }}>
                   <span style={{ fontSize: '0.65rem', fontWeight: 700, background: statusInfo.color + '18', color: statusInfo.color, padding: '1px 7px', borderRadius: '20px' }}>

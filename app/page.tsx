@@ -1383,7 +1383,6 @@ export default function Home() {
               <h4 className="footer-heading">Contact</h4>
               <ul className="footer-contact">
                 <li><a href={`mailto:${SITE_CONTACT_EMAIL}`}>{SITE_CONTACT_EMAIL}</a></li>
-                <li><a href="tel:+15551234567">(555) 123-4567</a></li>
                 <li>Mon-Fri: 8am - 8pm</li>
                 <li>Sat-Sun: 9am - 6pm</li>
               </ul>

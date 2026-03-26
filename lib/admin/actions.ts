@@ -1,6 +1,7 @@
 'use server';
 
 import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { SCHOOLS } from '@/lib/schools/config';
 
 export type DashboardStats = {
@@ -323,6 +324,13 @@ export async function adminCancelBooking(bookingId: string): Promise<ActionResul
   return { success: true };
 }
 
+export type AdminBookingItemRow = {
+  item_type: string;
+  quantity: number;
+  monthly_rate: number;
+  subtotal: number;
+};
+
 export type BookingWithCustomer = {
   id: string;
   status: string;
@@ -344,6 +352,8 @@ export type BookingWithCustomer = {
   box_quantity: number;
   created_at: string;
   paid_at: string | null;
+  /** Line items (boxes + add-ons); loaded via join for admin list + detail. */
+  items: AdminBookingItemRow[];
   // Monthly plan fields
   monthly_payment_amount: number | null;
   monthly_payments_remaining: number | null;
@@ -376,6 +386,21 @@ export type BookingsFilters = {
   userId?: string;
 };
 
+function normalizeAdminBookingItems(raw: unknown): AdminBookingItemRow[] {
+  if (!Array.isArray(raw)) return [];
+  return raw.map((r) => {
+    const o = r as Record<string, unknown>;
+    const monthly = typeof o.monthly_rate === 'number' ? o.monthly_rate : parseFloat(String(o.monthly_rate ?? '0'));
+    const sub = typeof o.subtotal === 'number' ? o.subtotal : parseFloat(String(o.subtotal ?? '0'));
+    return {
+      item_type: String(o.item_type ?? ''),
+      quantity: typeof o.quantity === 'number' ? o.quantity : parseInt(String(o.quantity ?? '0'), 10) || 0,
+      monthly_rate: monthly,
+      subtotal: sub,
+    };
+  });
+}
+
 export async function getBookings(
   page: number = 1,
   pageSize: number = 25,
@@ -384,8 +409,21 @@ export async function getBookings(
   sortOrder: 'asc' | 'desc' = 'desc'
 ): Promise<{ bookings: BookingWithCustomer[]; total: number }> {
   const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { bookings: [], total: 0 };
 
-  let query = supabase
+  const { data: adminUser } = await supabase
+    .from('admin_users')
+    .select('id')
+    .eq('auth_user_id', user.id)
+    .single();
+  if (!adminUser) return { bookings: [], total: 0 };
+
+  // Service role: nested booking_items are hidden from admins under user JWT because RLS only allows
+  // customers to SELECT their own line items (see docs/booking-backend.md).
+  const db = createAdminClient();
+
+  let query = db
     .from('bookings')
     .select(
       `
@@ -418,6 +456,12 @@ export async function getBookings(
       move_in_dorm,
       move_in_room,
       move_in_confirmed_at,
+      booking_items (
+        item_type,
+        quantity,
+        monthly_rate,
+        subtotal
+      ),
       users!bookings_user_id_fkey (
         full_name,
         email,
@@ -479,9 +523,11 @@ export async function getBookings(
       phone: o.phone != null ? String(o.phone) : null,
     };
   };
+
   const bookings: BookingWithCustomer[] = (data || []).map((row: any) => {
     const userRow = Array.isArray(row.users) ? row.users[0] : row.users;
     const customer = pickUser(userRow);
+    const items = normalizeAdminBookingItems(row.booking_items);
     return {
       id: row.id,
       status: row.status,
@@ -503,6 +549,7 @@ export async function getBookings(
       box_quantity: row.box_quantity,
       created_at: row.created_at,
       paid_at: row.paid_at ?? null,
+      items,
       monthly_payment_amount: row.monthly_payment_amount ?? null,
       monthly_payments_remaining: row.monthly_payments_remaining ?? null,
       next_payment_date: row.next_payment_date ?? null,
@@ -520,12 +567,17 @@ export async function getBookings(
   let filteredBookings = bookings;
   if (filters?.search) {
     const searchLower = filters.search.toLowerCase();
-    filteredBookings = bookings.filter(
-      (b) =>
+    filteredBookings = bookings.filter((b) => {
+      if (
         b.customer?.full_name?.toLowerCase().includes(searchLower) ||
         b.customer?.email?.toLowerCase().includes(searchLower) ||
         b.customer?.phone?.includes(searchLower)
-    );
+      ) {
+        return true;
+      }
+      const itemsLine = b.items.map((i) => `${i.quantity} ${i.item_type}`).join(' ').toLowerCase();
+      return itemsLine.includes(searchLower);
+    });
   }
 
   return { bookings: filteredBookings, total: filters?.search ? filteredBookings.length : (count || 0) };
@@ -735,7 +787,8 @@ export async function getCalendarBookings(): Promise<BookingWithCustomer[]> {
     .single();
   if (!adminUser) return [];
 
-  const { data, error } = await supabase
+  const db = createAdminClient();
+  const { data, error } = await db
     .from('bookings')
     .select(`
       id,
@@ -767,6 +820,12 @@ export async function getCalendarBookings(): Promise<BookingWithCustomer[]> {
       move_in_dorm,
       move_in_room,
       move_in_confirmed_at,
+      booking_items (
+        item_type,
+        quantity,
+        monthly_rate,
+        subtotal
+      ),
       users!bookings_user_id_fkey (
         full_name,
         email,
@@ -814,6 +873,7 @@ export async function getCalendarBookings(): Promise<BookingWithCustomer[]> {
       box_quantity: row.box_quantity,
       created_at: row.created_at,
       paid_at: row.paid_at ?? null,
+      items: normalizeAdminBookingItems(row.booking_items),
       monthly_payment_amount: row.monthly_payment_amount ?? null,
       monthly_payments_remaining: row.monthly_payments_remaining ?? null,
       next_payment_date: row.next_payment_date ?? null,
