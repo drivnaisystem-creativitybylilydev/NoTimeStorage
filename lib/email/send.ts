@@ -10,7 +10,11 @@ import { SITE_CONTACT_EMAIL } from '@/lib/site/contact';
 
 const FROM = 'NoTime Storage <noreply@notimestorage.co>';
 const REPLY_TO = SITE_CONTACT_EMAIL;
-const ADMIN_EMAIL = process.env.BOOKING_NOTIFY_EMAIL || '';
+
+/** Operational alerts: deposit paid, new booking, move-in updates, contact form. Env overrides; else SITE_CONTACT_EMAIL (admin@). */
+function adminNotifyTo(): string {
+  return (process.env.BOOKING_NOTIFY_EMAIL || SITE_CONTACT_EMAIL).trim();
+}
 
 function escapeHtml(text: string) {
   return text
@@ -108,10 +112,11 @@ export async function sendDepositPaidAdmin(params: {
   userId?: string;
   paidAt?: string;
 }) {
-  if (!ADMIN_EMAIL) return;
+  const to = adminNotifyTo();
+  if (!to) return;
   const html = await render(DepositPaidAdminEmail(params));
   await sendEmail(
-    ADMIN_EMAIL,
+    to,
     `💰 Deposit received — ${params.customerName} (${params.school})`,
     html,
   );
@@ -144,10 +149,11 @@ export async function sendNewBookingAdmin(params: {
   month3Amount?: number;
   month3Date?: string;
 }) {
-  if (!ADMIN_EMAIL) return;
+  const to = adminNotifyTo();
+  if (!to) return;
   const html = await render(NewBookingAdminEmail(params));
   await sendEmail(
-    ADMIN_EMAIL,
+    to,
     `📦 New booking — ${params.customerName} · ${params.moveOutDate} · ${params.school}`,
     html,
   );
@@ -163,7 +169,8 @@ export async function sendMoveInDetailsUpdatedAdmin(params: {
   moveInRoom: string;
   specialInstructions: string;
 }) {
-  if (!ADMIN_EMAIL) return;
+  const to = adminNotifyTo();
+  if (!to) return;
   const { studentName, studentEmail, bookingId, moveInDate, school, moveInDorm, moveInRoom, specialInstructions } = params;
   const html = `
     <div style="font-family:sans-serif;max-width:560px;margin:0 auto;padding:32px 24px;color:#1a1a1a">
@@ -182,7 +189,7 @@ export async function sendMoveInDetailsUpdatedAdmin(params: {
     </div>
   `;
   await sendEmail(
-    ADMIN_EMAIL,
+    to,
     `📍 Move-in details updated — ${studentName} · ${moveInDate}`,
     html,
   );
@@ -219,7 +226,7 @@ export async function sendContactFormAdminNotification(params: {
   subject_other?: string | null;
   message: string;
 }) {
-  const notifyTo = (process.env.BOOKING_NOTIFY_EMAIL || SITE_CONTACT_EMAIL).trim();
+  const notifyTo = adminNotifyTo();
   if (!notifyTo) return;
 
   const subj =

@@ -5,6 +5,7 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import type { CreateBookingInput, BookingWithItems, BookingItemType } from './types';
 import { onBookingCreated } from './integrations';
 import { isTimeSlotAvailable } from './availability';
+import { SITE_CONTACT_EMAIL } from '@/lib/site/contact';
 
 export type CreateBookingResult =
   | { success: true; bookingId: string; debug?: Record<string, unknown> }
@@ -222,7 +223,7 @@ export async function createBooking(input: CreateBookingInput): Promise<CreateBo
     process.env.NODE_ENV === 'development'
       ? {
           stage: 'after_insert',
-          emailTo: process.env.BOOKING_NOTIFY_EMAIL ?? null,
+          emailTo: process.env.BOOKING_NOTIFY_EMAIL || SITE_CONTACT_EMAIL,
           hasResendApiKey: !!process.env.RESEND_API_KEY,
         }
       : undefined;
