@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { motion, AnimatePresence, useInView } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
@@ -182,14 +182,7 @@ function BoxShowcase() {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
-    <motion.section
-      id="box-specifications"
-      className="box-showcase-section"
-      initial={{ opacity: 0, y: 28 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: '-80px' }}
-      transition={{ duration: 0.55, ease: [0.25, 0.1, 0.25, 1] }}
-    >
+    <section id="box-specifications" className="box-showcase-section">
       {/* ── Trigger ── */}
       <button
         className={`box-showcase-trigger${isOpen ? ' open' : ''}`}
@@ -272,11 +265,11 @@ function BoxShowcase() {
         {isOpen && (
           <motion.div
             key="box-content"
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.5, ease: [0.32, 0.72, 0, 1] }}
-            style={{ overflow: 'hidden' }}
+            className="box-showcase-expanded"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.22, ease: [0.25, 0.1, 0.25, 1] }}
           >
             <div className="box-showcase-inner">
               <div className="box-showcase-header">
@@ -304,9 +297,9 @@ function BoxShowcase() {
 
                 <motion.div
                   className="box-specs-panel"
-                  initial={{ x: '-100%' }}
-                  animate={{ x: 0 }}
-                  transition={{ duration: 0.5, delay: 0.1, ease: [0.32, 0.72, 0, 1] }}
+                  initial={{ opacity: 0, y: 16 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.4, delay: 0.06, ease: [0.32, 0.72, 0, 1] }}
                 >
                   <p className="box-specs-intro" style={{
                     fontSize: 'clamp(1.2rem, 2vw, 1.5rem)',
@@ -388,7 +381,7 @@ function BoxShowcase() {
           </motion.div>
         )}
       </AnimatePresence>
-    </motion.section>
+    </section>
   );
 }
 
@@ -492,14 +485,6 @@ export default function Home() {
     }
   };
 
-  /** Scroll-in for every major homepage section */
-  const sectionEntrance = {
-    initial: { opacity: 0, y: 32 },
-    whileInView: { opacity: 1, y: 0 },
-    viewport: { once: true, margin: '-70px' as const },
-    transition: { duration: 0.55, ease: [0.25, 0.1, 0.25, 1] as [number, number, number, number] },
-  };
-
   const faqJsonLd = {
     '@context': 'https://schema.org',
     '@type': 'FAQPage',
@@ -571,7 +556,7 @@ export default function Home() {
       </section>
 
       {/* Trust & Social Proof Strip - Campus logos from lib/schools/config */}
-      <motion.section className="trust-strip" {...sectionEntrance}>
+      <section className="trust-strip">
         <div className="trust-strip-content">
           <div className="trust-heading-wrapper">
             <motion.p
@@ -644,10 +629,10 @@ export default function Home() {
             </div>
           </motion.div>
         </div>
-      </motion.section>
+      </section>
 
       {/* Why NoTime Storage */}
-      <motion.section className="why-section" {...sectionEntrance}>
+      <section className="why-section">
         <div className="why-container">
           <motion.h2 
             className="why-title"
@@ -683,10 +668,10 @@ export default function Home() {
             )}
           </motion.div>
         </div>
-      </motion.section>
+      </section>
 
       {/* How It Works Section */}
-      <motion.section id="how-it-works" className="how-it-works" {...sectionEntrance}>
+      <section id="how-it-works" className="how-it-works">
         <div className="how-it-works-container">
           <motion.h2 
             className="how-it-works-title"
@@ -761,13 +746,13 @@ export default function Home() {
             )}
           </motion.div>
         </div>
-      </motion.section>
+      </section>
 
       {/* Storage Box Showcase */}
       <BoxShowcase />
 
       {/* Pricing Section */}
-      <motion.section className="pricing" id="pricing" data-section="pricing" {...sectionEntrance}>
+      <section className="pricing" id="pricing" data-section="pricing">
         <div className="pricing-container">
           {/* Hero Text Above Box */}
           <div className="pricing-hero">
@@ -980,10 +965,10 @@ export default function Home() {
               <>
                 <motion.div 
                   className="items-pricing-grid"
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: 'auto' }}
-                  exit={{ opacity: 0, height: 0 }}
-                  transition={{ duration: 0.4, ease: [0.25, 0.1, 0.25, 1] }}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.22, ease: [0.25, 0.1, 0.25, 1] }}
                 >
                   <div className="item-pricing-card">
                     <div className="item-icon">📦</div>
@@ -1044,10 +1029,10 @@ export default function Home() {
           </AnimatePresence>
           </div>
         </div>
-      </motion.section>
+      </section>
 
       {/* Comparison Table - before reviews for conversion */}
-      <motion.section className="comparison-section" {...sectionEntrance}>
+      <section className="comparison-section">
         <div className="comparison-container">
           <motion.h2 
             className="comparison-title"
@@ -1158,7 +1143,7 @@ export default function Home() {
             )}
           </motion.div>
         </div>
-      </motion.section>
+      </section>
 
       {/* Testimonials — plain section: Framer on .reviews-scroll-row breaks its translateX(-50%) centering vs CSS keyframe transform */}
       <section className="testimonials-section">
@@ -1207,7 +1192,7 @@ export default function Home() {
       </section>
 
       {/* FAQ Section */}
-      <motion.section id="faq" className="faq" {...sectionEntrance}>
+      <section id="faq" className="faq">
         <div className="faq-container">
           <motion.h2 
             className="faq-title"
@@ -1250,10 +1235,10 @@ export default function Home() {
                   {openFaq === i && (
                     <motion.div
                       className="faq-answer"
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: "auto", opacity: 1 }}
-                      exit={{ height: 0, opacity: 0 }}
-                      transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.2, ease: [0.25, 0.1, 0.25, 1] }}
                     >
                       <p>{item.a}</p>
                     </motion.div>
@@ -1272,10 +1257,10 @@ export default function Home() {
             <Link href="/contact"><button className="button-primary">Need More Answers?</button></Link>
           </motion.div>
         </div>
-      </motion.section>
+      </section>
 
       {/* Early Reminder CTA */}
-      <motion.section className="reminder-cta-section" {...sectionEntrance}>
+      <section className="reminder-cta-section">
         <div className="reminder-cta-container">
           <motion.h2
             className="reminder-cta-title"
@@ -1336,17 +1321,11 @@ export default function Home() {
             <p className="reminder-note">We'll notify you when the next season opens.</p>
           )}
         </div>
-      </motion.section>
+      </section>
 
       {/* Footer Section */}
-      <motion.footer className="footer" {...sectionEntrance}>
-        <motion.div 
-          className="footer-container"
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: "-50px" }}
-          transition={{ duration: 0.6, ease: [0.25, 0.1, 0.25, 1] }}
-        >
+      <footer className="footer">
+        <div className="footer-container">
           {/* Footer CTA */}
           <div className="footer-cta-section">
             <p className="footer-cta-text">Ready to store your things? Get started in minutes.</p>
@@ -1429,8 +1408,8 @@ export default function Home() {
               <Link href="/terms">Terms of Service</Link>
             </div>
           </div>
-        </motion.div>
-      </motion.footer>
+        </div>
+      </footer>
     </div>
   );
 }
