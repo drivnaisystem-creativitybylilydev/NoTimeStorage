@@ -276,7 +276,7 @@ export function EditBookingForm({
           {/* Small */}
           <div style={{ marginBottom: '20px', paddingBottom: '20px', borderBottom: '1px solid var(--color-latte-soft)' }}>
             <div style={{ fontWeight: '600', marginBottom: '12px', color: 'var(--color-gray-800)' }}>Small Items</div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+            <div className="booking-edit-items-grid">
               {(['smallWithBox', 'smallWithoutBox'] as const).map(key => (
                 <div key={key} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <span style={{ fontSize: '0.875rem' }}>{key === 'smallWithBox' ? 'With box – $9/mo' : 'Without box – $11/mo'}</span>
@@ -293,7 +293,7 @@ export function EditBookingForm({
           {/* Medium */}
           <div style={{ marginBottom: '20px', paddingBottom: '20px', borderBottom: '1px solid var(--color-latte-soft)' }}>
             <div style={{ fontWeight: '600', marginBottom: '12px', color: 'var(--color-gray-800)' }}>Medium Items</div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+            <div className="booking-edit-items-grid">
               {(['mediumWithBox', 'mediumWithoutBox'] as const).map(key => (
                 <div key={key} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <span style={{ fontSize: '0.875rem' }}>{key === 'mediumWithBox' ? 'With box – $9/mo' : 'Without box – $12/mo'}</span>

@@ -678,32 +678,35 @@ function PaymentPageContent() {
               </div>
             )}
 
-            <div style={{ marginBottom: '16px' }}>
+            <div className="billing-address-block">
               <div style={{ fontSize: '0.8rem', fontWeight: 600, color: '#6B5A52', marginBottom: '8px' }}>
                 Billing address <span style={{ fontWeight: 400, color: '#9E8E88' }}>(optional — helps reduce declines)</span>
               </div>
-              <div style={{ display: 'grid', gap: '8px' }}>
+              <div className="billing-address-fields">
                 <input
                   type="text"
                   placeholder="Street address"
                   value={billingAddress.addressLine1}
                   onChange={e => setBillingAddress(a => ({ ...a, addressLine1: e.target.value }))}
-                  style={{ padding: '10px 12px', borderRadius: '8px', border: '1px solid #E7D3BF', fontSize: '0.9rem' }}
+                  className="billing-address-input"
+                  autoComplete="street-address"
                 />
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                <div className="billing-address-fields__row2">
                   <input
                     type="text"
                     placeholder="City"
                     value={billingAddress.city}
                     onChange={e => setBillingAddress(a => ({ ...a, city: e.target.value }))}
-                    style={{ padding: '10px 12px', borderRadius: '8px', border: '1px solid #E7D3BF', fontSize: '0.9rem' }}
+                    className="billing-address-input"
+                    autoComplete="address-level2"
                   />
                   <input
                     type="text"
                     placeholder="State"
                     value={billingAddress.state}
                     onChange={e => setBillingAddress(a => ({ ...a, state: e.target.value }))}
-                    style={{ padding: '10px 12px', borderRadius: '8px', border: '1px solid #E7D3BF', fontSize: '0.9rem' }}
+                    className="billing-address-input"
+                    autoComplete="address-level1"
                   />
                 </div>
                 <input
@@ -711,7 +714,8 @@ function PaymentPageContent() {
                   placeholder="ZIP / Postal code"
                   value={billingAddress.postalCode}
                   onChange={e => setBillingAddress(a => ({ ...a, postalCode: e.target.value }))}
-                  style={{ padding: '10px 12px', borderRadius: '8px', border: '1px solid #E7D3BF', fontSize: '0.9rem' }}
+                  className="billing-address-input"
+                  autoComplete="postal-code"
                 />
               </div>
             </div>

@@ -2181,9 +2181,12 @@ button {
 }
 
 .legal-container {
-  max-width: 720px;
+  max-width: min(720px, 100%);
+  width: 100%;
   margin: 0 auto;
   color: var(--color-coffee);
+  min-width: 0;
+  box-sizing: border-box;
 }
 
 .legal-container h1 {
@@ -2243,8 +2246,11 @@ button {
 }
 
 .contact-container {
-  max-width: 640px;
+  max-width: min(640px, 100%);
+  width: 100%;
   margin: 0 auto;
+  min-width: 0;
+  box-sizing: border-box;
 }
 
 .contact-title {
@@ -2270,6 +2276,11 @@ button {
   padding: var(--spacing-2xl);
   box-shadow: 0 0 0 2px var(--color-latte), 0 18px 48px rgba(75, 46, 37, 0.12), 0 0 32px rgba(201, 164, 126, 0.2);
   border: 1px solid var(--color-latte-soft);
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  overflow-x: hidden;
 }
 
 .contact-form-header {
@@ -2313,6 +2324,9 @@ button {
 .contact-select,
 .contact-textarea {
   width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
   padding: 14px 18px;
   font-size: var(--font-size-base);
   font-family: inherit;
@@ -4352,9 +4366,13 @@ button {
     0 20px 60px rgba(0, 0, 0, 0.08),
     0 0 1px rgba(0, 0, 0, 0.1);
   padding: var(--spacing-3xl) var(--spacing-2xl);
-  max-width: 500px;
+  max-width: min(520px, calc(100vw - 32px));
   width: 100%;
-  overflow: hidden; /* Ensure nothing sticks out */
+  min-width: 0;
+  box-sizing: border-box;
+  /* Avoid cropping focused inputs / billing fields on narrow phones */
+  overflow-x: hidden;
+  overflow-y: visible;
 }
 
 .auth-logo {
@@ -4398,9 +4416,10 @@ button {
 
 .form-row {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: var(--spacing-md);
   width: 100%;
+  min-width: 0;
 }
 
 .form-group {
@@ -4513,11 +4532,12 @@ button {
 /* Auth Mobile Responsive */
 @media (max-width: 768px) {
   .auth-container {
-    padding: var(--spacing-md) var(--spacing-md);
+    padding: var(--spacing-md) max(var(--spacing-md), env(safe-area-inset-right)) max(var(--spacing-md), env(safe-area-inset-bottom)) max(var(--spacing-md), env(safe-area-inset-left));
   }
 
   .auth-card {
     padding: var(--spacing-2xl) var(--spacing-lg);
+    max-width: min(520px, calc(100vw - 24px));
   }
 
   .form-row {
@@ -6210,6 +6230,94 @@ button {
   min-height: 89px;
   max-width: 100%;
   box-sizing: border-box;
+}
+
+/* Square iframes must not force page wider than viewport */
+#sq-card,
+#sq-card-booking,
+#sq-card-upgrade {
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+/* Shared billing / address fields (deposit + booking payment) */
+.billing-address-block {
+  margin-bottom: 16px;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.billing-address-fields {
+  display: grid;
+  gap: 8px;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.billing-address-fields__row2 {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 8px;
+  width: 100%;
+  min-width: 0;
+}
+
+@media (max-width: 560px) {
+  .billing-address-fields__row2 {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.billing-address-input {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid #e7d3bf;
+  font-size: 0.9rem;
+  font-family: inherit;
+  color: var(--color-ink, #2d2419);
+  background: #fff;
+}
+
+.billing-address-input:focus {
+  outline: none;
+  border-color: var(--color-coffee, #4b2e25);
+  box-shadow: 0 0 0 3px rgba(75, 46, 37, 0.12);
+}
+
+.booking-payment-card .billing-address-input,
+.booking-payment-card input:not([type='hidden']):not([type='checkbox']):not([type='radio']),
+.booking-payment-card textarea {
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+/* Two-column config rows that must stack on phones (e.g. edit booking add-ons) */
+.booking-edit-items-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 16px;
+  width: 100%;
+  min-width: 0;
+}
+
+@media (max-width: 560px) {
+  .booking-edit-items-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.booking-edit-items-grid > div {
+  min-width: 0;
 }
 
 /* Error message */
