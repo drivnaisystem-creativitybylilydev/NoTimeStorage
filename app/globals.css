@@ -908,14 +908,6 @@ button {
   margin-bottom: 0;
 }
 
-.step-arrow {
-  font-size: var(--font-size-3xl);
-  color: var(--color-gray-400);
-  align-self: center;
-  padding-top: 30px;
-  flex-shrink: 0;
-}
-
 /* How It Works - Mobile Responsive */
 @media (max-width: 768px) {
   .how-it-works {
@@ -934,13 +926,6 @@ button {
   .steps-container {
     flex-direction: column;
     gap: var(--spacing-2xl);
-  }
-
-  .step-arrow {
-    transform: rotate(90deg);
-    padding-top: 0;
-    margin: calc(var(--spacing-sm) * -1) 0;
-    font-size: var(--font-size-2xl);
   }
 
   .step-number {

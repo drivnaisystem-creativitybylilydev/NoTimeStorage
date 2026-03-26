@@ -722,16 +722,6 @@ export default function Home() {
             </motion.div>
             
             <motion.div 
-              className="step-arrow"
-              initial={{ opacity: 0 }}
-              whileInView={{ opacity: 1 }}
-              viewport={{ once: true, margin: "-100px" }}
-              transition={{ duration: 0.5, delay: 0.4, ease: [0.25, 0.1, 0.25, 1] }}
-            >
-              →
-            </motion.div>
-            
-            <motion.div 
               className="step"
               initial={{ opacity: 0, y: 30 }}
               whileInView={{ opacity: 1, y: 0 }}
@@ -742,16 +732,6 @@ export default function Home() {
               <div className="step-number">2</div>
               <h3 className="step-title">Secure Storage</h3>
               <p className="step-description">Your belongings are safely stored in our climate-controlled facility with 24/7 security and monitoring.</p>
-            </motion.div>
-            
-            <motion.div 
-              className="step-arrow"
-              initial={{ opacity: 0 }}
-              whileInView={{ opacity: 1 }}
-              viewport={{ once: true, margin: "-100px" }}
-              transition={{ duration: 0.5, delay: 0.6, ease: [0.25, 0.1, 0.25, 1] }}
-            >
-              →
             </motion.div>
             
             <motion.div 
