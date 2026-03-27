@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono, Montserrat, Inter } from "next/font/google";
 import "./globals.css";
 import { Analytics } from "@vercel/analytics/next";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import { AppModalProvider } from "./components/AppModalProvider";
 
 const geistSans = Geist({
@@ -103,6 +104,7 @@ export default function RootLayout({
           {children}
         </AppModalProvider>
         <Analytics />
+        <SpeedInsights />
       </body>
     </html>
   );
