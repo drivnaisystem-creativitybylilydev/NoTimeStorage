@@ -7,6 +7,14 @@ import * as Sentry from "@sentry/nextjs";
 Sentry.init({
   dsn: "https://b281705d0773c62b9db7d08a3424dcdd@o4511106658795520.ingest.us.sentry.io/4511106659057664",
 
+  // Prefetch / navigation / SDKs often abort in-flight fetch; not actionable for users
+  ignoreErrors: [
+    'AbortError',
+    'signal is aborted without reason',
+    /AbortError/i,
+    /aborted without reason/i,
+  ],
+
   // Define how likely traces are sampled. Adjust this value in production, or use tracesSampler for greater control.
   tracesSampleRate: 1,
   // Enable logs to be sent to Sentry
