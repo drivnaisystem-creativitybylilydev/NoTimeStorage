@@ -254,7 +254,7 @@ export function AnalyticsView({ data }: { data: AnalyticsData }) {
           <div style={{ flex: 1, minHeight: 240, display: 'flex', flexDirection: 'column' }}>
             <TrendChart data={data.monthlyRevenue} filterSchool={filterSchool} onFilterSchool={setFilterSchool} />
           </div>
-          <div style={{ display: 'flex', gap: '16px', marginTop: '12px', paddingTop: '12px', borderTop: '1px solid #F0E8DE', flexShrink: 0 }}>
+          <div className="admin-analytics-chart-legend">
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
               <div style={{ width: '12px', height: '3px', background: '#4B2E25', borderRadius: '2px' }} />
               <span style={{ fontSize: '0.72rem', color: '#888' }}>Revenue</span>
@@ -306,7 +306,7 @@ export function AnalyticsView({ data }: { data: AnalyticsData }) {
                   <div style={{ background: '#F5EFE7', borderRadius: '6px', height: '8px', overflow: 'hidden', marginBottom: '6px' }}>
                     <div style={{ width: `${bookingPct}%`, height: '100%', background: color, borderRadius: '6px' }} />
                   </div>
-                  <div style={{ display: 'flex', gap: '16px', fontSize: '0.72rem', color: '#aaa' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '0.72rem', color: '#aaa' }}>
                     <span>{s.bookings} booking{s.bookings !== 1 ? 's' : ''}</span>
                     <span>{fmt(s.revenue)} revenue</span>
                     <span>{s.boxes} boxes</span>
@@ -361,7 +361,7 @@ export function AnalyticsView({ data }: { data: AnalyticsData }) {
             colorFn={() => '#C9A47E'}
             formatValue={v => `${v} booking${v !== 1 ? 's' : ''}`}
           />
-          <div style={{ marginTop: '20px', paddingTop: '16px', borderTop: '1px solid #F0E8DE', display: 'flex', gap: '20px' }}>
+          <div className="admin-analytics-metric-row" style={{ marginTop: '20px', paddingTop: '16px', borderTop: '1px solid #F0E8DE' }}>
             <div>
               <div style={{ fontSize: '0.68rem', color: '#aaa', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Total Boxes</div>
               <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#4B2E25' }}>{data.totalBoxes}</div>

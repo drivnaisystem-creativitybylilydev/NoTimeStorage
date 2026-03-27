@@ -4627,23 +4627,12 @@ button {
   margin-bottom: 0;
 }
 
+/* Stat / KPI number cards: always full-width stack so values never squeeze side-by-side */
 .admin-stats-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 24px;
+  grid-template-columns: 1fr;
+  gap: 16px;
   align-items: stretch;
-}
-
-@media (max-width: 1024px) {
-  .admin-stats-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
-@media (max-width: 640px) {
-  .admin-stats-grid {
-    grid-template-columns: 1fr;
-  }
 }
 
 .admin-section-header {
@@ -5001,13 +4990,52 @@ button {
 
 .admin-analytics-kpi-row {
   display: flex;
+  flex-direction: column;
   gap: 16px;
-  flex-wrap: wrap;
 }
 
 .admin-analytics-kpi {
-  flex: 1;
-  min-width: 180px;
+  width: 100%;
+  flex: none;
+  min-width: 0;
+}
+
+.admin-analytics-metric-row {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.admin-cal-stats-strip {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 28px;
+}
+
+.admin-cal-legend {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 16px;
+  align-items: flex-start;
+}
+
+.admin-cal-legend-hint {
+  font-size: 0.78rem;
+  color: #aaa;
+  margin-top: 4px;
+  line-height: 1.4;
+}
+
+.admin-analytics-chart-legend {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #f0e8de;
+  flex-shrink: 0;
 }
 
 .admin-analytics-split {
@@ -5125,11 +5153,6 @@ button {
   .admin-analytics-split,
   .admin-analytics-split-equal {
     grid-template-columns: 1fr;
-  }
-
-  .admin-analytics-kpi {
-    min-width: 0;
-    flex: 1 1 100%;
   }
 
   .admin-analytics-card {

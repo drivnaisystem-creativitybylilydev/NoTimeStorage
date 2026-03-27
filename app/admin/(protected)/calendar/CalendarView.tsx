@@ -464,13 +464,13 @@ export function CalendarView({ bookings }: { bookings: BookingWithCustomer[] }) 
           return map[s] ?? s;
         };
         return (
-      <div style={{ display: 'flex', gap: '16px', marginBottom: '28px', flexWrap: 'wrap' }}>
+      <div className="admin-cal-stats-strip">
         {[
           { label: 'Move-outs this month', value: isFiltered ? filteredThisMonth.length : thisMonthBookings.length },
           { label: 'Move-ins this month', value: thisMonthMoveIns.length, color: MOVE_IN_COLOR.bg },
           ...schoolCounts.map(s => ({ label: shortName(s.school), value: s.count, color: s.color })),
         ].map(stat => (
-          <div key={stat.label} style={{ background: '#fff', border: '1px solid #E7D3BF', borderRadius: '12px', padding: compactCalendar ? '14px 16px' : '16px 24px', display: 'flex', flexDirection: 'column', gap: '4px', minWidth: compactCalendar ? 0 : '160px', flex: compactCalendar ? '1 1 140px' : undefined }}>
+          <div key={stat.label} style={{ background: '#fff', border: '1px solid #E7D3BF', borderRadius: '12px', padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: '4px', width: '100%', boxSizing: 'border-box' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               {stat.color && <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: stat.color, flexShrink: 0 }} />}
               <span style={{ fontSize: '0.75rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', color: '#888' }}>{stat.label}</span>
@@ -603,7 +603,7 @@ export function CalendarView({ bookings }: { bookings: BookingWithCustomer[] }) 
       )}
 
       {/* Legend */}
-      <div style={{ display: 'flex', gap: '20px', marginTop: '16px', alignItems: 'center', flexWrap: 'wrap' }}>
+      <div className="admin-cal-legend">
         {Object.entries(SCHOOL_COLORS).map(([school, color]) => (
           <div key={school} style={{ display: 'flex', alignItems: 'center', gap: '7px' }}>
             <div style={{ width: '12px', height: '12px', borderRadius: '3px', background: color.bg, flexShrink: 0 }} />
@@ -614,7 +614,7 @@ export function CalendarView({ bookings }: { bookings: BookingWithCustomer[] }) 
           <div style={{ width: '12px', height: '12px', borderRadius: '3px', background: MOVE_IN_COLOR.bg, flexShrink: 0 }} />
           <span style={{ fontSize: '0.8rem', color: '#666' }}>Move-in delivery</span>
         </div>
-        <div style={{ marginLeft: 'auto', fontSize: '0.78rem', color: '#aaa' }}>
+        <div className="admin-cal-legend-hint">
           {view === 'month' ? 'Click any day to view details' : 'Each column scrolls independently'}
         </div>
       </div>
