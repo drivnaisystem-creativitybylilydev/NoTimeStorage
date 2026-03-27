@@ -4376,6 +4376,37 @@ button {
   min-width: 0;
 }
 
+/* Dashboard & edit-booking: tall content on phones — allow vertical scroll; prevent horizontal bleed */
+.auth-container:has(.dashboard-main),
+.auth-container:has(.edit-booking-shell) {
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
+  overscroll-behavior-x: none;
+  overscroll-behavior-y: contain;
+}
+
+.auth-content-layer:has(.dashboard-main),
+.auth-content-layer:has(.edit-booking-shell) {
+  max-width: min(1200px, 100%);
+  align-self: stretch;
+}
+
+.dashboard-main,
+.edit-booking-shell {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+@media (max-width: 480px) {
+  .dashboard-main .help-section a[href^='mailto'] {
+    word-break: break-all;
+  }
+}
+
 .auth-content-layer > * {
   position: relative;
   z-index: 2;

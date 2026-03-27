@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -69,6 +69,13 @@ export function EditBookingForm({
   const [locationId, setLocationId] = useState('');
   const [sdkReady, setSdkReady] = useState(false);
   const cardInstanceRef = useRef<any>(null);
+  const applePayRef = useRef<any>(null);
+  const googlePayRef = useRef<any>(null);
+  const initializingRef = useRef(false);
+  const [applePayInstance, setApplePayInstance] = useState<any>(null);
+  const [googlePayInstance, setGooglePayInstance] = useState<any>(null);
+  const buildItemsRef = useRef<() => BookingItemInput[]>(() => []);
+  const upgradeCtxRef = useRef({ bookingId, deltaTotalCents: 0 });
 
   const withBoxItemsUnlocked = boxQuantity >= 1;
   const withoutBoxItemsUnlocked = boxQuantity < 1;
@@ -115,20 +122,44 @@ export function EditBookingForm({
       .catch(console.error);
   }, [needsPayment]);
 
-  // Mount Square card when we have config and payment is needed
+  // Mount Square card + Apple Pay / Google Pay when upgrade charge is due (amount tracks delta)
   useEffect(() => {
-    if (!needsPayment || !appId || !locationId) return;
-    if (cardInstanceRef.current) return;
+    if (!needsPayment || !appId || !locationId || deltaTotalCents <= 0) return;
 
+    let googlePayCleanup: (() => void) | null = null;
     const scriptSrc = isSandbox
       ? 'https://sandbox.web.squarecdn.com/v1/square.js'
       : 'https://web.squarecdn.com/v1/square.js';
 
-    const initSquare = async () => {
-      if (cardInstanceRef.current) return;
-      try {
+    const waitForSquare = (): Promise<any> =>
+      new Promise((resolve, reject) => {
         const sq = (window as any).Square;
-        if (!sq) return;
+        if (sq) {
+          resolve(sq);
+          return;
+        }
+        let attempts = 0;
+        const interval = setInterval(() => {
+          const s = (window as any).Square;
+          if (s) {
+            clearInterval(interval);
+            resolve(s);
+          } else if (++attempts > 40) {
+            clearInterval(interval);
+            reject(new Error('Square SDK timed out'));
+          }
+        }, 150);
+      });
+
+    const initSquare = async () => {
+      if (initializingRef.current) return;
+      initializingRef.current = true;
+      try {
+        const sq = await waitForSquare().catch(() => null);
+        if (!sq) {
+          initializingRef.current = false;
+          return;
+        }
         const payments = sq.payments(appId, locationId);
         const container = document.getElementById('sq-card-upgrade');
         if (container) container.innerHTML = '';
@@ -142,32 +173,97 @@ export function EditBookingForm({
         await card.attach('#sq-card-upgrade');
         cardInstanceRef.current = card;
         setSdkReady(true);
+
+        const totalAmountDisplay = (deltaTotalCents / 100).toFixed(2);
+        const paymentRequest = payments.paymentRequest({
+          countryCode: 'US',
+          currencyCode: 'USD',
+          total: { amount: totalAmountDisplay, label: 'NoTime Storage' },
+        });
+
+        try {
+          const applePay = await payments.applePay(paymentRequest);
+          applePayRef.current = applePay;
+          setApplePayInstance(applePay);
+        } catch {
+          setApplePayInstance(null);
+        }
+
+        try {
+          if (googlePayRef.current) throw new Error('already attached');
+          const gpContainer = document.getElementById('upgrade-google-pay-button');
+          if (gpContainer) gpContainer.innerHTML = '';
+          const googlePay = await payments.googlePay(paymentRequest);
+          if (googlePayRef.current) {
+            googlePay.destroy?.();
+            throw new Error('already attached');
+          }
+          if (gpContainer) gpContainer.innerHTML = '';
+          await googlePay.attach('#upgrade-google-pay-button', { buttonColor: 'default', buttonType: 'long' });
+          googlePayRef.current = googlePay;
+          setGooglePayInstance(googlePay);
+          const googlePayEl = document.getElementById('upgrade-google-pay-button');
+          const onGooglePayClick = async () => {
+            const items = buildItemsRef.current();
+            const { bookingId: bid, deltaTotalCents: dtc } = upgradeCtxRef.current;
+            setProcessing(true);
+            setError(null);
+            try {
+              const result = await googlePay.tokenize();
+              if (result.status === 'OK' && result.token) {
+                const res = await chargeBookingUpgrade(bid, items, result.token, dtc);
+                if (res.success) router.push('/booking/updated?type=items');
+                else setError(res.error);
+              } else {
+                setError(result.errors?.[0]?.message ?? 'Google Pay failed');
+              }
+            } catch (err: any) {
+              setError(err?.message ?? 'Google Pay failed');
+            } finally {
+              setProcessing(false);
+            }
+          };
+          googlePayEl?.addEventListener('click', onGooglePayClick);
+          googlePayCleanup = () => googlePayEl?.removeEventListener('click', onGooglePayClick);
+        } catch {
+          setGooglePayInstance(null);
+        }
       } catch (err: any) {
         setError(err?.message ?? 'Could not load payment form.');
+      } finally {
+        initializingRef.current = false;
       }
     };
 
     const existing = document.querySelector(`script[src="${scriptSrc}"]`);
-    if (existing) { initSquare(); }
+    if (existing) initSquare();
     else {
       const script = document.createElement('script');
       script.src = scriptSrc;
-      script.onload = initSquare;
+      script.onload = () => { initSquare(); };
       script.onerror = () => setError('Failed to load payment SDK.');
       document.head.appendChild(script);
     }
 
-    return () => { cardInstanceRef.current?.destroy?.(); cardInstanceRef.current = null; setSdkReady(false); };
-  }, [needsPayment, appId, locationId, isSandbox]);
-
-  // When the upgrade delta disappears (user removes items), destroy card
-  useEffect(() => {
-    if (!needsPayment && cardInstanceRef.current) {
+    return () => {
+      googlePayCleanup?.();
+      if (googlePayRef.current && typeof googlePayRef.current.destroy === 'function') {
+        googlePayRef.current.destroy();
+      }
+      googlePayRef.current = null;
+      applePayRef.current = null;
+      setApplePayInstance(null);
+      setGooglePayInstance(null);
       cardInstanceRef.current?.destroy?.();
       cardInstanceRef.current = null;
       setSdkReady(false);
-    }
-  }, [needsPayment]);
+      initializingRef.current = false;
+      const cardEl = document.getElementById('sq-card-upgrade');
+      if (cardEl) cardEl.innerHTML = '';
+      const gpEl = document.getElementById('upgrade-google-pay-button');
+      if (gpEl) gpEl.innerHTML = '';
+    };
+  }, [needsPayment, appId, locationId, isSandbox, deltaTotalCents]);
 
   const updateItem = (key: keyof AdditionalItems, delta: number) => {
     const isWithBox = key === 'smallWithBox' || key === 'mediumWithBox';
@@ -182,7 +278,7 @@ export function EditBookingForm({
     });
   };
 
-  const buildItems = (): BookingItemInput[] => {
+  const buildItems = useCallback((): BookingItemInput[] => {
     const items: BookingItemInput[] = [];
     if (boxQuantity > 0) {
       items.push({ item_type: 'box', quantity: boxQuantity, unit_price_cents: getBoxPriceCents(boxQuantity) });
@@ -199,6 +295,32 @@ export function EditBookingForm({
       }
     });
     return items;
+  }, [boxQuantity, additionalItems]);
+
+  buildItemsRef.current = buildItems;
+  upgradeCtxRef.current = { bookingId, deltaTotalCents };
+
+  const handleApplePayClick = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (!applePayRef.current) return;
+    setError(null);
+    setProcessing(true);
+    try {
+      const items = buildItemsRef.current();
+      const { bookingId: bid, deltaTotalCents: dtc } = upgradeCtxRef.current;
+      const result = await applePayRef.current.tokenize();
+      if (result.status === 'OK' && result.token) {
+        const res = await chargeBookingUpgrade(bid, items, result.token, dtc);
+        if (res.success) router.push('/booking/updated?type=items');
+        else setError(res.error);
+      } else {
+        setError(result.errors?.[0]?.message ?? 'Apple Pay failed');
+      }
+    } catch (err: any) {
+      setError(err?.message ?? 'Apple Pay failed');
+    } finally {
+      setProcessing(false);
+    }
   };
 
   const handleSave = async () => {
@@ -236,16 +358,29 @@ export function EditBookingForm({
   };
 
   const isAtItemCap = totalAdditionalItems >= MAX_ADDITIONAL_ITEMS;
+  const hasWallet = !!(applePayInstance || googlePayInstance);
 
   return (
     <AuthPageWrapper>
-      <div style={{ maxWidth: '900px', width: '100%', background: 'white', borderRadius: '16px', padding: '48px', boxShadow: '0 20px 60px rgba(0,0,0,0.08)' }}>
+      <div
+        className="edit-booking-shell"
+        style={{
+          maxWidth: 'min(900px, 100%)',
+          width: '100%',
+          background: 'white',
+          borderRadius: '16px',
+          padding: 'clamp(16px, 4vw, 48px)',
+          boxShadow: '0 20px 60px rgba(0,0,0,0.08)',
+          boxSizing: 'border-box',
+          minWidth: 0,
+        }}
+      >
 
         <div style={{ textAlign: 'center', marginBottom: '48px' }}>
           <Link href="/">
             <Image src="/brand/notime-storage-logo.png" alt="NoTime Storage" width={80} height={80} style={{ marginBottom: '24px' }} />
           </Link>
-          <h1 style={{ fontSize: '2.25rem', fontWeight: '800', color: 'var(--color-coffee)', marginBottom: '12px' }}>
+          <h1 style={{ fontSize: 'clamp(1.35rem, 5vw, 2.25rem)', fontWeight: '800', color: 'var(--color-coffee)', marginBottom: '12px' }}>
             Edit boxes & items
           </h1>
           <p style={{ fontSize: '1.125rem', color: 'var(--color-gray-600)' }}>
@@ -256,14 +391,14 @@ export function EditBookingForm({
         {/* Storage Boxes */}
         <div style={{ marginBottom: '40px', padding: '32px', background: 'var(--color-paper)', borderRadius: '12px', border: '2px solid var(--color-latte)' }}>
           <h2 style={{ fontSize: '1.5rem', fontWeight: '700', color: 'var(--color-coffee)', marginBottom: '24px' }}>📦 Storage Boxes</h2>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
-            <label style={{ fontSize: '1.125rem', fontWeight: '600', color: 'var(--color-gray-700)', minWidth: '120px' }}>Quantity:</label>
+          <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '16px' }}>
+            <label style={{ fontSize: '1.125rem', fontWeight: '600', color: 'var(--color-gray-700)', minWidth: 'min(100%, 120px)' }}>Quantity:</label>
             <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
               <button onClick={() => setBoxQuantity(Math.max(0, boxQuantity - 1))} className="button-secondary" style={{ padding: '8px 20px', fontSize: '1.25rem', minWidth: '50px' }}>−</button>
               <span style={{ fontSize: '1.5rem', fontWeight: '700', color: 'var(--color-coffee)', minWidth: '40px', textAlign: 'center' }}>{boxQuantity}</span>
               <button onClick={() => setBoxQuantity(boxQuantity + 1)} className="button-secondary" style={{ padding: '8px 20px', fontSize: '1.25rem', minWidth: '50px' }}>+</button>
             </div>
-            <div style={{ marginLeft: 'auto', textAlign: 'right' }}>
+            <div style={{ marginLeft: 'auto', textAlign: 'right', flex: '1 1 140px' }}>
               {boxQuantity > 0 ? (
                 <>
                   <div style={{ fontSize: '0.875rem', color: 'var(--color-gray-600)' }}>${boxPrice}/box/month</div>
@@ -372,6 +507,27 @@ export function EditBookingForm({
                 <strong>Sandbox</strong> — Test card: <code>4111 1111 1111 1111</code>, any future date, any CVV.
               </div>
             )}
+            <p style={{ fontSize: '0.8125rem', color: '#6B5A52', marginBottom: '12px', marginTop: 0 }}>
+              Pay the upgrade with Apple Pay, Google Pay, or card when available on this device.
+            </p>
+            <div className="payment-digital-wallets" style={{ display: hasWallet ? 'flex' : 'none', marginBottom: hasWallet ? '12px' : 0 }}>
+              {applePayInstance && (
+                <button
+                  type="button"
+                  id="upgrade-apple-pay-button"
+                  className="payment-wallet-button payment-wallet-button-apple"
+                  onClick={handleApplePayClick}
+                  disabled={processing}
+                  aria-label="Pay upgrade with Apple Pay"
+                />
+              )}
+              <div id="upgrade-google-pay-button" className="payment-wallet-button" />
+            </div>
+            {hasWallet && (
+              <div className="payment-method-divider" style={{ marginBottom: '12px' }}>
+                <span>or pay with card</span>
+              </div>
+            )}
             <div id="sq-card-upgrade" style={{ minHeight: '89px' }} />
           </div>
         )}
@@ -383,10 +539,10 @@ export function EditBookingForm({
         )}
 
         {/* Summary + action */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '24px', background: 'var(--color-latte-soft)', borderRadius: '12px', marginBottom: '24px' }}>
-          <div>
+        <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: '16px', padding: 'clamp(16px, 4vw, 24px)', background: 'var(--color-latte-soft)', borderRadius: '12px', marginBottom: '24px' }}>
+          <div style={{ minWidth: 0 }}>
             <div style={{ fontSize: '0.875rem', color: 'var(--color-gray-600)', marginBottom: '4px' }}>Monthly Total</div>
-            <div style={{ fontSize: '2rem', fontWeight: '800', color: 'var(--color-coffee)' }}>${monthlyTotal}/month</div>
+            <div style={{ fontSize: 'clamp(1.35rem, 5vw, 2rem)', fontWeight: '800', color: 'var(--color-coffee)' }}>${monthlyTotal}/month</div>
             {needsPayment && (
               <div style={{ fontSize: '0.8rem', color: '#B45309', marginTop: '4px' }}>
                 + ${(deltaTotalCents / 100).toFixed(2)} upgrade charge
@@ -397,7 +553,7 @@ export function EditBookingForm({
             onClick={handleSave}
             disabled={processing || (needsPayment && !sdkReady)}
             className="button-primary"
-            style={{ padding: '16px 48px', fontSize: '1.125rem', opacity: (processing || (needsPayment && !sdkReady)) ? 0.65 : 1 }}
+            style={{ padding: '14px clamp(16px, 5vw, 48px)', fontSize: '1.05rem', flexShrink: 0, opacity: (processing || (needsPayment && !sdkReady)) ? 0.65 : 1 }}
           >
             {processing
               ? 'Processing…'

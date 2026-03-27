@@ -109,11 +109,13 @@ export function BookingCard({ booking: b }: { booking: BookingRow }) {
   return (
     <div
       style={{
-        padding: '24px',
+        padding: 'clamp(14px, 3.5vw, 24px)',
         background: 'white',
         borderRadius: '12px',
         border: '2px solid var(--color-latte-soft)',
         boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
+        minWidth: 0,
+        boxSizing: 'border-box',
       }}
     >
       <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'flex-start', gap: '16px', marginBottom: '16px' }}>
@@ -223,7 +225,7 @@ export function BookingCard({ booking: b }: { booking: BookingRow }) {
           </div>
         </div>
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '16px', marginBottom: '16px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 160px), 1fr))', gap: '16px', marginBottom: '16px' }}>
           <div>
             <div style={{ fontSize: '0.75rem', fontWeight: '600', color: 'var(--color-gray-500)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px' }}>Move-out</div>
             <div style={{ fontSize: '1rem', fontWeight: '600', color: 'var(--color-coffee)' }}>{formatDate(b.move_out_date)}</div>
@@ -246,7 +248,7 @@ export function BookingCard({ booking: b }: { booking: BookingRow }) {
       {Array.isArray(b.booking_items) && b.booking_items.length > 0 && (
         <div style={{ marginBottom: '12px' }}>
           <div style={{ fontSize: '0.75rem', fontWeight: '600', color: 'var(--color-gray-500)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>Items</div>
-          <ul style={{ margin: 0, paddingLeft: '20px', color: 'var(--color-gray-700)', fontSize: '0.9375rem', lineHeight: '1.6' }}>
+          <ul style={{ margin: 0, paddingLeft: '1.1rem', color: 'var(--color-gray-700)', fontSize: '0.9375rem', lineHeight: '1.6', overflowWrap: 'anywhere' }}>
             {b.booking_items.map((item, i) => (
               <li key={i}>
                 {item.quantity}× {item.item_type.replace(/_/g, ' ')} — ${(item.subtotal ?? item.monthly_rate * item.quantity).toFixed(2)}/mo

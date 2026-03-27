@@ -106,9 +106,21 @@ export default async function DashboardPage() {
 
   return (
     <AuthPageWrapper>
-        <div style={{ maxWidth: '900px', width: '100%', background: 'white', borderRadius: '16px', padding: 'clamp(20px, 5vw, 48px)', boxShadow: '0 20px 60px rgba(0,0,0,0.08)' }}>
+        <div
+          className="dashboard-main"
+          style={{
+            maxWidth: 'min(900px, 100%)',
+            width: '100%',
+            background: 'white',
+            borderRadius: '16px',
+            padding: 'clamp(14px, 4vw, 48px)',
+            boxShadow: '0 20px 60px rgba(0,0,0,0.08)',
+            boxSizing: 'border-box',
+            minWidth: 0,
+          }}
+        >
           {/* Header - matches Configure page */}
-          <div style={{ textAlign: 'center', marginBottom: '48px' }}>
+          <div style={{ textAlign: 'center', marginBottom: 'clamp(24px, 6vw, 48px)' }}>
             <div className="auth-logo">
               <Link href="/">
                 <Image
@@ -119,10 +131,10 @@ export default async function DashboardPage() {
                 />
               </Link>
             </div>
-            <h1 style={{ fontSize: '2.25rem', fontWeight: '800', color: 'var(--color-coffee)', marginBottom: '12px' }}>
+            <h1 style={{ fontSize: 'clamp(1.5rem, 5.5vw, 2.25rem)', fontWeight: '800', color: 'var(--color-coffee)', marginBottom: '12px', wordBreak: 'break-word' }}>
               Welcome, {displayName}!
             </h1>
-            <p style={{ fontSize: '1.125rem', color: 'var(--color-gray-600)' }}>
+            <p style={{ fontSize: 'clamp(0.95rem, 3.5vw, 1.125rem)', color: 'var(--color-gray-600)' }}>
               Your NoTime Storage Dashboard
             </p>
           </div>

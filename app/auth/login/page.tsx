@@ -65,6 +65,9 @@ function LoginPageContent() {
         <div className="auth-header">
           <h1>Welcome back</h1>
           <p>Log in to your NoTime Storage account</p>
+          <p className="auth-session-hint" style={{ marginTop: '0.75rem', marginBottom: 0, fontSize: '0.875rem', color: 'var(--color-gray-500)', lineHeight: 1.45 }}>
+            We keep you signed in on this browser until you log out or clear site data. For fewer logins, use normal Safari or Chrome (not private browsing) and don&apos;t block cookies for this site.
+          </p>
         </div>
 
         <form onSubmit={handleSubmit} className="auth-form">
