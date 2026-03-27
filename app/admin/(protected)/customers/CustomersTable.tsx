@@ -22,9 +22,9 @@ export function CustomersTable({ customers }: { customers: CustomerRow[] }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
       {/* Search */}
-      <div className="admin-card" style={{ padding: '40px' }}>
+      <div className="admin-card admin-filters-card">
         <div className="admin-section-header">Find a Student</div>
-        <div style={{ position: 'relative', maxWidth: '480px' }}>
+        <div style={{ position: 'relative', maxWidth: '480px', width: '100%' }}>
           <Search
             size={18}
             style={{
@@ -55,7 +55,7 @@ export function CustomersTable({ customers }: { customers: CustomerRow[] }) {
       {/* Table */}
       <div className="admin-card" style={{ overflow: 'hidden', padding: 0 }}>
         <div style={{ overflowX: 'auto' }}>
-          <table className="admin-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <table className="admin-table admin-table-customers" style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr>
                 <th>Name</th>
@@ -75,18 +75,18 @@ export function CustomersTable({ customers }: { customers: CustomerRow[] }) {
               ) : (
                 filtered.map((c) => (
                   <tr key={c.id}>
-                    <td>
+                    <td data-label="Name">
                       <div style={{ fontWeight: 600, color: 'var(--color-coffee-dark)' }}>
                         {c.full_name?.trim() || '—'}
                       </div>
                     </td>
-                    <td style={{ color: 'var(--color-gray-700)' }}>
+                    <td data-label="Email" style={{ color: 'var(--color-gray-700)', wordBreak: 'break-word' }}>
                       {c.email || '—'}
                     </td>
-                    <td style={{ color: 'var(--color-gray-700)' }}>
+                    <td data-label="Phone" style={{ color: 'var(--color-gray-700)' }}>
                       {c.phone || '—'}
                     </td>
-                    <td style={{ textAlign: 'center' }}>
+                    <td data-label="Bookings" style={{ textAlign: 'center' }}>
                       <span
                         className={
                           c.booking_count > 0
@@ -97,7 +97,7 @@ export function CustomersTable({ customers }: { customers: CustomerRow[] }) {
                         {c.booking_count} booking{c.booking_count !== 1 ? 's' : ''}
                       </span>
                     </td>
-                    <td style={{ textAlign: 'center' }}>
+                    <td data-label="Actions" style={{ textAlign: 'center' }}>
                       <Link
                         href={`/admin/bookings?userId=${encodeURIComponent(c.id)}`}
                         className="admin-btn admin-btn-ghost"

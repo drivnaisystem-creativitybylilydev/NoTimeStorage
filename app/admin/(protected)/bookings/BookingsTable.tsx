@@ -126,7 +126,7 @@ function BookingsTableContent({ initialBookings, total, currentPage, filters, so
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '64px' }}>
+    <div className="admin-bookings-stack">
       {filters.userId && (
         <p style={{ fontSize: '14px', color: 'var(--color-gray-600)', marginBottom: '16px' }}>
           Showing bookings for one customer.{' '}
@@ -137,9 +137,9 @@ function BookingsTableContent({ initialBookings, total, currentPage, filters, so
       )}
 
       {/* Filters */}
-      <div className="admin-card" style={{ padding: '48px', display: 'flex', flexDirection: 'column', gap: '40px' }}>
+      <div className="admin-card admin-filters-card">
         <div className="admin-section-header">Filters</div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '32px' }}>
+        <div className="admin-filters-grid">
           <div>
             <label style={labelStyle}>Search</label>
             <div
@@ -278,7 +278,7 @@ function BookingsTableContent({ initialBookings, total, currentPage, filters, so
       {/* Table */}
       <div className="admin-card" style={{ overflow: 'hidden', padding: 0 }}>
         <div style={{ overflowX: 'auto' }}>
-          <table className="admin-table" style={{ width: '100%', borderCollapse: 'collapse', fontSize: '15px' }}>
+          <table className="admin-table admin-table-bookings" style={{ width: '100%', borderCollapse: 'collapse', fontSize: '15px' }}>
             <thead>
               <tr>
                 <th
@@ -308,19 +308,19 @@ function BookingsTableContent({ initialBookings, total, currentPage, filters, so
               ) : (
                 initialBookings.map((b) => (
                   <tr key={b.id}>
-                    <td>
+                    <td data-label="Move-out">
                       <div style={{ fontWeight: 600, color: 'var(--color-coffee-dark)' }}>{formatDate(b.move_out_date)}</div>
                       <div style={{ fontSize: '13px', color: 'var(--color-gray-600)', marginTop: '4px' }}>{formatTimeSlot(b.move_out_time_slot)}</div>
                     </td>
-                    <td>
+                    <td data-label="Customer">
                       <div style={{ fontWeight: 600, color: 'var(--color-coffee-dark)' }}>{b.customer?.full_name?.trim() || b.customer?.email || '—'}</div>
                       <div style={{ fontSize: '13px', color: 'var(--color-gray-600)', marginTop: '4px' }}>{b.customer?.full_name ? (b.customer?.email || '—') : (b.customer?.phone || '—')}</div>
                     </td>
-                    <td style={{ color: 'var(--color-coffee)' }}>
+                    <td data-label="Dorm / room" style={{ color: 'var(--color-coffee)' }}>
                       <div>{b.dorm || '—'}</div>
                       {(b as any).room && <div style={{ fontSize: '13px', color: 'var(--color-gray-600)', marginTop: '2px' }}>Room {(b as any).room}</div>}
                     </td>
-                    <td style={{ maxWidth: '280px' }}>
+                    <td data-label="Stored items" style={{ maxWidth: '280px' }}>
                       <div
                         style={{ fontSize: '13px', color: 'var(--color-gray-700)', lineHeight: 1.45 }}
                         title={summarizeBookingItemsLine(b.items, 500)}
@@ -328,7 +328,7 @@ function BookingsTableContent({ initialBookings, total, currentPage, filters, so
                         {summarizeBookingItemsLine(b.items)}
                       </div>
                     </td>
-                    <td>
+                    <td data-label="Status">
                       <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
                         <span
                           className={
@@ -346,10 +346,10 @@ function BookingsTableContent({ initialBookings, total, currentPage, filters, so
                         </span>
                       </div>
                     </td>
-                    <td style={{ textAlign: 'right', fontWeight: 600, color: 'var(--color-coffee-dark)' }}>
+                    <td data-label="Total" style={{ textAlign: 'right', fontWeight: 600, color: 'var(--color-coffee-dark)' }}>
                       ${b.total_price.toFixed(2)}
                     </td>
-                    <td style={{ textAlign: 'center' }}>
+                    <td data-label="Actions" style={{ textAlign: 'center' }}>
                       <div style={{ display: 'inline-grid', gridTemplateColumns: b.payment_status !== 'paid' ? '1fr 1fr' : '1fr', gap: '6px', width: '100%', maxWidth: '220px' }}>
                         <button
                           type="button"
@@ -392,14 +392,7 @@ function BookingsTableContent({ initialBookings, total, currentPage, filters, so
         {/* Pagination */}
         {totalPages > 1 && (
           <div
-            style={{
-              padding: '32px 40px',
-              borderTop: '1px solid var(--color-gray-100)',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              background: 'var(--color-white)',
-            }}
+            className="admin-pagination-bar"
           >
             <div style={{ fontSize: '14px', color: 'var(--color-gray-500)' }}>
               Showing {(currentPage - 1) * 25 + 1}–{Math.min(currentPage * 25, total)} of {total}

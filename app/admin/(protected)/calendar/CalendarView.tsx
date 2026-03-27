@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { useMediaQuery } from '@/lib/hooks/useMediaQuery';
 import type { BookingWithCustomer } from '@/lib/admin/actions';
 import { formatDate } from '@/lib/utils/date';
 import { SCHOOL_NAMES } from '@/lib/schools/config';
@@ -203,8 +204,12 @@ function WeekView({ weekStart, bookingsByDate, moveInByDate, matchesFilter, isFi
 }) {
   const days = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
   const todayStr = toDateStr(today);
+  const isNarrow = useMediaQuery('(max-width: 900px)');
+  const weekColHeight = isNarrow ? 'min(70vh, 520px)' : '580px';
 
   return (
+    <div className="admin-week-scroll">
+      <div className="admin-week-scroll-inner">
     <div style={{ border: '1px solid #E7D3BF', borderRadius: '14px', overflow: 'hidden', background: '#fff', boxShadow: '0 2px 12px rgba(0,0,0,0.06)', display: 'flex', flexDirection: 'column' }}>
       {/* Day header row */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', borderBottom: '2px solid #E7D3BF', background: '#F7F3EE' }}>
@@ -314,7 +319,7 @@ function WeekView({ weekStart, bookingsByDate, moveInByDate, matchesFilter, isFi
             <div key={i} style={{
               borderRight: i < 6 ? '1px solid #E7D3BF' : 'none',
               background: isToday ? 'rgba(201, 164, 126, 0.07)' : '#fff',
-              height: '580px',
+              height: weekColHeight,
               overflowY: 'auto',
               padding: '10px 8px',
               display: 'flex',
@@ -336,6 +341,8 @@ function WeekView({ weekStart, bookingsByDate, moveInByDate, matchesFilter, isFi
         })}
       </div>
     </div>
+      </div>
+    </div>
   );
 }
 
@@ -343,6 +350,7 @@ function WeekView({ weekStart, bookingsByDate, moveInByDate, matchesFilter, isFi
 
 export function CalendarView({ bookings }: { bookings: BookingWithCustomer[] }) {
   const today = new Date();
+  const compactCalendar = useMediaQuery('(max-width: 900px)');
   const [view, setView]               = useState<'month' | 'week'>('month');
   const [year, setYear]               = useState(today.getFullYear());
   const [month, setMonth]             = useState(today.getMonth());
@@ -462,7 +470,7 @@ export function CalendarView({ bookings }: { bookings: BookingWithCustomer[] }) 
           { label: 'Move-ins this month', value: thisMonthMoveIns.length, color: MOVE_IN_COLOR.bg },
           ...schoolCounts.map(s => ({ label: shortName(s.school), value: s.count, color: s.color })),
         ].map(stat => (
-          <div key={stat.label} style={{ background: '#fff', border: '1px solid #E7D3BF', borderRadius: '12px', padding: '16px 24px', display: 'flex', flexDirection: 'column', gap: '4px', minWidth: '160px' }}>
+          <div key={stat.label} style={{ background: '#fff', border: '1px solid #E7D3BF', borderRadius: '12px', padding: compactCalendar ? '14px 16px' : '16px 24px', display: 'flex', flexDirection: 'column', gap: '4px', minWidth: compactCalendar ? 0 : '160px', flex: compactCalendar ? '1 1 140px' : undefined }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               {stat.color && <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: stat.color, flexShrink: 0 }} />}
               <span style={{ fontSize: '0.75rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', color: '#888' }}>{stat.label}</span>
@@ -475,14 +483,14 @@ export function CalendarView({ bookings }: { bookings: BookingWithCustomer[] }) 
       })()}
 
       {/* Toolbar */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', flexWrap: 'wrap', gap: '16px' }}>
+      <div className="admin-cal-toolbar">
 
         {/* Left: nav + view toggle */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+        <div className="admin-cal-toolbar-left">
           <button onClick={view === 'month' ? prevMonth : prevWeek} style={NAV_BTN_STYLE}>
             <ChevronLeft size={22} strokeWidth={2.5} color="#4B2E25" />
           </button>
-          <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#4B2E25', minWidth: '220px', textAlign: 'center', margin: 0 }}>
+          <h2 style={{ fontSize: compactCalendar ? '1.05rem' : '1.25rem', fontWeight: 700, color: '#4B2E25', minWidth: compactCalendar ? 0 : '220px', textAlign: 'center', margin: 0, flex: compactCalendar ? '1 1 120px' : undefined }}>
             {view === 'month' ? `${MONTHS[month]} ${year}` : weekLabel}
           </h2>
           <button onClick={view === 'month' ? nextMonth : nextWeek} style={NAV_BTN_STYLE}>
@@ -512,7 +520,7 @@ export function CalendarView({ bookings }: { bookings: BookingWithCustomer[] }) 
         </div>
 
         {/* Right: filters */}
-        <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
+        <div className="admin-cal-toolbar-right">
           <select value={schoolFilter} onChange={e => setSchoolFilter(e.target.value)} style={SELECT_STYLE}>
             {SCHOOLS.map(s => <option key={s}>{s}</option>)}
           </select>
@@ -529,11 +537,11 @@ export function CalendarView({ bookings }: { bookings: BookingWithCustomer[] }) 
 
       {/* Calendar */}
       {view === 'month' ? (
-        <div style={{ border: '1px solid #E7D3BF', borderRadius: '14px', overflow: 'hidden', background: '#fff', boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
+        <div className="admin-cal-month-wrap">
           {/* Day headers */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', borderBottom: '2px solid #E7D3BF' }}>
             {DAYS.map(d => (
-              <div key={d} style={{ padding: '14px 0', textAlign: 'center', fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#888', background: '#F7F3EE' }}>
+              <div key={d} style={{ padding: compactCalendar ? '8px 2px' : '14px 0', textAlign: 'center', fontSize: compactCalendar ? '0.62rem' : '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: compactCalendar ? '0.04em' : '0.1em', color: '#888', background: '#F7F3EE' }}>
                 {d}
               </div>
             ))}
@@ -555,7 +563,8 @@ export function CalendarView({ bookings }: { bookings: BookingWithCustomer[] }) 
                 <div key={i}
                   onClick={() => cell.isCurrentMonth && hasAny && setSelectedDate(cell.dateStr)}
                   style={{
-                    minHeight: '130px', padding: '10px 8px 8px',
+                    minHeight: compactCalendar ? 76 : 130,
+                    padding: compactCalendar ? '5px 3px 5px' : '10px 8px 8px',
                     borderRight: isLastCol ? 'none' : '1px solid #E7D3BF',
                     borderBottom: isLastRow ? 'none' : '1px solid #E7D3BF',
                     background: cell.isToday ? 'rgba(201,164,126,0.1)' : cell.isCurrentMonth ? '#fff' : '#fafafa',

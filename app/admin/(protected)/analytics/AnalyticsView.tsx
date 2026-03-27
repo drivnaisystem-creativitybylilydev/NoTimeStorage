@@ -43,7 +43,7 @@ function KpiCard({ label, value, sub, deltaVal, color }: {
   color?: string;
 }) {
   return (
-    <div style={{ background: '#fff', border: '1px solid #E7D3BF', borderRadius: '14px', padding: '24px', display: 'flex', flexDirection: 'column', gap: '6px', flex: 1, minWidth: '180px' }}>
+    <div className="admin-analytics-kpi" style={{ background: '#fff', border: '1px solid #E7D3BF', borderRadius: '14px', padding: '24px', display: 'flex', flexDirection: 'column', gap: '6px', flex: 1 }}>
       <div style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#999' }}>{label}</div>
       <div style={{ fontSize: '2rem', fontWeight: 800, color: color || '#4B2E25', lineHeight: 1.1 }}>{value}</div>
       {sub && <div style={{ fontSize: '0.78rem', color: '#aaa' }}>{sub}</div>}
@@ -231,10 +231,10 @@ export function AnalyticsView({ data }: { data: AnalyticsData }) {
   const allSchools = [...new Set([...SCHOOLS.map(s => s.name), ...Object.keys(bySchoolMap)])];
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
+    <div className="admin-analytics-page">
 
       {/* KPI Row */}
-      <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
+      <div className="admin-analytics-kpi-row">
         <KpiCard label="Total Revenue" value={fmt(data.totalRevenue)} sub="all time" />
         <KpiCard label="Revenue This Month" value={fmt(data.revenueThisMonth)} deltaVal={revDelta} color="#4B2E25" />
         <KpiCard label="Total Bookings" value={String(data.totalBookings)} sub="active" />
@@ -243,10 +243,10 @@ export function AnalyticsView({ data }: { data: AnalyticsData }) {
       </div>
 
       {/* Revenue Trend + School Breakdown */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1.6fr 1fr', gap: '20px' }}>
+      <div className="admin-analytics-split">
 
         {/* Trend chart */}
-        <div style={{ background: '#fff', border: '1px solid #E7D3BF', borderRadius: '14px', padding: '28px', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+        <div className="admin-analytics-card" style={{ display: 'flex', flexDirection: 'column', minHeight: 0 }}>
           <div style={{ marginBottom: '16px', flexShrink: 0 }}>
             <div style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#999', marginBottom: '4px' }}>Revenue Trend</div>
             <div style={{ fontSize: '1.1rem', fontWeight: 700, color: '#4B2E25' }}>Last 6 months</div>
@@ -267,7 +267,7 @@ export function AnalyticsView({ data }: { data: AnalyticsData }) {
         </div>
 
         {/* School breakdown — all schools, click to filter chart */}
-        <div style={{ background: '#fff', border: '1px solid #E7D3BF', borderRadius: '14px', padding: '28px' }}>
+        <div className="admin-analytics-card">
           <div style={{ marginBottom: '20px' }}>
             <div style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#999', marginBottom: '4px' }}>By Campus</div>
             <div style={{ fontSize: '1.1rem', fontWeight: 700, color: '#4B2E25' }}>School breakdown</div>
@@ -319,10 +319,10 @@ export function AnalyticsView({ data }: { data: AnalyticsData }) {
       </div>
 
       {/* Status + Box Distribution */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+      <div className="admin-analytics-split-equal">
 
         {/* Booking status */}
-        <div style={{ background: '#fff', border: '1px solid #E7D3BF', borderRadius: '14px', padding: '28px' }}>
+        <div className="admin-analytics-card">
           <div style={{ marginBottom: '20px' }}>
             <div style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#999', marginBottom: '4px' }}>Booking Status</div>
             <div style={{ fontSize: '1.1rem', fontWeight: 700, color: '#4B2E25' }}>Status breakdown</div>
@@ -349,7 +349,7 @@ export function AnalyticsView({ data }: { data: AnalyticsData }) {
         </div>
 
         {/* Box distribution */}
-        <div style={{ background: '#fff', border: '1px solid #E7D3BF', borderRadius: '14px', padding: '28px' }}>
+        <div className="admin-analytics-card">
           <div style={{ marginBottom: '20px' }}>
             <div style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#999', marginBottom: '4px' }}>Box Volume</div>
             <div style={{ fontSize: '1.1rem', fontWeight: 700, color: '#4B2E25' }}>Boxes per booking</div>
