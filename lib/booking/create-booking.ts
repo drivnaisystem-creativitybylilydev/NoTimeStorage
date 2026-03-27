@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import type { CreateBookingInput, BookingWithItems, BookingItemType } from './types';
+import { validateItemsAndMonthlyTotal } from './addon-pricing';
 import { onBookingCreated } from './integrations';
 import { isTimeSlotAvailable } from './availability';
 import { SITE_CONTACT_EMAIL } from '@/lib/site/contact';
@@ -41,11 +42,16 @@ export async function createBooking(input: CreateBookingInput): Promise<CreateBo
     return { success: false, error: 'At least one item is required.' };
   }
 
+  const bookingValidation = validateItemsAndMonthlyTotal({
+    items: input.items,
+    monthly_total_cents: input.monthly_total_cents,
+  });
+  if (bookingValidation) {
+    return { success: false, error: bookingValidation };
+  }
+
   const boxItem = input.items.find((i) => i.item_type === 'box');
   const boxQuantity = boxItem ? boxItem.quantity : 0;
-  if (boxQuantity < 1) {
-    return { success: false, error: 'At least one storage box is required.' };
-  }
 
   const slotCheck = await isTimeSlotAvailable(
     input.move_out_date,

@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { revalidatePath } from 'next/cache';
 import type { BookingItemType, BookingItemInput } from './types';
+import { validateBookingLineItems } from './addon-pricing';
 
 export type ActionResult = { success: true } | { success: false; error: string };
 
@@ -142,9 +143,11 @@ export async function updateBookingItems(bookingId: string, items: BookingItemIn
   if (!check.ok) return { success: false, error: check.error };
   if (!items?.length) return { success: false, error: 'At least one item is required.' };
 
+  const lineErr = validateBookingLineItems(items);
+  if (lineErr) return { success: false, error: lineErr };
+
   const boxItem = items.find((i) => i.item_type === 'box');
   const boxQuantity = boxItem ? boxItem.quantity : 0;
-  if (boxQuantity < 1) return { success: false, error: 'At least one storage box is required.' };
 
   const supabase = createAdminClient();
   const { data: existing } = await supabase

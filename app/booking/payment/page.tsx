@@ -12,6 +12,12 @@ import type { CreateBookingInput, BookingItemType } from '@/lib/booking/types';
 import { formatDate, formatTime } from '@/lib/utils/date';
 import { AuthPageWrapper } from '@/app/components/AuthPageWrapper';
 import { isEligibleForMonthlyPlan, calculateMonthlyBreakdown } from '@/lib/payment-plan-calculator';
+import {
+  ADDON_PRICE_USD_MONTH,
+  ADDON_UNIT_PRICE_CENTS,
+  MAX_ADDITIONAL_ITEMS,
+  getBoxUnitPriceCents,
+} from '@/lib/booking/addon-pricing';
 
 const ITEM_TYPE_MAP: Record<string, BookingItemType> = {
   smallWithBox: 'small_with_box',
@@ -19,14 +25,6 @@ const ITEM_TYPE_MAP: Record<string, BookingItemType> = {
   mediumWithBox: 'medium_with_box',
   mediumWithoutBox: 'medium_without_box',
   large: 'large',
-};
-
-const UNIT_PRICE_CENTS: Record<string, number> = {
-  small_with_box: 900,
-  small_without_box: 1100,
-  medium_with_box: 900,
-  medium_without_box: 1200,
-  large: 1500,
 };
 
 function PaymentPageContent() {
@@ -76,23 +74,14 @@ function PaymentPageContent() {
     return Math.max(3, Math.round(diff));
   })();
 
-  const getBoxPrice = (qty: number) => {
-    if (qty === 0) return 0;
-    if (qty === 1) return 80;
-    if (qty === 2 || qty === 3) return 55;
-    if (qty >= 4) return 60;
-    return 80;
-  };
-  const getBoxPriceCents = (qty: number) => getBoxPrice(qty) * 100;
+  const getBoxPrice = (qty: number) => getBoxUnitPriceCents(qty) / 100;
+  const getBoxPriceCents = (qty: number) => getBoxUnitPriceCents(qty);
 
-  const boxQty = parseInt(boxes);
+  const boxQty = Math.max(0, parseInt(boxes, 10) || 0);
   const boxPrice = getBoxPrice(boxQty);
   const boxesTotal = boxPrice * boxQty;
 
-  const itemPrices: Record<string, number> = {
-    smallWithBox: 9, smallWithoutBox: 11,
-    mediumWithBox: 9, mediumWithoutBox: 12, large: 15,
-  };
+  const itemPrices: Record<string, number> = { ...ADDON_PRICE_USD_MONTH };
 
   let itemsTotal = 0;
   const itemsWithPrices: { label: string; price: number }[] = [];
@@ -127,18 +116,24 @@ function PaymentPageContent() {
   const buildBookingPayload = useCallback((): CreateBookingInput | null => {
     if (!userId || !moveOutDate || !moveInDate || !moveOutTime || !dorm || !elevator || !stairs) return null;
     const additionalQty = ['smallWithBox', 'smallWithoutBox', 'mediumWithBox', 'mediumWithoutBox', 'large']
-      .reduce((sum, key) => sum + parseInt(searchParams.get(key) || '0'), 0);
+      .reduce((sum, key) => sum + parseInt(searchParams.get(key) || '0', 10), 0);
     if (boxQty < 1 && additionalQty < 1) return null;
-    if (boxQty === 0 && (additionalQty < 1 || additionalQty > 4)) return null;
+    if (additionalQty > MAX_ADDITIONAL_ITEMS) return null;
+    if (boxQty >= 1 && (parseInt(searchParams.get('smallWithoutBox') || '0', 10) > 0 || parseInt(searchParams.get('mediumWithoutBox') || '0', 10) > 0)) return null;
+    if (boxQty < 1 && (parseInt(searchParams.get('smallWithBox') || '0', 10) > 0 || parseInt(searchParams.get('mediumWithBox') || '0', 10) > 0)) return null;
     const items: CreateBookingInput['items'] = [];
     if (boxQty > 0) {
       items.push({ item_type: 'box', quantity: boxQty, unit_price_cents: getBoxPriceCents(boxQty) });
     }
     ['smallWithBox', 'smallWithoutBox', 'mediumWithBox', 'mediumWithoutBox', 'large'].forEach(key => {
-      const qty = parseInt(searchParams.get(key) || '0');
+      const qty = parseInt(searchParams.get(key) || '0', 10);
       if (qty > 0) {
         const itemType = ITEM_TYPE_MAP[key];
-        items.push({ item_type: itemType, quantity: qty, unit_price_cents: UNIT_PRICE_CENTS[itemType] });
+        items.push({
+          item_type: itemType,
+          quantity: qty,
+          unit_price_cents: ADDON_UNIT_PRICE_CENTS[itemType as Exclude<BookingItemType, 'box'>],
+        });
       }
     });
     return {

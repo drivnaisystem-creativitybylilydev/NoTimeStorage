@@ -8,6 +8,13 @@ import { updateBookingItems } from '@/lib/booking/update-booking';
 import { chargeBookingUpgrade } from '@/lib/square/charge-upgrade';
 import type { BookingItemInput, BookingItemType } from '@/lib/booking/types';
 import { AuthPageWrapper } from '@/app/components/AuthPageWrapper';
+import {
+  ADDON_PRICE_USD_MONTH,
+  ADDON_TIER_SUMMARY,
+  ADDON_UNIT_PRICE_CENTS,
+  MAX_ADDITIONAL_ITEMS,
+  getBoxUnitPriceCents,
+} from '@/lib/booking/addon-pricing';
 
 const ITEM_TYPE_MAP: Record<string, BookingItemType> = {
   smallWithBox: 'small_with_box',
@@ -17,20 +24,8 @@ const ITEM_TYPE_MAP: Record<string, BookingItemType> = {
   large: 'large',
 };
 
-const UNIT_PRICE_CENTS: Record<string, number> = {
-  small_with_box: 900,
-  small_without_box: 1100,
-  medium_with_box: 900,
-  medium_without_box: 1200,
-  large: 1500,
-};
-
 function getBoxPriceCents(qty: number): number {
-  if (qty === 0) return 0;
-  if (qty === 1) return 8000;
-  if (qty === 2 || qty === 3) return 5500;
-  if (qty >= 4) return 6000;
-  return 8000;
+  return getBoxUnitPriceCents(qty);
 }
 
 function getBoxPrice(qty: number): number {
@@ -45,15 +40,7 @@ type AdditionalItems = {
   large: number;
 };
 
-const MAX_ADDITIONAL_ITEMS = 4;
-
-const ITEM_PRICES: Record<keyof AdditionalItems, number> = {
-  smallWithBox: 9,
-  smallWithoutBox: 11,
-  mediumWithBox: 9,
-  mediumWithoutBox: 12,
-  large: 15,
-};
+const ITEM_PRICES: Record<keyof AdditionalItems, number> = { ...ADDON_PRICE_USD_MONTH };
 
 export function EditBookingForm({
   bookingId,
@@ -82,6 +69,25 @@ export function EditBookingForm({
   const [locationId, setLocationId] = useState('');
   const [sdkReady, setSdkReady] = useState(false);
   const cardInstanceRef = useRef<any>(null);
+
+  const withBoxItemsUnlocked = boxQuantity >= 1;
+  const withoutBoxItemsUnlocked = boxQuantity < 1;
+
+  useEffect(() => {
+    if (boxQuantity < 1) return;
+    setAdditionalItems((prev) => {
+      if (prev.smallWithoutBox === 0 && prev.mediumWithoutBox === 0) return prev;
+      return { ...prev, smallWithoutBox: 0, mediumWithoutBox: 0 };
+    });
+  }, [boxQuantity]);
+
+  useEffect(() => {
+    if (boxQuantity >= 1) return;
+    setAdditionalItems((prev) => {
+      if (prev.smallWithBox === 0 && prev.mediumWithBox === 0) return prev;
+      return { ...prev, smallWithBox: 0, mediumWithBox: 0 };
+    });
+  }, [boxQuantity]);
 
   // Pricing
   const boxPrice = getBoxPrice(boxQuantity);
@@ -164,6 +170,10 @@ export function EditBookingForm({
   }, [needsPayment]);
 
   const updateItem = (key: keyof AdditionalItems, delta: number) => {
+    const isWithBox = key === 'smallWithBox' || key === 'mediumWithBox';
+    const isWithoutBox = key === 'smallWithoutBox' || key === 'mediumWithoutBox';
+    if (isWithBox && !withBoxItemsUnlocked) return;
+    if (isWithoutBox && !withoutBoxItemsUnlocked) return;
     setAdditionalItems(prev => {
       const next = Math.max(0, prev[key] + delta);
       const newTotal = totalAdditionalItems - prev[key] + next;
@@ -181,7 +191,11 @@ export function EditBookingForm({
       const qty = additionalItems[key as keyof AdditionalItems];
       if (qty > 0) {
         const itemType = ITEM_TYPE_MAP[key];
-        items.push({ item_type: itemType, quantity: qty, unit_price_cents: UNIT_PRICE_CENTS[itemType] });
+        items.push({
+          item_type: itemType,
+          quantity: qty,
+          unit_price_cents: ADDON_UNIT_PRICE_CENTS[itemType as Exclude<BookingItemType, 'box'>],
+        });
       }
     });
     return items;
@@ -245,13 +259,19 @@ export function EditBookingForm({
           <div style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
             <label style={{ fontSize: '1.125rem', fontWeight: '600', color: 'var(--color-gray-700)', minWidth: '120px' }}>Quantity:</label>
             <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-              <button onClick={() => setBoxQuantity(Math.max(1, boxQuantity - 1))} className="button-secondary" style={{ padding: '8px 20px', fontSize: '1.25rem', minWidth: '50px' }}>−</button>
+              <button onClick={() => setBoxQuantity(Math.max(0, boxQuantity - 1))} className="button-secondary" style={{ padding: '8px 20px', fontSize: '1.25rem', minWidth: '50px' }}>−</button>
               <span style={{ fontSize: '1.5rem', fontWeight: '700', color: 'var(--color-coffee)', minWidth: '40px', textAlign: 'center' }}>{boxQuantity}</span>
               <button onClick={() => setBoxQuantity(boxQuantity + 1)} className="button-secondary" style={{ padding: '8px 20px', fontSize: '1.25rem', minWidth: '50px' }}>+</button>
             </div>
             <div style={{ marginLeft: 'auto', textAlign: 'right' }}>
-              <div style={{ fontSize: '0.875rem', color: 'var(--color-gray-600)' }}>${boxPrice}/box/month</div>
-              <div style={{ fontSize: '1.25rem', fontWeight: '700', color: 'var(--color-coffee)' }}>${boxesTotal}/month</div>
+              {boxQuantity > 0 ? (
+                <>
+                  <div style={{ fontSize: '0.875rem', color: 'var(--color-gray-600)' }}>${boxPrice}/box/month</div>
+                  <div style={{ fontSize: '1.25rem', fontWeight: '700', color: 'var(--color-coffee)' }}>${boxesTotal}/month</div>
+                </>
+              ) : (
+                <div style={{ fontSize: '0.875rem', color: 'var(--color-gray-600)' }}>No boxes — add-ons only</div>
+              )}
             </div>
           </div>
         </div>
@@ -275,15 +295,24 @@ export function EditBookingForm({
 
           {/* Small */}
           <div style={{ marginBottom: '20px', paddingBottom: '20px', borderBottom: '1px solid var(--color-latte-soft)' }}>
-            <div style={{ fontWeight: '600', marginBottom: '12px', color: 'var(--color-gray-800)' }}>Small Items</div>
+            <div style={{ fontWeight: '600', marginBottom: '12px', color: 'var(--color-gray-800)', fontSize: '0.9rem' }}>Small — {ADDON_TIER_SUMMARY.small}</div>
             <div className="booking-edit-items-grid">
               {(['smallWithBox', 'smallWithoutBox'] as const).map(key => (
-                <div key={key} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontSize: '0.875rem' }}>{key === 'smallWithBox' ? 'With box – $9/mo' : 'Without box – $11/mo'}</span>
+                <div key={key} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', opacity: (key === 'smallWithBox' ? withBoxItemsUnlocked : withoutBoxItemsUnlocked) ? 1 : 0.55 }}>
+                  <span style={{ fontSize: '0.875rem' }}>
+                    {key === 'smallWithBox' ? `With box – $${ITEM_PRICES.smallWithBox}/mo` : `Without box – $${ITEM_PRICES.smallWithoutBox}/mo`}
+                  </span>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <button onClick={() => updateItem(key, -1)} className="button-secondary" style={{ padding: '4px 12px', fontSize: '1rem' }}>−</button>
                     <span style={{ minWidth: '30px', textAlign: 'center', fontWeight: '600' }}>{additionalItems[key]}</span>
-                    <button onClick={() => updateItem(key, +1)} disabled={isAtItemCap} className="button-secondary" style={{ padding: '4px 12px', fontSize: '1rem', opacity: isAtItemCap ? 0.35 : 1 }}>+</button>
+                    <button
+                      onClick={() => updateItem(key, +1)}
+                      disabled={isAtItemCap || (key === 'smallWithBox' ? !withBoxItemsUnlocked : !withoutBoxItemsUnlocked)}
+                      className="button-secondary"
+                      style={{ padding: '4px 12px', fontSize: '1rem', opacity: (isAtItemCap || (key === 'smallWithBox' ? !withBoxItemsUnlocked : !withoutBoxItemsUnlocked)) ? 0.35 : 1 }}
+                    >
+                      +
+                    </button>
                   </div>
                 </div>
               ))}
@@ -292,15 +321,24 @@ export function EditBookingForm({
 
           {/* Medium */}
           <div style={{ marginBottom: '20px', paddingBottom: '20px', borderBottom: '1px solid var(--color-latte-soft)' }}>
-            <div style={{ fontWeight: '600', marginBottom: '12px', color: 'var(--color-gray-800)' }}>Medium Items</div>
+            <div style={{ fontWeight: '600', marginBottom: '12px', color: 'var(--color-gray-800)', fontSize: '0.9rem' }}>Medium — {ADDON_TIER_SUMMARY.medium}</div>
             <div className="booking-edit-items-grid">
               {(['mediumWithBox', 'mediumWithoutBox'] as const).map(key => (
-                <div key={key} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontSize: '0.875rem' }}>{key === 'mediumWithBox' ? 'With box – $9/mo' : 'Without box – $12/mo'}</span>
+                <div key={key} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', opacity: (key === 'mediumWithBox' ? withBoxItemsUnlocked : withoutBoxItemsUnlocked) ? 1 : 0.55 }}>
+                  <span style={{ fontSize: '0.875rem' }}>
+                    {key === 'mediumWithBox' ? `With box – $${ITEM_PRICES.mediumWithBox}/mo` : `Without box – $${ITEM_PRICES.mediumWithoutBox}/mo`}
+                  </span>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <button onClick={() => updateItem(key, -1)} className="button-secondary" style={{ padding: '4px 12px', fontSize: '1rem' }}>−</button>
                     <span style={{ minWidth: '30px', textAlign: 'center', fontWeight: '600' }}>{additionalItems[key]}</span>
-                    <button onClick={() => updateItem(key, +1)} disabled={isAtItemCap} className="button-secondary" style={{ padding: '4px 12px', fontSize: '1rem', opacity: isAtItemCap ? 0.35 : 1 }}>+</button>
+                    <button
+                      onClick={() => updateItem(key, +1)}
+                      disabled={isAtItemCap || (key === 'mediumWithBox' ? !withBoxItemsUnlocked : !withoutBoxItemsUnlocked)}
+                      className="button-secondary"
+                      style={{ padding: '4px 12px', fontSize: '1rem', opacity: (isAtItemCap || (key === 'mediumWithBox' ? !withBoxItemsUnlocked : !withoutBoxItemsUnlocked)) ? 0.35 : 1 }}
+                    >
+                      +
+                    </button>
                   </div>
                 </div>
               ))}
@@ -309,9 +347,9 @@ export function EditBookingForm({
 
           {/* Large */}
           <div>
-            <div style={{ fontWeight: '600', marginBottom: '12px', color: 'var(--color-gray-800)' }}>Large Items</div>
+            <div style={{ fontWeight: '600', marginBottom: '12px', color: 'var(--color-gray-800)', fontSize: '0.9rem' }}>Large — {ADDON_TIER_SUMMARY.large}</div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontSize: '0.875rem' }}>Any size – $15/mo</span>
+              <span style={{ fontSize: '0.875rem' }}>Large item – ${ITEM_PRICES.large}/mo</span>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <button onClick={() => updateItem('large', -1)} className="button-secondary" style={{ padding: '4px 12px', fontSize: '1rem' }}>−</button>
                 <span style={{ minWidth: '30px', textAlign: 'center', fontWeight: '600' }}>{additionalItems.large}</span>

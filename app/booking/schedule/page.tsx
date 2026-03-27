@@ -10,6 +10,7 @@ import { SCHOOL_NAMES, getDormsForSchool, getMoveOutWindow } from '@/lib/schools
 import { createClient } from '@/lib/supabase/client';
 import { AuthPageWrapper } from '@/app/components/AuthPageWrapper';
 import { isEligibleForMonthlyPlan, calculateMonthlyBreakdown } from '@/lib/payment-plan-calculator';
+import { ADDON_PRICE_USD_MONTH, getBoxPriceDollars } from '@/lib/booking/addon-pricing';
 
 // Configuration: Minimum storage duration in months
 const MINIMUM_STORAGE_MONTHS = 3;
@@ -28,17 +29,8 @@ function SchedulePageContent() {
     large: parseInt(searchParams.get('large') || '0'),
   };
 
-  // Pricing helpers (mirrors payment page logic)
-  const getBoxPrice = (qty: number) => {
-    if (qty === 0) return 0;
-    if (qty === 1) return 80;
-    if (qty === 2 || qty === 3) return 55;
-    return 60;
-  };
-  const itemPrices: Record<string, number> = {
-    smallWithBox: 9, smallWithoutBox: 11,
-    mediumWithBox: 9, mediumWithoutBox: 12, large: 15,
-  };
+  const getBoxPrice = getBoxPriceDollars;
+  const itemPrices: Record<string, number> = { ...ADDON_PRICE_USD_MONTH };
   const boxQty = boxes;
   const boxesTotal = getBoxPrice(boxQty) * boxQty;
   const itemsTotal = Object.entries(additionalItems).reduce(
@@ -436,9 +428,11 @@ function SchedulePageContent() {
                 <div style={{ fontWeight: 600, marginBottom: '6px' }}>
                   📅 Move-out pickup window: <strong>{fmt(w.start)} – {fmt(w.end)}</strong>
                 </div>
+                {boxes > 0 && (
                 <div style={{ color: '#7C5C40', fontSize: '0.8125rem' }}>
                   📦 Empty boxes will be delivered to your dorm 2–3 days before move-out begins — we&apos;ll contact you with the exact date.
                 </div>
+                )}
               </div>
             );
           })()}

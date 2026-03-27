@@ -4,6 +4,7 @@ import { squareClient, squareConfig } from './client';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import type { BookingItemInput } from '@/lib/booking/types';
+import { validateBookingLineItems } from '@/lib/booking/addon-pricing';
 import { randomUUID } from 'crypto';
 
 export type ChargeUpgradeResult =
@@ -55,6 +56,9 @@ export async function chargeBookingUpgrade(
 
   if (!booking) return { success: false, error: 'Booking not found.' };
   if (booking.user_id !== profile.id) return { success: false, error: 'Unauthorized.' };
+
+  const lineErr = validateBookingLineItems(newItems);
+  if (lineErr) return { success: false, error: lineErr };
 
   // Charge Square if needed
   let squarePaymentId: string | null = null;

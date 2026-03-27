@@ -5,6 +5,12 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
 import { AuthPageWrapper } from '@/app/components/AuthPageWrapper';
+import {
+  ADDON_PRICE_USD_MONTH,
+  ADDON_TIER_SUMMARY,
+  MAX_ADDITIONAL_ITEMS,
+  getBoxPriceDollars,
+} from '@/lib/booking/addon-pricing';
 
 function ConfigurePageContent() {
   const searchParams = useSearchParams();
@@ -38,22 +44,16 @@ function ConfigurePageContent() {
     });
   }, [boxQuantity]);
 
-  // Pricing logic (0 boxes = $0; no box required)
-  const getBoxPrice = (qty: number) => {
-    if (qty === 0) return 0;
-    if (qty === 1) return 80;
-    if (qty === 2 || qty === 3) return 55;
-    if (qty >= 4) return 60;
-    return 80;
-  };
+  useEffect(() => {
+    if (boxQuantity >= 1) return;
+    setAdditionalItems((prev) => {
+      if (prev.smallWithBox === 0 && prev.mediumWithBox === 0) return prev;
+      return { ...prev, smallWithBox: 0, mediumWithBox: 0 };
+    });
+  }, [boxQuantity]);
 
-  const itemPrices = {
-    smallWithBox: 9,
-    smallWithoutBox: 11,
-    mediumWithBox: 9,
-    mediumWithoutBox: 12,
-    large: 15,
-  };
+  const getBoxPrice = getBoxPriceDollars;
+  const itemPrices = { ...ADDON_PRICE_USD_MONTH };
 
   // Calculate totals
   const boxPrice = getBoxPrice(boxQuantity);
@@ -68,7 +68,6 @@ function ConfigurePageContent() {
 
   const monthlyTotal = boxesTotal + itemsTotal;
 
-  const MAX_ADDITIONAL_ITEMS = 4;
   const totalAdditionalItems = Object.values(additionalItems).reduce((sum, v) => sum + v, 0);
 
   const withBoxItemsUnlocked = boxQuantity >= 1;
@@ -87,7 +86,7 @@ function ConfigurePageContent() {
     });
   };
 
-  const canContinue = boxQuantity >= 1;
+  const canContinue = boxQuantity >= 1 || totalAdditionalItems >= 1;
 
   const handleContinue = () => {
     if (!canContinue) return;
@@ -133,14 +132,14 @@ function ConfigurePageContent() {
             Configure Your Storage
           </h1>
           <p style={{ fontSize: '1.05rem', color: 'var(--color-gray-600)' }}>
-            Select at least 1 box to get started. Add optional items (max 4) once you have boxes.
+            Choose storage boxes (optional) and any add-ons. You need at least one box <strong>or</strong> one add-on to continue. With-box / without-box rates lock based on whether you have boxes (up to {MAX_ADDITIONAL_ITEMS} add-on units).
           </p>
         </div>
 
         {/* Box Selection */}
         <div style={{ marginBottom: '24px', padding: 'clamp(10px, 2.5vw, 20px)', paddingTop: 'clamp(10px, 2.5vw, 14px)', background: 'var(--color-paper)', borderRadius: '14px', border: '2px solid var(--color-latte)' }}>
           <h2 style={{ fontSize: 'clamp(1.15rem, 3.5vw, 1.4rem)', fontWeight: '700', color: 'var(--color-coffee)', marginBottom: '16px', marginTop: 0 }}>
-            📦 Storage Boxes (required)
+            📦 Storage Boxes (optional)
           </h2>
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
             <label style={{ fontSize: '1rem', fontWeight: '600', color: 'var(--color-gray-700)' }}>
@@ -178,7 +177,7 @@ function ConfigurePageContent() {
               )}
               {boxQuantity === 0 && (
                 <div style={{ fontSize: '0.875rem', color: 'var(--color-gray-600)' }}>
-                  Select at least 1 box to continue
+                  $0/mo — add boxes or use add-ons only
                 </div>
               )}
             </div>
@@ -211,15 +210,15 @@ function ConfigurePageContent() {
             </span>
           </div>
           <p style={{ fontSize: '0.85rem', color: 'var(--color-gray-600)', marginBottom: '18px' }}>
-            Items that don&apos;t fit in boxes — max {MAX_ADDITIONAL_ITEMS} additional items. Small/medium &quot;without box&quot; pricing is only before you add a storage box; with boxes, use &quot;with box&quot; rates.
+            Max {MAX_ADDITIONAL_ITEMS} add-on units total. {!withBoxItemsUnlocked ? 'Without-box rates apply when you have no storage boxes.' : 'With storage boxes, use with-box rates only.'}
           </p>
 
           {/* Small Items */}
           <div style={{ marginBottom: '16px', paddingBottom: '16px', borderBottom: '1px solid var(--color-latte-soft)' }}>
-            <div style={{ fontWeight: '600', marginBottom: '10px', color: 'var(--color-gray-800)' }}>Small Items (lamp, fan, small bin)</div>
+            <div style={{ fontWeight: '600', marginBottom: '10px', color: 'var(--color-gray-800)' }}>Small — {ADDON_TIER_SUMMARY.small}</div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', opacity: withBoxItemsUnlocked ? 1 : 0.5, transition: 'opacity 0.2s ease' }}>
-                <span style={{ fontSize: '0.875rem' }}>With box - $9/mo{!withBoxItemsUnlocked && <span style={{ marginLeft: '6px', fontSize: '0.75rem', color: 'var(--color-gray-500)' }}>(requires box)</span>}</span>
+                <span style={{ fontSize: '0.875rem' }}>With box - ${itemPrices.smallWithBox}/mo{!withBoxItemsUnlocked && <span style={{ marginLeft: '6px', fontSize: '0.75rem', color: 'var(--color-gray-500)' }}>(requires box)</span>}</span>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <button onClick={() => updateItem('smallWithBox', -1)} disabled={!withBoxItemsUnlocked} className="button-secondary" style={{ padding: '4px 12px', fontSize: '1rem', opacity: !withBoxItemsUnlocked ? 0.5 : 1, cursor: withBoxItemsUnlocked ? 'pointer' : 'not-allowed' }}>−</button>
                   <span style={{ minWidth: '30px', textAlign: 'center', fontWeight: '600' }}>{additionalItems.smallWithBox}</span>
@@ -227,7 +226,7 @@ function ConfigurePageContent() {
                 </div>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', opacity: withoutBoxItemsUnlocked ? 1 : 0.5, transition: 'opacity 0.2s ease' }}>
-                <span style={{ fontSize: '0.875rem' }}>Without box - $11/mo{!withoutBoxItemsUnlocked && <span style={{ marginLeft: '6px', fontSize: '0.75rem', color: 'var(--color-gray-500)' }}>(locked — you have storage boxes)</span>}</span>
+                <span style={{ fontSize: '0.875rem' }}>Without box - ${itemPrices.smallWithoutBox}/mo{!withoutBoxItemsUnlocked && <span style={{ marginLeft: '6px', fontSize: '0.75rem', color: 'var(--color-gray-500)' }}>(locked — you have storage boxes)</span>}</span>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <button onClick={() => updateItem('smallWithoutBox', -1)} disabled={!withoutBoxItemsUnlocked} className="button-secondary" style={{ padding: '4px 12px', fontSize: '1rem', opacity: !withoutBoxItemsUnlocked ? 0.5 : 1, cursor: withoutBoxItemsUnlocked ? 'pointer' : 'not-allowed' }}>−</button>
                   <span style={{ minWidth: '30px', textAlign: 'center', fontWeight: '600' }}>{additionalItems.smallWithoutBox}</span>
@@ -239,10 +238,10 @@ function ConfigurePageContent() {
 
           {/* Medium Items */}
           <div style={{ marginBottom: '16px', paddingBottom: '16px', borderBottom: '1px solid var(--color-latte-soft)' }}>
-            <div style={{ fontWeight: '600', marginBottom: '10px', color: 'var(--color-gray-800)' }}>Medium Items (monitor, microwave, chair)</div>
+            <div style={{ fontWeight: '600', marginBottom: '10px', color: 'var(--color-gray-800)' }}>Medium — {ADDON_TIER_SUMMARY.medium}</div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', opacity: withBoxItemsUnlocked ? 1 : 0.5, transition: 'opacity 0.2s ease' }}>
-                <span style={{ fontSize: '0.875rem' }}>With box - $9/mo{!withBoxItemsUnlocked && <span style={{ marginLeft: '6px', fontSize: '0.75rem', color: 'var(--color-gray-500)' }}>(requires box)</span>}</span>
+                <span style={{ fontSize: '0.875rem' }}>With box - ${itemPrices.mediumWithBox}/mo{!withBoxItemsUnlocked && <span style={{ marginLeft: '6px', fontSize: '0.75rem', color: 'var(--color-gray-500)' }}>(requires box)</span>}</span>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <button onClick={() => updateItem('mediumWithBox', -1)} disabled={!withBoxItemsUnlocked} className="button-secondary" style={{ padding: '4px 12px', fontSize: '1rem', opacity: !withBoxItemsUnlocked ? 0.5 : 1, cursor: withBoxItemsUnlocked ? 'pointer' : 'not-allowed' }}>−</button>
                   <span style={{ minWidth: '30px', textAlign: 'center', fontWeight: '600' }}>{additionalItems.mediumWithBox}</span>
@@ -250,7 +249,7 @@ function ConfigurePageContent() {
                 </div>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', opacity: withoutBoxItemsUnlocked ? 1 : 0.5, transition: 'opacity 0.2s ease' }}>
-                <span style={{ fontSize: '0.875rem' }}>Without box - $12/mo{!withoutBoxItemsUnlocked && <span style={{ marginLeft: '6px', fontSize: '0.75rem', color: 'var(--color-gray-500)' }}>(locked — you have storage boxes)</span>}</span>
+                <span style={{ fontSize: '0.875rem' }}>Without box - ${itemPrices.mediumWithoutBox}/mo{!withoutBoxItemsUnlocked && <span style={{ marginLeft: '6px', fontSize: '0.75rem', color: 'var(--color-gray-500)' }}>(locked — you have storage boxes)</span>}</span>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <button onClick={() => updateItem('mediumWithoutBox', -1)} disabled={!withoutBoxItemsUnlocked} className="button-secondary" style={{ padding: '4px 12px', fontSize: '1rem', opacity: !withoutBoxItemsUnlocked ? 0.5 : 1, cursor: withoutBoxItemsUnlocked ? 'pointer' : 'not-allowed' }}>−</button>
                   <span style={{ minWidth: '30px', textAlign: 'center', fontWeight: '600' }}>{additionalItems.mediumWithoutBox}</span>
@@ -262,9 +261,9 @@ function ConfigurePageContent() {
 
           {/* Large Items */}
           <div>
-            <div style={{ fontWeight: '600', marginBottom: '10px', color: 'var(--color-gray-800)' }}>Large Items (mini fridge, desk, futon)</div>
+            <div style={{ fontWeight: '600', marginBottom: '10px', color: 'var(--color-gray-800)' }}>Large — {ADDON_TIER_SUMMARY.large}</div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontSize: '0.875rem' }}>Any size - $15/mo</span>
+              <span style={{ fontSize: '0.875rem' }}>Any large item - ${itemPrices.large}/mo</span>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <button onClick={() => updateItem('large', -1)} className="button-secondary" style={{ padding: '4px 12px', fontSize: '1rem' }}>−</button>
                 <span style={{ minWidth: '30px', textAlign: 'center', fontWeight: '600' }}>{additionalItems.large}</span>

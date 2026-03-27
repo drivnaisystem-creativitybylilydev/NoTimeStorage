@@ -21,7 +21,7 @@ function parseBookingItemsToForm(items: BookingItemRow[] | null): { boxQuantity:
   };
   let boxQuantity = 0;
 
-  if (!items?.length) return { boxQuantity: 1, additionalItems };
+  if (!items?.length) return { boxQuantity: 0, additionalItems };
 
   for (const row of items) {
     const qty = row.quantity ?? 0;
@@ -35,7 +35,6 @@ function parseBookingItemsToForm(items: BookingItemRow[] | null): { boxQuantity:
     }
   }
 
-  if (boxQuantity < 1) boxQuantity = 1;
   return { boxQuantity, additionalItems };
 }
 

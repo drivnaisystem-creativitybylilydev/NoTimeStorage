@@ -9,11 +9,18 @@ import { createClient } from '@/lib/supabase/client';
 import { submitReminderSignup } from '@/lib/reminder/signup';
 import { SCHOOLS } from '@/lib/schools/config';
 import { CircularCarousel } from '@/app/components/CircularCarousel';
+import { ADDON_PRICE_USD_MONTH, ADDON_TIER_HOMEPAGE_TEASER, ADDON_TIER_SUMMARY } from '@/lib/booking/addon-pricing';
+
+const ADDON_TIER_FAQ_ANSWER =
+  `Small (${ADDON_TIER_SUMMARY.small}): $${ADDON_PRICE_USD_MONTH.smallWithBox}/mo with a storage box, $${ADDON_PRICE_USD_MONTH.smallWithoutBox}/mo without. ` +
+  `Medium (${ADDON_TIER_SUMMARY.medium}): $${ADDON_PRICE_USD_MONTH.mediumWithBox}/mo with box, $${ADDON_PRICE_USD_MONTH.mediumWithoutBox}/mo without. ` +
+  `Large (${ADDON_TIER_SUMMARY.large}): $${ADDON_PRICE_USD_MONTH.large}/mo. If you rent storage boxes, small/medium add-ons use the “with box” rate; if you only use add-ons, use “without box” for small/medium.`;
 
 const FAQ_ITEMS = [
   { q: "How does the move-out pickup work?", a: "After booking, you choose a move-out date and time slot (8:00 AM–4:40 PM). On your scheduled day, our team comes to your dorm room, loads your belongings into our truck, and takes them to our secure warehouse. We handle everything — no lugging boxes to a facility yourself. Each pickup takes about 5 minutes. If you have multiple students in the same hall, we can schedule pickups within 5 minutes of each other." },
   { q: "How does the move-in delivery (box distribution) work?", a: "At checkout, you select your preferred move-in delivery date. When the semester starts, we deliver your belongings directly to your new room. You confirm your dorm and room before delivery so we know exactly where to bring everything. We'll reach out before your delivery date to confirm your move-in location." },
-  { q: "What exactly counts as a 'box'?", a: "Our boxes are large, durable storage containers (40″ × 30″ × 30″, 225 lbs max, 20.8 ft³). Each fits a full dorm room's worth of belongings — bedding, clothes, books, small appliances, and decor. You can use our boxes or your own as long as they're sealed and sturdy. Oversized items like mini-fridges, fans, lamps, rugs, and chairs are listed separately as add-ons when you configure your order." },
+  { q: "What exactly counts as a 'box'?", a: "Our boxes are large, durable storage containers (40″ × 30″ × 30″, 225 lbs max, 20.8 ft³). Each fits a full dorm room's worth of belongings — bedding, clothes, books, small appliances, and decor. You can use our boxes or your own as long as they're sealed and sturdy. Bigger pieces that don't go inside a box are booked as add-ons (small / medium / large) at checkout." },
+  { q: 'What counts as a small, medium, or large add-on?', a: ADDON_TIER_FAQ_ANSWER },
   { q: "What are the move-out and move-in date windows?", a: "Move-out windows are set per campus and aligned with each school's official checkout schedule — typically mid-to-late April through mid-May. Move-in delivery windows open in late August through September. You select your preferred dates and time slots at checkout. Exact windows for your school are shown during booking." },
   { q: "Is my stuff safe while in storage?", a: "All belongings are stored in our climate-controlled, secure warehouse facility. Items are tracked and logged at pickup. While we take every precaution to ensure items are handled carefully, we recommend not storing irreplaceable valuables. If you have questions about a specific item, reach out before booking." },
   { q: "How much does it cost and what's included?", a: "Pricing is based on the number of boxes and any additional items (mini-fridge, fan, rug, etc.) you need stored. A $50 deposit is collected at booking to secure your spot, and the remaining balance is due before pickup. We also offer a monthly payment plan that splits the remaining balance into 3 equal installments — great if you want to spread the cost over the summer." },
@@ -973,15 +980,15 @@ export default function Home() {
                   <div className="item-pricing-card">
                     <div className="item-icon">📦</div>
                     <h4 className="item-name">Small Item</h4>
-                    <p className="item-examples">Lamp, fan, small bin</p>
+                    <p className="item-examples">{ADDON_TIER_HOMEPAGE_TEASER.small}</p>
                     <div className="item-prices">
                       <div className="item-price-row">
                         <span className="item-option">With box</span>
-                        <span className="item-cost">$9/month</span>
+                        <span className="item-cost">${ADDON_PRICE_USD_MONTH.smallWithBox}/month</span>
                       </div>
                       <div className="item-price-row">
                         <span className="item-option">Without box</span>
-                        <span className="item-cost">$11/month</span>
+                        <span className="item-cost">${ADDON_PRICE_USD_MONTH.smallWithoutBox}/month</span>
                       </div>
                     </div>
                   </div>
@@ -989,15 +996,15 @@ export default function Home() {
                   <div className="item-pricing-card">
                     <div className="item-icon">📺</div>
                     <h4 className="item-name">Medium Item</h4>
-                    <p className="item-examples">Monitor, microwave, chair</p>
+                    <p className="item-examples">{ADDON_TIER_HOMEPAGE_TEASER.medium}</p>
                     <div className="item-prices">
                       <div className="item-price-row">
                         <span className="item-option">With box</span>
-                        <span className="item-cost">$9/month</span>
+                        <span className="item-cost">${ADDON_PRICE_USD_MONTH.mediumWithBox}/month</span>
                       </div>
                       <div className="item-price-row">
                         <span className="item-option">Without box</span>
-                        <span className="item-cost">$12/month</span>
+                        <span className="item-cost">${ADDON_PRICE_USD_MONTH.mediumWithoutBox}/month</span>
                       </div>
                     </div>
                   </div>
@@ -1005,11 +1012,11 @@ export default function Home() {
                   <div className="item-pricing-card">
                     <div className="item-icon">🛋️</div>
                     <h4 className="item-name">Large Item</h4>
-                    <p className="item-examples">Mini fridge, desk, futon</p>
+                    <p className="item-examples">{ADDON_TIER_HOMEPAGE_TEASER.large}</p>
                     <div className="item-prices">
                       <div className="item-price-row single">
-                        <span className="item-option">Any size</span>
-                        <span className="item-cost">$15/month</span>
+                        <span className="item-option">Any large item</span>
+                        <span className="item-cost">${ADDON_PRICE_USD_MONTH.large}/month</span>
                       </div>
                     </div>
                   </div>
