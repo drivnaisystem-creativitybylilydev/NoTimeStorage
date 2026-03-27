@@ -73,9 +73,9 @@ function BarChart({ data, valueKey, labelKey, colorFn, formatValue }: {
         const label = formatValue ? formatValue(val) : String(val);
         return (
           <div key={i}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', fontWeight: 600, color: '#444', marginBottom: '5px' }}>
-              <span>{item[labelKey]}</span>
-              <span style={{ color }}>{label}</span>
+            <div className="admin-analytics-bar-row">
+              <span className="admin-analytics-bar-label">{item[labelKey]}</span>
+              <span className="admin-analytics-bar-value" style={{ color }}>{label}</span>
             </div>
             <div style={{ background: '#F5EFE7', borderRadius: '6px', height: '10px', overflow: 'hidden' }}>
               <div style={{ width: `${pct}%`, height: '100%', background: color, borderRadius: '6px', transition: 'width 0.6s ease' }} />
@@ -142,12 +142,13 @@ function TrendChart({ data, filterSchool, onFilterSchool }: { data: MonthlyRow[]
   });
 
   return (
-    <div style={{ width: '100%', flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
-      <div style={{ width: '100%', flex: 1, minHeight: 180, overflowX: 'auto' }}>
+    <div className="admin-analytics-trend-wrap" style={{ width: '100%', flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+      <div className="admin-analytics-trend-chart-box" style={{ width: '100%', flex: 1, minHeight: 180 }}>
         <svg
           viewBox={`0 0 ${W} ${H}`}
           preserveAspectRatio="xMidYMid meet"
-          style={{ width: '100%', height: '100%', minHeight: 180, display: 'block', minWidth: '300px' }}
+          className="admin-analytics-trend-svg"
+          style={{ width: '100%', height: '100%', minHeight: 180, display: 'block' }}
           role="img"
           aria-label="Revenue trend chart by school"
         >

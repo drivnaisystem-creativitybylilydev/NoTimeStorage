@@ -30,6 +30,7 @@ export function BookingDetailModal({ booking, onClose }: BookingDetailModalProps
     <div
       role="dialog"
       aria-modal="true"
+      className="admin-booking-detail-overlay"
       style={{
         position: 'fixed',
         inset: 0,
@@ -37,30 +38,35 @@ export function BookingDetailModal({ booking, onClose }: BookingDetailModalProps
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        padding: '24px',
+        padding: 'max(12px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left))',
         backgroundColor: 'rgba(75, 46, 37, 0.35)',
         backdropFilter: 'blur(4px)',
+        overflowY: 'auto',
+        overflowX: 'hidden',
       }}
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
     >
       <div
+        className="admin-booking-detail-panel"
         style={{
           width: '100%',
-          maxWidth: '700px',
+          maxWidth: 'min(700px, calc(100vw - 24px))',
           maxHeight: '90vh',
           overflowY: 'auto',
+          overflowX: 'hidden',
           background: 'var(--color-paper)',
           borderRadius: '16px',
           border: '2px solid var(--color-latte)',
           boxShadow: '0 24px 48px rgba(75, 46, 37, 0.2)',
-          padding: '32px',
+          padding: 'clamp(16px, 4vw, 32px)',
+          boxSizing: 'border-box',
         }}
         onClick={(e) => e.stopPropagation()}
       >
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '24px' }}>
-          <h2 style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--color-coffee)' }}>Booking Details</h2>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '24px', gap: '12px' }}>
+          <h2 style={{ fontSize: 'clamp(1.15rem, 4vw, 1.5rem)', fontWeight: 800, color: 'var(--color-coffee)', margin: 0, minWidth: 0, wordBreak: 'break-word' }}>Booking Details</h2>
           <button
             onClick={onClose}
             style={{
@@ -87,7 +93,7 @@ export function BookingDetailModal({ booking, onClose }: BookingDetailModalProps
             <h3 style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--color-gray-600)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '12px' }}>
               Customer
             </h3>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px' }}>
+            <div className="admin-booking-detail-grid">
               <div>
                 <div style={{ fontSize: '0.75rem', color: 'var(--color-gray-600)', marginBottom: '4px' }}>Name</div>
                 <div style={{ fontWeight: 600, color: 'var(--color-coffee)' }}>{booking.customer?.full_name?.trim() || booking.customer?.email || '—'}</div>
@@ -108,7 +114,7 @@ export function BookingDetailModal({ booking, onClose }: BookingDetailModalProps
             <h3 style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--color-gray-600)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '12px' }}>
               Schedule
             </h3>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px' }}>
+            <div className="admin-booking-detail-grid">
               <div>
                 <div style={{ fontSize: '0.75rem', color: 'var(--color-gray-600)', marginBottom: '4px' }}>Move-out</div>
                 <div style={{ fontWeight: 600, color: 'var(--color-coffee)' }}>{formatDate(booking.move_out_date)}</div>
@@ -144,7 +150,7 @@ export function BookingDetailModal({ booking, onClose }: BookingDetailModalProps
             <h3 style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--color-gray-600)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '12px' }}>
               Location
             </h3>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px' }}>
+            <div className="admin-booking-detail-grid">
               <div>
                 <div style={{ fontSize: '0.75rem', color: 'var(--color-gray-600)', marginBottom: '4px' }}>Dorm</div>
                 <div style={{ fontWeight: 600, color: 'var(--color-coffee)' }}>{booking.dorm || '—'}</div>
@@ -178,11 +184,11 @@ export function BookingDetailModal({ booking, onClose }: BookingDetailModalProps
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 {items.map((item, i) => (
-                  <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: '12px', padding: '8px 12px', background: 'var(--color-white)', borderRadius: '8px' }}>
-                    <span style={{ color: 'var(--color-gray-700)' }}>
+                  <div key={i} className="admin-booking-detail-item-row">
+                    <span style={{ color: 'var(--color-gray-700)', minWidth: 0, wordBreak: 'break-word' }}>
                       {item.quantity}× {formatBookingItemTypeLabel(item.item_type)}
                     </span>
-                    <span style={{ fontWeight: 600, color: 'var(--color-coffee)', flexShrink: 0 }}>
+                    <span style={{ fontWeight: 600, color: 'var(--color-coffee)', flexShrink: 0, textAlign: 'right', wordBreak: 'break-word' }}>
                       ${item.monthly_rate.toFixed(2)}/mo each · ${item.subtotal.toFixed(2)}/mo line
                     </span>
                   </div>
@@ -205,12 +211,12 @@ export function BookingDetailModal({ booking, onClose }: BookingDetailModalProps
 
           {/* Totals */}
           <div style={{ paddingTop: '16px', borderTop: '2px solid var(--color-latte-soft)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div className="admin-booking-detail-totals">
               <div>
                 <div style={{ fontSize: '0.875rem', color: 'var(--color-gray-600)', marginBottom: '4px' }}>Monthly Rate</div>
                 <div style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--color-coffee)' }}>${booking.total_monthly_rate.toFixed(2)}/month</div>
               </div>
-              <div style={{ textAlign: 'right' }}>
+              <div className="admin-booking-detail-totals-right">
                 <div style={{ fontSize: '0.875rem', color: 'var(--color-gray-600)', marginBottom: '4px' }}>Total Price</div>
                 <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--color-coffee)' }}>${booking.total_price.toFixed(2)}</div>
               </div>
@@ -222,7 +228,7 @@ export function BookingDetailModal({ booking, onClose }: BookingDetailModalProps
             <h3 style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--color-gray-600)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '12px' }}>
               Payment
             </h3>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '12px' }}>
+            <div className="admin-booking-detail-grid admin-booking-detail-grid--payment">
               <div>
                 <div style={{ fontSize: '0.75rem', color: 'var(--color-gray-600)', marginBottom: '4px' }}>Plan</div>
                 <span style={{
@@ -266,17 +272,17 @@ export function BookingDetailModal({ booking, onClose }: BookingDetailModalProps
               </h3>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                 {booking.square_customer_id && (
-                  <div style={{ fontSize: '0.75rem', fontFamily: 'monospace', background: 'var(--color-white)', padding: '6px 10px', borderRadius: '6px', color: 'var(--color-gray-700)' }}>
+                  <div className="admin-booking-detail-mono" style={{ fontSize: '0.75rem', fontFamily: 'monospace', background: 'var(--color-white)', padding: '6px 10px', borderRadius: '6px', color: 'var(--color-gray-700)' }}>
                     <span style={{ color: 'var(--color-gray-600)', marginRight: '8px' }}>Customer:</span>{booking.square_customer_id}
                   </div>
                 )}
                 {booking.square_card_id && (
-                  <div style={{ fontSize: '0.75rem', fontFamily: 'monospace', background: 'var(--color-white)', padding: '6px 10px', borderRadius: '6px', color: 'var(--color-gray-700)' }}>
+                  <div className="admin-booking-detail-mono" style={{ fontSize: '0.75rem', fontFamily: 'monospace', background: 'var(--color-white)', padding: '6px 10px', borderRadius: '6px', color: 'var(--color-gray-700)' }}>
                     <span style={{ color: 'var(--color-gray-600)', marginRight: '8px' }}>Card:</span>{booking.square_card_id}
                   </div>
                 )}
                 {booking.square_invoice_id && (
-                  <div style={{ fontSize: '0.75rem', fontFamily: 'monospace', background: 'var(--color-white)', padding: '6px 10px', borderRadius: '6px', color: 'var(--color-gray-700)' }}>
+                  <div className="admin-booking-detail-mono" style={{ fontSize: '0.75rem', fontFamily: 'monospace', background: 'var(--color-white)', padding: '6px 10px', borderRadius: '6px', color: 'var(--color-gray-700)' }}>
                     <span style={{ color: 'var(--color-gray-600)', marginRight: '8px' }}>Invoice:</span>{booking.square_invoice_id}
                   </div>
                 )}

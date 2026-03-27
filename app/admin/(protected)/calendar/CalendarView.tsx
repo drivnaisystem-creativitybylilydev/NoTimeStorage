@@ -119,15 +119,15 @@ function DayDetailPanel({ date, moveOutBookings, moveInBookings, onClose, school
     const dorm = type === 'move-in' ? (b.move_in_dorm || b.dorm) : b.dorm;
     const room = type === 'move-in' ? b.move_in_room : b.room;
     return (
-      <div style={{ border: `1px solid ${type === 'move-in' ? '#B2DEC9' : '#E7D3BF'}`, borderRadius: '10px', padding: '14px 16px', opacity: isFiltered && !matches ? 0.35 : 1, filter: isFiltered && !matches ? 'grayscale(1)' : 'none', transition: 'opacity 0.2s, filter 0.2s' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+      <div className="admin-day-detail-booking-card" style={{ border: `1px solid ${type === 'move-in' ? '#B2DEC9' : '#E7D3BF'}`, borderRadius: '10px', padding: '14px 16px', opacity: isFiltered && !matches ? 0.35 : 1, filter: isFiltered && !matches ? 'grayscale(1)' : 'none', transition: 'opacity 0.2s, filter 0.2s', maxWidth: '100%', minWidth: 0 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px', gap: '8px', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
             <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: color.bg, flexShrink: 0 }} />
-            <span style={{ fontWeight: 700, fontSize: '0.9rem', color: '#1a1a1a' }}>{b.customer?.full_name || 'Unknown Student'}</span>
+            <span style={{ fontWeight: 700, fontSize: '0.9rem', color: '#1a1a1a', wordBreak: 'break-word' }}>{b.customer?.full_name || 'Unknown Student'}</span>
           </div>
-          <span style={{ fontSize: '0.72rem', fontWeight: 700, background: statusInfo.color + '18', color: statusInfo.color, padding: '2px 8px', borderRadius: '20px' }}>{statusInfo.label}</span>
+          <span style={{ fontSize: '0.72rem', fontWeight: 700, background: statusInfo.color + '18', color: statusInfo.color, padding: '2px 8px', borderRadius: '20px', flexShrink: 0 }}>{statusInfo.label}</span>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px 16px', fontSize: '0.8rem', color: '#666' }}>
+        <div className="admin-day-detail-meta">
           <span>🏫 {b.school}</span>
           <span>🕐 {formatTime(timeSlot || '') || '—'}</span>
           <span>🏠 {dorm || '—'}{room ? ` · Room ${room}` : ''}</span>
@@ -154,8 +154,8 @@ function DayDetailPanel({ date, moveOutBookings, moveInBookings, onClose, school
   };
 
   return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.35)' }} onClick={onClose}>
-      <div style={{ background: '#fff', borderRadius: '16px', padding: '32px', width: '540px', maxWidth: '90vw', maxHeight: '82vh', overflow: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,0.18)' }} onClick={e => e.stopPropagation()}>
+    <div className="admin-day-detail-overlay" style={{ position: 'fixed', inset: 0, zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 'max(12px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left))', background: 'rgba(0,0,0,0.35)', overflowY: 'auto', overflowX: 'hidden' }} onClick={onClose}>
+      <div className="admin-day-detail-panel" style={{ background: '#fff', borderRadius: '16px', padding: 'clamp(16px, 4vw, 32px)', width: '100%', maxWidth: 'min(540px, calc(100vw - 24px))', maxHeight: 'min(82vh, 100%)', overflowY: 'auto', overflowX: 'hidden', boxShadow: '0 20px 60px rgba(0,0,0,0.18)', boxSizing: 'border-box' }} onClick={e => e.stopPropagation()}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px' }}>
           <div>
             <h3 style={{ fontSize: '1.2rem', fontWeight: 700, color: '#4B2E25', margin: 0 }}>{dateFmt}</h3>
@@ -192,6 +192,69 @@ function DayDetailPanel({ date, moveOutBookings, moveInBookings, onClose, school
   );
 }
 
+function WeekEventCard({ b, type, matchesFilter, isFiltered }: {
+  b: BookingWithCustomer;
+  type: 'move-out' | 'move-in';
+  matchesFilter: (b: BookingWithCustomer) => boolean;
+  isFiltered: boolean;
+}) {
+  const matches = matchesFilter(b);
+  const color = type === 'move-in' ? MOVE_IN_COLOR : getSchoolColor(b.school);
+  const statusInfo = STATUS_LABELS[b.status] || { label: b.status, color: '#666' };
+  const timeSlot = type === 'move-in' ? b.move_in_time_slot : b.move_out_time_slot;
+  const dorm = type === 'move-in' ? (b.move_in_dorm || b.dorm) : b.dorm;
+  return (
+    <div style={{
+      background: color.light,
+      borderLeft: `3px solid ${color.bg}`,
+      borderRadius: '7px',
+      padding: '10px',
+      transition: 'opacity 0.2s, filter 0.2s',
+      opacity: isFiltered && !matches ? 0.15 : 1,
+      filter: isFiltered && !matches ? 'grayscale(1)' : 'none',
+      flexShrink: 0,
+      maxWidth: '100%',
+      minWidth: 0,
+    }}>
+      {type === 'move-in' && (
+        <div style={{ fontSize: '0.62rem', fontWeight: 700, color: color.bg, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '3px' }}>
+          📦 Move-in
+        </div>
+      )}
+      {formatTime(timeSlot || '') && (
+        <div style={{ fontSize: '0.68rem', fontWeight: 700, color: color.bg, marginBottom: '4px', letterSpacing: '0.03em' }}>
+          {formatTime(timeSlot || '')}
+        </div>
+      )}
+      <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#1a1a1a', marginBottom: '4px', lineHeight: 1.3, wordBreak: 'break-word' }}>
+        {b.customer?.full_name || 'Unknown Student'}
+      </div>
+      <div style={{ display: 'inline-block', fontSize: '0.65rem', fontWeight: 700, background: type === 'move-in' ? color.bg : getSchoolColor(b.school).bg, color: '#fff', padding: '1px 7px', borderRadius: '20px', marginBottom: '6px', maxWidth: '100%', wordBreak: 'break-word' }}>
+        {b.school === 'Stonehill College' ? 'Stonehill' : b.school === 'University of New Haven' ? 'UNH' : b.school}
+      </div>
+      <div style={{ fontSize: '0.72rem', color: '#555', display: 'flex', flexDirection: 'column', gap: '2px' }}>
+        {dorm && <span style={{ wordBreak: 'break-word' }}>🏠 {dorm}</span>}
+        <span>📦 {b.box_quantity} box{b.box_quantity !== 1 ? 'es' : ''}</span>
+        {!!(b.items?.length) && (
+          <span style={{ fontSize: '0.68rem', color: '#444', lineHeight: 1.35 }} title={summarizeBookingItemsLine(b.items, 400)}>
+            🧾 {summarizeBookingItemsLine(b.items, 70)}
+          </span>
+        )}
+      </div>
+      <div style={{ marginTop: '6px' }}>
+        <span style={{ fontSize: '0.65rem', fontWeight: 700, background: statusInfo.color + '18', color: statusInfo.color, padding: '1px 7px', borderRadius: '20px' }}>
+          {statusInfo.label}
+        </span>
+        {type === 'move-in' && !b.move_in_confirmed_at && (
+          <span style={{ fontSize: '0.62rem', fontWeight: 700, background: '#FEF3C718', color: '#B45309', padding: '1px 7px', borderRadius: '20px', marginLeft: '4px' }}>
+            Unconfirmed
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ─── Week View ────────────────────────────────────────────────────────────────
 
 function WeekView({ weekStart, bookingsByDate, moveInByDate, matchesFilter, isFiltered, today }: {
@@ -205,11 +268,68 @@ function WeekView({ weekStart, bookingsByDate, moveInByDate, matchesFilter, isFi
   const days = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
   const todayStr = toDateStr(today);
   const isNarrow = useMediaQuery('(max-width: 900px)');
-  const weekColHeight = isNarrow ? 'min(70vh, 520px)' : '580px';
+
+  if (isNarrow) {
+    return (
+      <div className="admin-week-narrow">
+        {days.map((d, i) => {
+          const ds = toDateStr(d);
+          const isToday = ds === todayStr;
+          const moveOutEvents = (bookingsByDate[ds] || []).sort((a, b) =>
+            (a.move_out_time_slot || '').localeCompare(b.move_out_time_slot || '')
+          );
+          const moveInEvents = (moveInByDate[ds] || []).sort((a, b) =>
+            (a.move_in_time_slot || '').localeCompare(b.move_in_time_slot || '')
+          );
+          const hasEvents = moveOutEvents.length > 0 || moveInEvents.length > 0;
+          return (
+            <div
+              key={i}
+              className="admin-week-narrow-day"
+              style={{ background: isToday ? 'rgba(201, 164, 126, 0.07)' : '#fff' }}
+            >
+              <div className="admin-week-narrow-day-header">
+                <span className="admin-week-narrow-dow">{DAYS[d.getDay()]}</span>
+                <span
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    width: '32px',
+                    height: '32px',
+                    borderRadius: '50%',
+                    fontSize: '0.95rem',
+                    fontWeight: 700,
+                    background: isToday ? '#4B2E25' : 'transparent',
+                    color: isToday ? '#fff' : '#1a1a1a',
+                  }}
+                >
+                  {d.getDate()}
+                </span>
+                {!hasEvents && (
+                  <span style={{ fontSize: '0.8rem', color: '#bbb', marginLeft: 'auto' }}>No events</span>
+                )}
+              </div>
+              {hasEvents && (
+                <div className="admin-week-narrow-events">
+                  {moveOutEvents.map(b => (
+                    <WeekEventCard key={b.id} b={b} type="move-out" matchesFilter={matchesFilter} isFiltered={isFiltered} />
+                  ))}
+                  {moveInEvents.map(b => (
+                    <WeekEventCard key={`${b.id}-in`} b={b} type="move-in" matchesFilter={matchesFilter} isFiltered={isFiltered} />
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    );
+  }
+
+  const weekColHeight = '580px';
 
   return (
-    <div className="admin-week-scroll">
-      <div className="admin-week-scroll-inner">
     <div style={{ border: '1px solid #E7D3BF', borderRadius: '14px', overflow: 'hidden', background: '#fff', boxShadow: '0 2px 12px rgba(0,0,0,0.06)', display: 'flex', flexDirection: 'column' }}>
       {/* Day header row */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', borderBottom: '2px solid #E7D3BF', background: '#F7F3EE' }}>
@@ -259,62 +379,6 @@ function WeekView({ weekStart, bookingsByDate, moveInByDate, matchesFilter, isFi
           );
           const hasEvents = moveOutEvents.length > 0 || moveInEvents.length > 0;
 
-          const EventCard = ({ b, type }: { b: BookingWithCustomer; type: 'move-out' | 'move-in' }) => {
-            const matches = matchesFilter(b);
-            const color = type === 'move-in' ? MOVE_IN_COLOR : getSchoolColor(b.school);
-            const statusInfo = STATUS_LABELS[b.status] || { label: b.status, color: '#666' };
-            const timeSlot = type === 'move-in' ? b.move_in_time_slot : b.move_out_time_slot;
-            const dorm = type === 'move-in' ? (b.move_in_dorm || b.dorm) : b.dorm;
-            return (
-              <div style={{
-                background: color.light,
-                borderLeft: `3px solid ${color.bg}`,
-                borderRadius: '7px',
-                padding: '10px',
-                transition: 'opacity 0.2s, filter 0.2s',
-                opacity: isFiltered && !matches ? 0.15 : 1,
-                filter: isFiltered && !matches ? 'grayscale(1)' : 'none',
-                flexShrink: 0,
-              }}>
-                {type === 'move-in' && (
-                  <div style={{ fontSize: '0.62rem', fontWeight: 700, color: color.bg, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '3px' }}>
-                    📦 Move-in
-                  </div>
-                )}
-                {formatTime(timeSlot || '') && (
-                  <div style={{ fontSize: '0.68rem', fontWeight: 700, color: color.bg, marginBottom: '4px', letterSpacing: '0.03em' }}>
-                    {formatTime(timeSlot || '')}
-                  </div>
-                )}
-                <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#1a1a1a', marginBottom: '4px', lineHeight: 1.3 }}>
-                  {b.customer?.full_name || 'Unknown Student'}
-                </div>
-                <div style={{ display: 'inline-block', fontSize: '0.65rem', fontWeight: 700, background: type === 'move-in' ? color.bg : getSchoolColor(b.school).bg, color: '#fff', padding: '1px 7px', borderRadius: '20px', marginBottom: '6px' }}>
-                  {b.school === 'Stonehill College' ? 'Stonehill' : b.school === 'University of New Haven' ? 'UNH' : b.school}
-                </div>
-                <div style={{ fontSize: '0.72rem', color: '#555', display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                  {dorm && <span>🏠 {dorm}</span>}
-                  <span>📦 {b.box_quantity} box{b.box_quantity !== 1 ? 'es' : ''}</span>
-                  {!!(b.items?.length) && (
-                    <span style={{ fontSize: '0.68rem', color: '#444', lineHeight: 1.35 }} title={summarizeBookingItemsLine(b.items, 400)}>
-                      🧾 {summarizeBookingItemsLine(b.items, 70)}
-                    </span>
-                  )}
-                </div>
-                <div style={{ marginTop: '6px' }}>
-                  <span style={{ fontSize: '0.65rem', fontWeight: 700, background: statusInfo.color + '18', color: statusInfo.color, padding: '1px 7px', borderRadius: '20px' }}>
-                    {statusInfo.label}
-                  </span>
-                  {type === 'move-in' && !b.move_in_confirmed_at && (
-                    <span style={{ fontSize: '0.62rem', fontWeight: 700, background: '#FEF3C718', color: '#B45309', padding: '1px 7px', borderRadius: '20px', marginLeft: '4px' }}>
-                      Unconfirmed
-                    </span>
-                  )}
-                </div>
-              </div>
-            );
-          };
-
           return (
             <div key={i} style={{
               borderRight: i < 6 ? '1px solid #E7D3BF' : 'none',
@@ -332,15 +396,17 @@ function WeekView({ weekStart, bookingsByDate, moveInByDate, matchesFilter, isFi
                 </div>
               ) : (
                 <>
-                  {moveOutEvents.map(b => <EventCard key={b.id} b={b} type="move-out" />)}
-                  {moveInEvents.map(b => <EventCard key={b.id + '-in'} b={b} type="move-in" />)}
+                  {moveOutEvents.map(b => (
+                    <WeekEventCard key={b.id} b={b} type="move-out" matchesFilter={matchesFilter} isFiltered={isFiltered} />
+                  ))}
+                  {moveInEvents.map(b => (
+                    <WeekEventCard key={`${b.id}-in`} b={b} type="move-in" matchesFilter={matchesFilter} isFiltered={isFiltered} />
+                  ))}
                 </>
               )}
             </div>
           );
         })}
-      </div>
-    </div>
       </div>
     </div>
   );
@@ -564,6 +630,9 @@ export function CalendarView({ bookings }: { bookings: BookingWithCustomer[] }) 
                   onClick={() => cell.isCurrentMonth && hasAny && setSelectedDate(cell.dateStr)}
                   style={{
                     minHeight: compactCalendar ? 76 : 130,
+                    minWidth: 0,
+                    maxWidth: '100%',
+                    overflow: 'hidden',
                     padding: compactCalendar ? '5px 3px 5px' : '10px 8px 8px',
                     borderRight: isLastCol ? 'none' : '1px solid #E7D3BF',
                     borderBottom: isLastRow ? 'none' : '1px solid #E7D3BF',
