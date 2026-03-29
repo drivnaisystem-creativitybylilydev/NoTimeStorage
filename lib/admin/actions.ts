@@ -103,6 +103,12 @@ export type CustomerRow = {
   email: string | null;
   phone: string | null;
   booking_count: number;
+  /** Non-cancelled bookings only: sum of total_price where payment_status is paid */
+  total_paid: number;
+  /** Non-cancelled bookings only: sum of total_price where not yet paid */
+  total_outstanding: number;
+  paid_booking_count: number;
+  unpaid_booking_count: number;
 };
 
 /** Sync the current auth user's full_name, email, phone into public.users so admin lists show correct data. */
@@ -160,23 +166,59 @@ export async function getCustomers(): Promise<CustomerRow[]> {
     return [];
   }
 
-  const { data: countsData } = await supabase
+  const { data: bookingAggRows } = await supabase
     .from('bookings')
-    .select('user_id')
+    .select('user_id, total_price, payment_status, status')
     .neq('status', 'cancelled');
 
-  const countByUserId: Record<string, number> = {};
-  (countsData || []).forEach((row: { user_id: string }) => {
-    countByUserId[row.user_id] = (countByUserId[row.user_id] || 0) + 1;
+  type UserPaymentAgg = {
+    booking_count: number;
+    total_paid: number;
+    total_outstanding: number;
+    paid_booking_count: number;
+    unpaid_booking_count: number;
+  };
+
+  const aggByUserId: Record<string, UserPaymentAgg> = {};
+
+  (bookingAggRows || []).forEach((row: { user_id: string; total_price?: number | string | null; payment_status: string | null }) => {
+    const uid = row.user_id;
+    if (!aggByUserId[uid]) {
+      aggByUserId[uid] = {
+        booking_count: 0,
+        total_paid: 0,
+        total_outstanding: 0,
+        paid_booking_count: 0,
+        unpaid_booking_count: 0,
+      };
+    }
+    const price =
+      typeof row.total_price === 'number' ? row.total_price : parseFloat(String(row.total_price ?? '0')) || 0;
+    const a = aggByUserId[uid];
+    a.booking_count += 1;
+    if (row.payment_status === 'paid') {
+      a.total_paid += price;
+      a.paid_booking_count += 1;
+    } else {
+      a.total_outstanding += price;
+      a.unpaid_booking_count += 1;
+    }
   });
 
-  return usersData.map((u: { id: string; full_name: string | null; email: string | null; phone: string | null }) => ({
-    id: u.id,
-    full_name: u.full_name ?? null,
-    email: u.email ?? null,
-    phone: u.phone ?? null,
-    booking_count: countByUserId[u.id] ?? 0,
-  }));
+  return usersData.map((u: { id: string; full_name: string | null; email: string | null; phone: string | null }) => {
+    const a = aggByUserId[u.id];
+    return {
+      id: u.id,
+      full_name: u.full_name ?? null,
+      email: u.email ?? null,
+      phone: u.phone ?? null,
+      booking_count: a?.booking_count ?? 0,
+      total_paid: a?.total_paid ?? 0,
+      total_outstanding: a?.total_outstanding ?? 0,
+      paid_booking_count: a?.paid_booking_count ?? 0,
+      unpaid_booking_count: a?.unpaid_booking_count ?? 0,
+    };
+  });
 }
 
 export type ActionResult = { success: true } | { success: false; error: string };

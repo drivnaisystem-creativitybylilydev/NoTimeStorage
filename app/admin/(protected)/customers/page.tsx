@@ -10,13 +10,15 @@ export default async function AdminCustomersPage() {
   const activeCustomers = customers.filter((c) => c.booking_count > 0).length;
   const noBookings = customers.filter((c) => c.booking_count === 0).length;
   const totalBookings = customers.reduce((sum, c) => sum + c.booking_count, 0);
+  const totalCollected = customers.reduce((sum, c) => sum + c.total_paid, 0);
+  const totalOutstanding = customers.reduce((sum, c) => sum + c.total_outstanding, 0);
 
   return (
     <div className="admin-page" style={{ display: 'flex', flexDirection: 'column', gap: '64px' }}>
       <div style={{ marginBottom: '16px' }}>
         <h1 className="admin-title">Customers</h1>
         <p className="admin-subtitle">
-          All registered students. Click "View Bookings" to jump to their bookings.
+          All registered students. Payment totals are from active (non-cancelled) bookings in Supabase. Click &quot;View Bookings&quot; for detail.
         </p>
       </div>
 
@@ -60,6 +62,26 @@ export default async function AdminCustomersPage() {
             {totalBookings}
           </div>
           <div style={{ fontSize: '13px', color: '#3730a3' }}>Across all customers</div>
+        </div>
+
+        <div className="admin-card" style={{ padding: '32px', background: 'linear-gradient(135deg, #ECFDF5 0%, #D1FAE5 100%)' }}>
+          <div style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#047857', marginBottom: '12px' }}>
+            Collected (paid)
+          </div>
+          <div style={{ fontSize: '40px', fontWeight: 700, color: '#047857', lineHeight: 1, marginBottom: '8px' }}>
+            ${totalCollected.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+          </div>
+          <div style={{ fontSize: '13px', color: '#047857' }}>Sum of paid booking totals</div>
+        </div>
+
+        <div className="admin-card" style={{ padding: '32px', background: 'linear-gradient(135deg, #FFFBEB 0%, #FEF3C7 100%)' }}>
+          <div style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#b45309', marginBottom: '12px' }}>
+            Outstanding
+          </div>
+          <div style={{ fontSize: '40px', fontWeight: 700, color: '#b45309', lineHeight: 1, marginBottom: '8px' }}>
+            ${totalOutstanding.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+          </div>
+          <div style={{ fontSize: '13px', color: '#b45309' }}>Unpaid booking balances</div>
         </div>
       </div>
 

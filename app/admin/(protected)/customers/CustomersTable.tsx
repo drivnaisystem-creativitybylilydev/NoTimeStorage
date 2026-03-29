@@ -5,6 +5,10 @@ import Link from 'next/link';
 import { Search, ExternalLink } from 'lucide-react';
 import type { CustomerRow } from '@/lib/admin/actions';
 
+function fmtMoney(n: number) {
+  return `$${n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+
 export function CustomersTable({ customers }: { customers: CustomerRow[] }) {
   const [search, setSearch] = useState('');
 
@@ -54,13 +58,15 @@ export function CustomersTable({ customers }: { customers: CustomerRow[] }) {
 
       {/* Table */}
       <div className="admin-card" style={{ overflow: 'hidden', padding: 0 }}>
-        <div style={{ overflowX: 'auto' }}>
+        <div className="admin-customers-table-wrap">
           <table className="admin-table admin-table-customers" style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr>
                 <th>Name</th>
                 <th>Email</th>
                 <th>Phone</th>
+                <th style={{ textAlign: 'right' }}>Collected</th>
+                <th style={{ textAlign: 'right' }}>Balance due</th>
                 <th style={{ textAlign: 'center' }}>Bookings</th>
                 <th style={{ textAlign: 'center' }}>Actions</th>
               </tr>
@@ -68,7 +74,7 @@ export function CustomersTable({ customers }: { customers: CustomerRow[] }) {
             <tbody>
               {filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={5} style={{ padding: '48px 24px', textAlign: 'center', fontSize: '15px', color: 'var(--color-gray-600)' }}>
+                  <td colSpan={7} style={{ padding: '48px 24px', textAlign: 'center', fontSize: '15px', color: 'var(--color-gray-600)' }}>
                     {search ? 'No students match your search.' : 'No customers found.'}
                   </td>
                 </tr>
@@ -85,6 +91,22 @@ export function CustomersTable({ customers }: { customers: CustomerRow[] }) {
                     </td>
                     <td data-label="Phone" style={{ color: 'var(--color-gray-700)' }}>
                       {c.phone || '—'}
+                    </td>
+                    <td data-label="Collected" style={{ textAlign: 'right', fontWeight: 600, color: '#15803d' }}>
+                      <div>{fmtMoney(c.total_paid)}</div>
+                      {c.paid_booking_count > 0 && (
+                        <div style={{ fontSize: '12px', fontWeight: 500, color: 'var(--color-gray-500)' }}>
+                          {c.paid_booking_count} paid
+                        </div>
+                      )}
+                    </td>
+                    <td data-label="Balance due" style={{ textAlign: 'right', fontWeight: 600, color: c.total_outstanding > 0 ? '#b45309' : 'var(--color-gray-600)' }}>
+                      <div>{fmtMoney(c.total_outstanding)}</div>
+                      {c.unpaid_booking_count > 0 && (
+                        <div style={{ fontSize: '12px', fontWeight: 500, color: 'var(--color-gray-500)' }}>
+                          {c.unpaid_booking_count} unpaid
+                        </div>
+                      )}
                     </td>
                     <td data-label="Bookings" style={{ textAlign: 'center' }}>
                       <span
@@ -121,9 +143,11 @@ export function CustomersTable({ customers }: { customers: CustomerRow[] }) {
             fontSize: '13px',
             color: 'var(--color-gray-500)',
             background: 'var(--color-white)',
+            lineHeight: 1.5,
           }}>
             {filtered.length} student{filtered.length !== 1 ? 's' : ''}
             {search ? ` matching "${search}"` : ' total'}
+            . Collected and balance due are sums of <strong>total_price</strong> on non-cancelled bookings (paid vs unpaid) from Supabase.
           </div>
         )}
       </div>

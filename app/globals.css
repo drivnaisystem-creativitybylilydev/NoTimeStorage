@@ -5325,6 +5325,11 @@ button {
   box-sizing: border-box;
 }
 
+.admin-customers-table-wrap {
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
 .admin-filters-card {
   padding: clamp(20px, 5vw, 48px);
   display: flex;
