@@ -147,7 +147,7 @@ export function CustomersTable({ customers }: { customers: CustomerRow[] }) {
           }}>
             {filtered.length} student{filtered.length !== 1 ? 's' : ''}
             {search ? ` matching "${search}"` : ' total'}
-            . Collected and balance due are sums of <strong>total_price</strong> on non-cancelled bookings (paid vs unpaid) from Supabase.
+            . <strong>Collected</strong> sums succeeded rows in <strong>payments</strong> (deposits, full pay, installments) per booking, plus legacy paid bookings with no payment rows. <strong>Balance due</strong> is unpaid bookings’ contract total minus payments already recorded toward that booking.
           </div>
         )}
       </div>

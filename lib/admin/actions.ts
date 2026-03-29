@@ -103,9 +103,13 @@ export type CustomerRow = {
   email: string | null;
   phone: string | null;
   booking_count: number;
-  /** Non-cancelled bookings only: sum of total_price where payment_status is paid */
+  /**
+   * Cash recorded in `payments` (status succeeded) for this customer's non-cancelled bookings:
+   * deposits, full payments, installments, etc. If a booking is marked paid but has no payment
+   * rows (legacy), we add that booking's total_price once.
+   */
   total_paid: number;
-  /** Non-cancelled bookings only: sum of total_price where not yet paid */
+  /** Non-cancelled bookings not marked paid: sum of (total_price − payments succeeded toward that booking), floored at 0 per booking */
   total_outstanding: number;
   paid_booking_count: number;
   unpaid_booking_count: number;
@@ -168,7 +172,7 @@ export async function getCustomers(): Promise<CustomerRow[]> {
 
   const { data: bookingAggRows } = await supabase
     .from('bookings')
-    .select('user_id, total_price, payment_status, status')
+    .select('id, user_id, total_price, payment_status, status')
     .neq('status', 'cancelled');
 
   type UserPaymentAgg = {
@@ -181,7 +185,35 @@ export async function getCustomers(): Promise<CustomerRow[]> {
 
   const aggByUserId: Record<string, UserPaymentAgg> = {};
 
-  (bookingAggRows || []).forEach((row: { user_id: string; total_price?: number | string | null; payment_status: string | null }) => {
+  const parsePrice = (v: unknown) =>
+    typeof v === 'number' ? v : parseFloat(String(v ?? '0')) || 0;
+
+  // Succeeded payment rows (deposits, full_payment, monthly, etc.) — service role avoids RLS gaps
+  const adminDb = createAdminClient();
+  const { data: paymentRows, error: paymentsError } = await adminDb
+    .from('payments')
+    .select('booking_id, amount, status')
+    .eq('status', 'succeeded');
+
+  if (paymentsError) {
+    console.error('[getCustomers] payments', paymentsError);
+  }
+
+  const paidTowardBookingId: Record<string, number> = {};
+  for (const p of paymentRows || []) {
+    const bid = String((p as { booking_id: string }).booking_id);
+    const amt = parsePrice((p as { amount?: unknown }).amount);
+    paidTowardBookingId[bid] = (paidTowardBookingId[bid] || 0) + amt;
+  }
+
+  type BRow = {
+    id: string;
+    user_id: string;
+    total_price?: unknown;
+    payment_status: string | null;
+  };
+
+  for (const row of (bookingAggRows || []) as BRow[]) {
     const uid = row.user_id;
     if (!aggByUserId[uid]) {
       aggByUserId[uid] = {
@@ -192,18 +224,29 @@ export async function getCustomers(): Promise<CustomerRow[]> {
         unpaid_booking_count: 0,
       };
     }
-    const price =
-      typeof row.total_price === 'number' ? row.total_price : parseFloat(String(row.total_price ?? '0')) || 0;
     const a = aggByUserId[uid];
     a.booking_count += 1;
     if (row.payment_status === 'paid') {
-      a.total_paid += price;
       a.paid_booking_count += 1;
     } else {
-      a.total_outstanding += price;
       a.unpaid_booking_count += 1;
     }
-  });
+  }
+
+  for (const row of (bookingAggRows || []) as BRow[]) {
+    const uid = row.user_id;
+    const a = aggByUserId[uid];
+    const price = parsePrice(row.total_price);
+    const toward = paidTowardBookingId[String(row.id)] || 0;
+
+    a.total_paid += toward;
+    if (row.payment_status === 'paid' && toward === 0) {
+      a.total_paid += price;
+    }
+    if (row.payment_status !== 'paid') {
+      a.total_outstanding += Math.max(0, price - toward);
+    }
+  }
 
   return usersData.map((u: { id: string; full_name: string | null; email: string | null; phone: string | null }) => {
     const a = aggByUserId[u.id];

@@ -18,7 +18,7 @@ export default async function AdminCustomersPage() {
       <div style={{ marginBottom: '16px' }}>
         <h1 className="admin-title">Customers</h1>
         <p className="admin-subtitle">
-          All registered students. Payment totals are from active (non-cancelled) bookings in Supabase. Click &quot;View Bookings&quot; for detail.
+          All registered students. <strong>Collected</strong> uses the <strong>payments</strong> table (deposits and other succeeded charges); balance due uses booking totals minus those payments. Click &quot;View Bookings&quot; for detail.
         </p>
       </div>
 
