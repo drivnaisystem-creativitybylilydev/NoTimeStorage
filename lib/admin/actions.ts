@@ -102,6 +102,10 @@ export type CustomerRow = {
   full_name: string | null;
   email: string | null;
   phone: string | null;
+  /** From public.users.school (signup); see also school_display */
+  school: string | null;
+  /** Profile school, or latest non-cancelled booking school if profile empty */
+  school_display: string | null;
   booking_count: number;
   /**
    * Cash recorded in `payments` (status succeeded) for this customer's non-cancelled bookings:
@@ -124,7 +128,8 @@ export async function syncCurrentUserProfile(): Promise<void> {
   const full_name = (meta.full_name as string)?.trim() || (meta.first_name || meta.last_name ? [meta.first_name, meta.last_name].filter(Boolean).join(' ').trim() : null) || null;
   const phone = (meta.phone as string)?.trim() || null;
   const email = user.email?.trim() || null;
-  if (!full_name && !phone && !email) return;
+  const school = (meta.school as string)?.trim() || null;
+  if (!full_name && !phone && !email && !school) return;
 
   const { data: existing } = await supabase
     .from('users')
@@ -138,6 +143,7 @@ export async function syncCurrentUserProfile(): Promise<void> {
     if (full_name) updates.full_name = full_name;
     if (phone) updates.phone = phone;
     if (email) updates.email = email;
+    if (school) updates.school = school;
     if (Object.keys(updates).length > 0) {
       await supabase.from('users').update(updates).eq('id', existing.id);
     }
@@ -162,7 +168,7 @@ export async function getCustomers(): Promise<CustomerRow[]> {
 
   const { data: usersData, error: usersError } = await supabase
     .from('users')
-    .select('id, full_name, email, phone')
+    .select('id, full_name, email, phone, school')
     .order('full_name', { ascending: true, nullsFirst: false });
 
   if (usersError || !usersData?.length) {
@@ -172,7 +178,7 @@ export async function getCustomers(): Promise<CustomerRow[]> {
 
   const { data: bookingAggRows } = await supabase
     .from('bookings')
-    .select('id, user_id, total_price, payment_status, status')
+    .select('id, user_id, total_price, payment_status, status, school, created_at')
     .neq('status', 'cancelled');
 
   type UserPaymentAgg = {
@@ -211,7 +217,23 @@ export async function getCustomers(): Promise<CustomerRow[]> {
     user_id: string;
     total_price?: unknown;
     payment_status: string | null;
+    school?: string | null;
+    created_at?: string | null;
   };
+
+  /** Latest non-cancelled booking school per user (by created_at) when profile has no school */
+  const schoolFromBookings: Record<string, string> = {};
+  const schoolBookingTime: Record<string, string> = {};
+  for (const row of (bookingAggRows || []) as BRow[]) {
+    const s = row.school?.trim();
+    if (!s) continue;
+    const t = row.created_at || '';
+    const uid = row.user_id;
+    if (!schoolFromBookings[uid] || t > (schoolBookingTime[uid] || '')) {
+      schoolFromBookings[uid] = s;
+      schoolBookingTime[uid] = t;
+    }
+  }
 
   for (const row of (bookingAggRows || []) as BRow[]) {
     const uid = row.user_id;
@@ -248,13 +270,17 @@ export async function getCustomers(): Promise<CustomerRow[]> {
     }
   }
 
-  return usersData.map((u: { id: string; full_name: string | null; email: string | null; phone: string | null }) => {
+  return usersData.map((u: { id: string; full_name: string | null; email: string | null; phone: string | null; school: string | null }) => {
     const a = aggByUserId[u.id];
+    const profileSchool = u.school?.trim() || null;
+    const school_display = profileSchool || schoolFromBookings[u.id] || null;
     return {
       id: u.id,
       full_name: u.full_name ?? null,
       email: u.email ?? null,
       phone: u.phone ?? null,
+      school: profileSchool,
+      school_display,
       booking_count: a?.booking_count ?? 0,
       total_paid: a?.total_paid ?? 0,
       total_outstanding: a?.total_outstanding ?? 0,

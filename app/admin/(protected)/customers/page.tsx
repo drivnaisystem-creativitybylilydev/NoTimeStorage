@@ -71,7 +71,7 @@ export default async function AdminCustomersPage() {
           <div style={{ fontSize: '40px', fontWeight: 700, color: '#047857', lineHeight: 1, marginBottom: '8px' }}>
             ${totalCollected.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </div>
-          <div style={{ fontSize: '13px', color: '#047857' }}>Sum of paid booking totals</div>
+          <div style={{ fontSize: '13px', color: '#047857' }}>Succeeded payments (deposits + charges)</div>
         </div>
 
         <div className="admin-card" style={{ padding: '32px', background: 'linear-gradient(135deg, #FFFBEB 0%, #FEF3C7 100%)' }}>
@@ -81,7 +81,7 @@ export default async function AdminCustomersPage() {
           <div style={{ fontSize: '40px', fontWeight: 700, color: '#b45309', lineHeight: 1, marginBottom: '8px' }}>
             ${totalOutstanding.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </div>
-          <div style={{ fontSize: '13px', color: '#b45309' }}>Unpaid booking balances</div>
+          <div style={{ fontSize: '13px', color: '#b45309' }}>Contract total minus payments recorded</div>
         </div>
       </div>
 
