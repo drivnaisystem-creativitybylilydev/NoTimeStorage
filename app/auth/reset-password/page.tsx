@@ -2,7 +2,6 @@
 
 import { useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { createRecoveryEmailClient } from '@/lib/supabase/implicit-recovery';
 import Link from 'next/link';
 import Image from 'next/image';
 import { AuthPageWrapper } from '@/app/components/AuthPageWrapper';
@@ -24,29 +23,21 @@ function ResetPasswordForm() {
     setLoading(true);
 
     try {
-      // Match signup flow: use current origin so redirect matches Supabase allowlist for
-      // localhost, production, or preview (avoid NEXT_PUBLIC_SITE_URL pointing elsewhere).
-      const baseUrl = window.location.origin.replace(/\/$/, '');
-      // Implicit flow: email links use hash tokens — works in any browser/app (not PKCE).
-      const redirectTo = `${baseUrl}/auth/update-password`;
-      const recovery = createRecoveryEmailClient();
-      const { error: resetError } = await recovery.auth.resetPasswordForEmail(email, {
-        redirectTo,
+      const res = await fetch('/api/auth/reset-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
       });
 
-      if (resetError) throw resetError;
+      if (!res.ok) {
+        throw new Error('Failed to send reset email');
+      }
 
       setSuccess(true);
-    } catch (err: any) {
-      const raw = String(err?.message ?? err ?? '');
-      const lower = raw.toLowerCase();
-      if (lower.includes('rate limit') || lower.includes('over_email_send')) {
-        setError(
-          'Too many reset emails were requested. Please wait about an hour and try again, or contact support if you need help immediately.'
-        );
-      } else {
-        setError(raw || 'An error occurred');
-      }
+    } catch (err: unknown) {
+      setError(
+        err instanceof Error ? err.message : 'An error occurred. Please try again.'
+      );
     } finally {
       setLoading(false);
     }
