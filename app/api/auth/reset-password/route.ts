@@ -58,14 +58,25 @@ export async function POST(request: Request) {
       options: { redirectTo: `${origin}/auth/update-password` },
     });
 
-    if (error || !data?.properties?.hashed_token) {
-      console.error('[reset-password] generateLink:', error?.message ?? 'no hashed_token');
+    if (error || !data?.properties?.action_link) {
+      console.error('[reset-password] generateLink:', error?.message ?? 'no action_link');
       // Silent success — never reveal whether the email exists
       return NextResponse.json({}, { status: 200 });
     }
 
-    const tokenHash = data.properties.hashed_token;
-    const ctaUrl = `${origin}/auth/confirm?token_hash=${encodeURIComponent(tokenHash)}&type=recovery&next=/auth/update-password`;
+    // Extract the raw token from Supabase's action_link, then route through our
+    // /api/auth/supabase-verify proxy so the apikey is added server-side (never in the email).
+    // Supabase verifies and redirects to /auth/update-password#access_token=...&type=recovery,
+    // which the update-password page handles via the implicit hash flow.
+    const actionUrl = new URL(data.properties.action_link);
+    const rawToken = actionUrl.searchParams.get('token');
+    if (!rawToken) {
+      console.error('[reset-password] no token in action_link');
+      return NextResponse.json({}, { status: 200 });
+    }
+
+    const redirectTo = `${origin}/auth/update-password`;
+    const ctaUrl = `${origin}/api/auth/supabase-verify?token=${encodeURIComponent(rawToken)}&type=recovery&redirect_to=${encodeURIComponent(redirectTo)}`;
 
     const html = await render(
       createElement(AuthVerifyEmail, {
