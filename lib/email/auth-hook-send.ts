@@ -5,6 +5,7 @@
 import { Webhook } from 'standardwebhooks';
 import type { AuthVerifyEmailProps } from '@/emails/auth-verify-email';
 import { SITE_CONTACT_EMAIL } from '@/lib/site/contact';
+import { sanitizeNext } from '@/lib/auth/sanitize-next';
 
 const REPLY_TO = SITE_CONTACT_EMAIL;
 
@@ -63,6 +64,62 @@ export function buildVerifyLink(
     redirect_to: redirectTo,
   });
   return `${base}/auth/v1/verify?${qs.toString()}`;
+}
+
+/**
+ * `verifyOtp({ token_hash, type })` works in any browser/app (Mail, Gmail, IG) — no PKCE code_verifier.
+ * Supabase /auth/v1/verify → redirect with ?code= requires the same browser that called signUp.
+ */
+const VERIFY_OTP_HASH_TYPES = new Set([
+  'signup',
+  'invite',
+  'magiclink',
+  'recovery',
+  'email_change',
+  'email',
+]);
+
+export function nextPathAfterEmailConfirm(redirectTo: string, emailActionType: string): string {
+  if (emailActionType === 'recovery') return sanitizeNext('/auth/update-password');
+  try {
+    const pathname = new URL(redirectTo).pathname;
+    if (pathname === '/auth/email-change-complete') return sanitizeNext('/auth/email-change-complete');
+    if (pathname === '/auth/callback') return '/dashboard';
+    return sanitizeNext(pathname);
+  } catch {
+    return '/dashboard';
+  }
+}
+
+export function buildAppEmailConfirmLink(
+  appOrigin: string,
+  tokenHash: string,
+  emailActionType: string,
+  redirectTo: string
+): string | null {
+  const origin = appOrigin.replace(/\/$/, '').trim();
+  if (!origin.startsWith('http')) return null;
+  if (!VERIFY_OTP_HASH_TYPES.has(emailActionType)) return null;
+  const next = nextPathAfterEmailConfirm(redirectTo, emailActionType);
+  const qs = new URLSearchParams({
+    token_hash: tokenHash,
+    type: emailActionType,
+    next,
+  });
+  return `${origin}/auth/confirm?${qs.toString()}`;
+}
+
+/** Prefer in-app confirm (any device); fall back to Supabase verify for unknown types (e.g. reauthentication). */
+export function buildAuthEmailCtaUrl(
+  supabaseUrl: string,
+  siteUrl: string,
+  tokenHash: string,
+  emailActionType: string,
+  redirectTo: string
+): string {
+  const app = buildAppEmailConfirmLink(siteUrl, tokenHash, emailActionType, redirectTo);
+  if (app) return app;
+  return buildVerifyLink(supabaseUrl, tokenHash, emailActionType, redirectTo);
 }
 
 const SUBJECTS: Record<string, string> = {
@@ -158,9 +215,12 @@ export type PreparedAuthEmail = {
 export function prepareAuthEmails(
   supabaseUrl: string,
   user: HookUser,
-  email_data: HookEmailData
+  email_data: HookEmailData,
+  /** If `email_data.site_url` is empty, use this (e.g. NEXT_PUBLIC_SITE_URL). */
+  siteUrlFallback?: string
 ): PreparedAuthEmail[] {
-  const { email_action_type, token_hash, redirect_to, token_hash_new } = email_data;
+  const { email_action_type, token_hash, redirect_to, token_hash_new, site_url } = email_data;
+  const appSiteUrl = (site_url?.trim() || siteUrlFallback?.trim() || '') as string;
   const out: PreparedAuthEmail[] = [];
 
   // Secure email change: two emails — https://supabase.com/docs/guides/auth/auth-hooks/send-email-hook
@@ -170,8 +230,14 @@ export function prepareAuthEmails(
     token_hash_new &&
     token_hash
   ) {
-    const linkCurrent = buildVerifyLink(supabaseUrl, token_hash_new, 'email_change', redirect_to);
-    const linkNew = buildVerifyLink(supabaseUrl, token_hash, 'email_change', redirect_to);
+    const linkCurrent = buildAuthEmailCtaUrl(
+      supabaseUrl,
+      appSiteUrl,
+      token_hash_new,
+      'email_change',
+      redirect_to
+    );
+    const linkNew = buildAuthEmailCtaUrl(supabaseUrl, appSiteUrl, token_hash, 'email_change', redirect_to);
     const base = introForAction('email_change', user.email);
 
     out.push({
@@ -205,7 +271,7 @@ export function prepareAuthEmails(
   const { title, body, buttonLabel, preview } = introForAction(email_action_type, user.email);
   let ctaUrl: string | undefined;
   if (usesVerifyLink(email_action_type) && token_hash) {
-    ctaUrl = buildVerifyLink(supabaseUrl, token_hash, email_action_type, redirect_to);
+    ctaUrl = buildAuthEmailCtaUrl(supabaseUrl, appSiteUrl, token_hash, email_action_type, redirect_to);
   }
 
   out.push({

@@ -50,7 +50,8 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Server misconfigured' }, { status: 500 });
   }
 
-  const emails = prepareAuthEmails(supabaseUrl, verified.user, verified.email_data);
+  const siteFallback = process.env.NEXT_PUBLIC_SITE_URL?.trim();
+  const emails = prepareAuthEmails(supabaseUrl, verified.user, verified.email_data, siteFallback);
   const resend = new Resend(apiKey);
 
   try {
