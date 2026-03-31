@@ -1,11 +1,22 @@
 'use client';
 
 import { Suspense, useEffect, useState } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import { createImplicitRedirectClient } from '@/lib/supabase/implicit-recovery';
 import { AuthPageWrapper } from '@/app/components/AuthPageWrapper';
 import { sanitizeNext } from '@/lib/auth/sanitize-next';
 import { finalizeAuthCallback } from './actions';
+
+/**
+ * App Router soft navigation often fails to leave /auth/callback after Set-Cookie from
+ * Supabase — users see "Redirecting..." forever. Full navigation fixes it.
+ */
+function hardRedirect(path: string) {
+  if (typeof window === 'undefined') return;
+  const url = path.startsWith('http') ? path : `${window.location.origin}${path.startsWith('/') ? path : `/${path}`}`;
+  window.location.replace(url);
+}
 
 /** Supabase redirects here with ?error= when the email link is expired, already used, etc. */
 function resetPasswordErrorQuery(errorCode: string | null, errorDescription: string | null): string {
@@ -29,7 +40,6 @@ function resetPasswordErrorQuery(errorCode: string | null, errorDescription: str
  * because the code_verifier cookie may not be visible to `cookies()` the same way.
  */
 function AuthCallbackContent() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const [status, setStatus] = useState('Signing you in...');
 
@@ -55,9 +65,9 @@ function AuthCallbackContent() {
         if (!cancelled) {
           if (nextPath === '/auth/update-password') {
             const q = resetPasswordErrorQuery(errorCode, errorDescription);
-            router.replace(`/auth/reset-password?${q}`);
+            hardRedirect(`/auth/reset-password?${q}`);
           } else {
-            router.replace(`/auth/login?error=auth`);
+            hardRedirect('/auth/login?error=auth');
           }
         }
         return;
@@ -65,7 +75,83 @@ function AuthCallbackContent() {
 
       const supabase = createClient();
 
-      // OAuth / email PKCE: ?code= in query
+      // Hash fragment (implicit): works when the user opens the email on another device/browser
+      // than signup — PKCE ?code= requires the same browser’s code_verifier.
+      if (typeof window !== 'undefined') {
+        const hash = window.location.hash;
+        const implicitTypes =
+          hash &&
+          (hash.includes('access_token') ||
+            hash.includes('type=signup') ||
+            hash.includes('type=email') ||
+            hash.includes('type=magiclink') ||
+            hash.includes('type=invite') ||
+            hash.includes('type=email_change') ||
+            hash.includes('type=reauthentication'));
+        if (implicitTypes) {
+          if (hash.includes('error=') && !hash.includes('access_token')) {
+            if (!cancelled) {
+              hardRedirect(
+                nextPath === '/auth/update-password'
+                  ? '/auth/reset-password?error=link'
+                  : '/auth/login?error=auth'
+              );
+            }
+            return;
+          }
+          try {
+            const implicit = createImplicitRedirectClient();
+            await implicit.auth.getSession();
+            const {
+              data: { session: implicitSession },
+              error: implicitErr,
+            } = await implicit.auth.getSession();
+            if (implicitErr || !implicitSession) {
+              console.error('[auth/callback] implicit session:', implicitErr?.message);
+              if (!cancelled) {
+                hardRedirect(
+                  nextPath === '/auth/update-password'
+                    ? '/auth/reset-password?error=link'
+                    : '/auth/login?error=auth'
+                );
+              }
+              return;
+            }
+            const { error: setErr } = await supabase.auth.setSession({
+              access_token: implicitSession.access_token,
+              refresh_token: implicitSession.refresh_token,
+            });
+            if (setErr) {
+              console.error('[auth/callback] setSession (implicit):', setErr.message);
+              if (!cancelled) {
+                hardRedirect(
+                  nextPath === '/auth/update-password'
+                    ? '/auth/reset-password?error=link'
+                    : '/auth/login?error=auth'
+                );
+              }
+              return;
+            }
+            await finalizeAuthCallback();
+            if (!cancelled) {
+              setStatus('Redirecting...');
+              hardRedirect(nextPath);
+            }
+          } catch (e) {
+            console.error('[auth/callback] implicit flow:', e);
+            if (!cancelled) {
+              hardRedirect(
+                nextPath === '/auth/update-password'
+                  ? '/auth/reset-password?error=link'
+                  : '/auth/login?error=auth'
+              );
+            }
+          }
+          return;
+        }
+      }
+
+      // OAuth / email PKCE: ?code= in query (same browser as signup/OAuth start)
       if (code) {
         const {
           data: { session: existing },
@@ -80,7 +166,7 @@ function AuthCallbackContent() {
             if (!afterFail) {
               console.error('[auth/callback] exchangeCodeForSession:', error.message);
               if (!cancelled) {
-                router.replace(
+                hardRedirect(
                   nextPath === '/auth/update-password'
                     ? '/auth/reset-password?error=link'
                     : '/auth/login?error=auth'
@@ -91,13 +177,13 @@ function AuthCallbackContent() {
           }
         }
       } else {
-        // Implicit-style redirect (hash tokens) — client parses URL
+        // No code / no hash: best-effort existing session (e.g. already signed in)
         await supabase.auth.getSession();
         const {
           data: { session },
         } = await supabase.auth.getSession();
         if (!session) {
-          if (!cancelled) router.replace('/dashboard');
+          if (!cancelled) hardRedirect('/auth/login?error=auth');
           return;
         }
       }
@@ -106,8 +192,7 @@ function AuthCallbackContent() {
 
       if (!cancelled) {
         setStatus('Redirecting...');
-        router.replace(nextPath);
-        router.refresh();
+        hardRedirect(nextPath);
       }
     };
 
@@ -115,7 +200,7 @@ function AuthCallbackContent() {
     return () => {
       cancelled = true;
     };
-  }, [code, nextParam, errorParam, errorCode, errorDescription, router]);
+  }, [code, nextParam, errorParam, errorCode, errorDescription]);
 
   return (
     <AuthPageWrapper>
