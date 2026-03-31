@@ -57,12 +57,29 @@ export async function chargeBookingPayment(
     return { success: false, error: 'Unauthorized.' };
   }
 
+  const total =
+    typeof booking.total_price === 'number'
+      ? booking.total_price
+      : parseFloat(String(booking.total_price ?? '0'));
+  const chargeCents = Math.round(total * 100);
+  if (!Number.isFinite(chargeCents) || chargeCents < 1) {
+    return { success: false, error: 'Invalid booking total. Contact support.' };
+  }
+  // Never trust client-supplied cents — charge exactly what the booking row says
+  if (Math.abs(amountCents - chargeCents) > 1) {
+    console.warn('[chargeBookingPayment] client amount mismatch', {
+      bookingId,
+      clientCents: amountCents,
+      serverCents: chargeCents,
+    });
+  }
+
   try {
     const { payment, errors } = await squareClient.payments.create({
       sourceId,
       idempotencyKey: randomUUID(),
       amountMoney: {
-        amount: BigInt(amountCents),
+        amount: BigInt(chargeCents),
         currency: 'USD',
       },
       locationId: squareConfig.locationId!,
