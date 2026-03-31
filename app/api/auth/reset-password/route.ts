@@ -19,9 +19,11 @@ const FROM = 'NoTime Storage <noreply@notimestorage.co>';
 
 export async function POST(request: Request) {
   let email: string;
+  let clientOrigin: string;
   try {
     const body = await request.json();
     email = (body.email ?? '').trim().toLowerCase();
+    clientOrigin = (body.origin ?? '').trim().replace(/\/$/, '');
   } catch {
     return NextResponse.json({ error: 'Invalid request' }, { status: 400 });
   }
@@ -29,6 +31,17 @@ export async function POST(request: Request) {
   if (!email || !email.includes('@')) {
     return NextResponse.json({ error: 'Invalid email' }, { status: 400 });
   }
+
+  // Validate client-supplied origin against allowlist to prevent open-redirect abuse
+  const ALLOWED_ORIGINS = new Set([
+    'http://localhost:3000',
+    'http://localhost:3001',
+    'https://notimestorage.co',
+    'https://www.notimestorage.co',
+  ]);
+  const isVercelPreview = /^https:\/\/[\w-]+-[\w-]+\.vercel\.app$/.test(clientOrigin);
+  const fallbackOrigin = (process.env.NEXT_PUBLIC_SITE_URL?.trim() || AUTH_EMAIL_SITE_FALLBACK).replace(/\/$/, '');
+  const origin = (ALLOWED_ORIGINS.has(clientOrigin) || isVercelPreview) ? clientOrigin : fallbackOrigin;
 
   const apiKey = process.env.RESEND_API_KEY?.trim();
   if (!apiKey) {
@@ -38,7 +51,6 @@ export async function POST(request: Request) {
 
   try {
     const admin = createAdminClient();
-    const origin = (process.env.NEXT_PUBLIC_SITE_URL?.trim() || AUTH_EMAIL_SITE_FALLBACK).replace(/\/$/, '');
 
     const { data, error } = await admin.auth.admin.generateLink({
       type: 'recovery',
