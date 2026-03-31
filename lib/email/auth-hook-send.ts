@@ -50,18 +50,23 @@ export function verifySendEmailPayload(
   return wh.verify(payload, headers) as SendEmailHookPayload;
 }
 
-/** Build Supabase Auth verify link (token param carries the hash) */
+/**
+ * Supabase `/auth/v1/verify` requires the public anon key as `apikey` (query or header).
+ * Without it, mobile browsers show raw JSON: "No API key found in request".
+ */
 export function buildVerifyLink(
   supabaseUrl: string,
   tokenHash: string,
   emailActionType: string,
-  redirectTo: string
+  redirectTo: string,
+  supabaseAnonKey: string
 ): string {
   const base = supabaseUrl.replace(/\/$/, '');
   const qs = new URLSearchParams({
     token: tokenHash,
     type: emailActionType,
     redirect_to: redirectTo,
+    apikey: supabaseAnonKey.trim(),
   });
   return `${base}/auth/v1/verify?${qs.toString()}`;
 }
@@ -115,11 +120,12 @@ export function buildAuthEmailCtaUrl(
   siteUrl: string,
   tokenHash: string,
   emailActionType: string,
-  redirectTo: string
+  redirectTo: string,
+  supabaseAnonKey: string
 ): string {
   const app = buildAppEmailConfirmLink(siteUrl, tokenHash, emailActionType, redirectTo);
   if (app) return app;
-  return buildVerifyLink(supabaseUrl, tokenHash, emailActionType, redirectTo);
+  return buildVerifyLink(supabaseUrl, tokenHash, emailActionType, redirectTo, supabaseAnonKey);
 }
 
 const SUBJECTS: Record<string, string> = {
@@ -211,16 +217,25 @@ export type PreparedAuthEmail = {
   emailProps: AuthVerifyEmailProps;
 };
 
+/** Production site — used when hook `site_url` and env are empty so CTA is never only *.supabase.co without app path. */
+export const AUTH_EMAIL_SITE_FALLBACK = 'https://notimestorage.co';
+
 /** Build one or more outbound auth emails for Resend (render HTML in route with @react-email/render) */
 export function prepareAuthEmails(
   supabaseUrl: string,
   user: HookUser,
   email_data: HookEmailData,
   /** If `email_data.site_url` is empty, use this (e.g. NEXT_PUBLIC_SITE_URL). */
-  siteUrlFallback?: string
+  siteUrlFallback: string | undefined,
+  /** Public anon key — required on Supabase /auth/v1/verify fallback URLs. */
+  supabaseAnonKey: string
 ): PreparedAuthEmail[] {
   const { email_action_type, token_hash, redirect_to, token_hash_new, site_url } = email_data;
-  const appSiteUrl = (site_url?.trim() || siteUrlFallback?.trim() || '') as string;
+  const appSiteUrl = (
+    site_url?.trim() ||
+    siteUrlFallback?.trim() ||
+    AUTH_EMAIL_SITE_FALLBACK
+  ).trim();
   const out: PreparedAuthEmail[] = [];
 
   // Secure email change: two emails — https://supabase.com/docs/guides/auth/auth-hooks/send-email-hook
@@ -235,9 +250,17 @@ export function prepareAuthEmails(
       appSiteUrl,
       token_hash_new,
       'email_change',
-      redirect_to
+      redirect_to,
+      supabaseAnonKey
     );
-    const linkNew = buildAuthEmailCtaUrl(supabaseUrl, appSiteUrl, token_hash, 'email_change', redirect_to);
+    const linkNew = buildAuthEmailCtaUrl(
+      supabaseUrl,
+      appSiteUrl,
+      token_hash,
+      'email_change',
+      redirect_to,
+      supabaseAnonKey
+    );
     const base = introForAction('email_change', user.email);
 
     out.push({
@@ -271,7 +294,14 @@ export function prepareAuthEmails(
   const { title, body, buttonLabel, preview } = introForAction(email_action_type, user.email);
   let ctaUrl: string | undefined;
   if (usesVerifyLink(email_action_type) && token_hash) {
-    ctaUrl = buildAuthEmailCtaUrl(supabaseUrl, appSiteUrl, token_hash, email_action_type, redirect_to);
+    ctaUrl = buildAuthEmailCtaUrl(
+      supabaseUrl,
+      appSiteUrl,
+      token_hash,
+      email_action_type,
+      redirect_to,
+      supabaseAnonKey
+    );
   }
 
   out.push({
