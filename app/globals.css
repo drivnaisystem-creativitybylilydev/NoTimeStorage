@@ -14,6 +14,9 @@ body.auth-page-active {
   background-color: #2a1a14 !important;
   min-height: 100vh;
   min-height: 100dvh;
+  /* Portaled auth shell is often taller than the viewport — document must scroll */
+  overflow-x: hidden;
+  overflow-y: auto;
 }
 
 /* ========================================
@@ -4313,7 +4316,9 @@ button {
    ======================================== */
 
 /* Auth form pages: signup, login, reset-password, email confirmation, deposit, etc.
-   Background in separate layer (auth-bg-layer) so form (auth-content-layer) is always on top. */
+   Background in separate layer (auth-bg-layer) so form (auth-content-layer) is always on top.
+   Never use overflow: hidden on both axes — tall pages (dashboard, booking) must scroll the document.
+   Horizontal clip only; vertical uses normal page scroll unless a variant sets its own overflow-y. */
 .auth-container {
   position: relative;
   min-height: 100vh;
@@ -4323,7 +4328,8 @@ button {
   justify-content: center;
   padding: var(--spacing-3xl) var(--spacing-lg);
   background-color: #2a1a14;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: visible;
   isolation: isolate;
 }
 
@@ -4354,8 +4360,9 @@ button {
   min-width: 0;
 }
 
-/* Long checkout — vertical scroll only: no horizontal pan/scroll on this shell (touch + overflow) */
+/* Long checkout — scroll inside shell (viewport-tall) so touch stays vertical-only */
 .auth-container:has(.booking-payment-page) {
+  max-height: 100dvh;
   overflow-x: hidden;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
@@ -4376,15 +4383,13 @@ button {
   min-width: 0;
 }
 
-/* Dashboard & edit-booking: tall content on phones — allow vertical scroll; prevent horizontal bleed */
+/* Dashboard & edit-booking: document scroll (overflow-y: visible on base). Touch hygiene only. */
 .auth-container:has(.dashboard-main),
 .auth-container:has(.edit-booking-shell) {
   overflow-x: hidden;
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
+  overflow-y: visible;
   touch-action: pan-y;
   overscroll-behavior-x: none;
-  overscroll-behavior-y: contain;
 }
 
 .auth-content-layer:has(.dashboard-main),
