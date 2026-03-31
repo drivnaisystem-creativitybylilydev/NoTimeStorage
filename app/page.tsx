@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
@@ -31,9 +31,6 @@ const FAQ_ITEMS = [
 ];
 import { SiteHeader } from '@/app/components/SiteHeader';
 import { SITE_CONTACT_EMAIL } from '@/lib/site/contact';
-// #region agent log
-const DEBUG_LOG = (data: Record<string, unknown>) => { fetch('http://127.0.0.1:7791/ingest/e0f7eab6-ff14-43bf-bf05-6812e1535afb', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '104cb8' }, body: JSON.stringify({ sessionId: '104cb8', location: 'page.tsx', timestamp: Date.now(), ...data }) }).catch(() => {}); };
-// #endregion
 
 function FixedCarousel({
   images,
@@ -396,11 +393,6 @@ function BoxShowcase() {
 export default function Home() {
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(false);
-  // #region agent log
-  const renderCountRef = useRef(0);
-  renderCountRef.current += 1;
-  if (typeof window !== 'undefined' && (renderCountRef.current <= 3 || renderCountRef.current % 25 === 0)) { DEBUG_LOG({ message: 'Home render', data: { count: renderCountRef.current }, hypothesisId: 'rerender', runId: 'init' }); }
-  // #endregion
 
   // Check authentication status (never block the page: timeout + show content)
   useEffect(() => {
@@ -425,9 +417,6 @@ export default function Home() {
       .finally(() => clearTimeout(timeout));
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      // #region agent log
-      DEBUG_LOG({ message: 'onAuthStateChange', data: { event: _event, hasSession: !!session }, hypothesisId: 'auth', runId: 'init' });
-      // #endregion
       if (!cancelled) setUser(session?.user ?? null);
     });
 

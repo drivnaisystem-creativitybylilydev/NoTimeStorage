@@ -2,9 +2,6 @@
 
 import React, { createContext, useCallback, useContext, useRef, useState } from 'react';
 import { AppModal } from './AppModal';
-// #region agent log
-const DEBUG_LOG = (data: Record<string, unknown>) => { fetch('http://127.0.0.1:7791/ingest/e0f7eab6-ff14-43bf-bf05-6812e1535afb', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '104cb8' }, body: JSON.stringify({ sessionId: '104cb8', location: 'AppModalProvider.tsx', timestamp: Date.now(), ...data }) }).catch(() => {}); };
-// #endregion
 
 export type ConfirmOptions = {
   title: string;
@@ -29,10 +26,6 @@ const AppModalContext = createContext<AppModalContextValue | null>(null);
 
 export function AppModalProvider({ children }: { children: React.ReactNode }) {
   const [open, setOpen] = useState(false);
-  const mountedRef = useRef(false);
-  // #region agent log
-  if (typeof window !== 'undefined' && !mountedRef.current) { mountedRef.current = true; DEBUG_LOG({ message: 'AppModalProvider mounted', hypothesisId: 'layout-mount', runId: 'init' }); }
-  // #endregion
   const [variant, setVariant] = useState<'confirm' | 'alert'>('alert');
   const [title, setTitle] = useState('');
   const [message, setMessage] = useState('');
