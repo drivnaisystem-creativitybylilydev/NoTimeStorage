@@ -31,10 +31,10 @@ export async function GET(req: NextRequest) {
       school,
       dorm,
       status,
-      customers (
-        id,
-        name,
-        email
+      users (
+        full_name,
+        email,
+        parent_email
       )
     `)
     .eq('status', 'confirmed')
@@ -55,13 +55,14 @@ export async function GET(req: NextRequest) {
   const failed: string[] = [];
 
   for (const booking of bookings) {
-    const customer = Array.isArray(booking.customers) ? booking.customers[0] : booking.customers;
-    if (!customer?.email) continue;
+    const user = Array.isArray(booking.users) ? booking.users[0] : booking.users;
+    if (!user?.email) continue;
 
     try {
       await sendMoveInReminderUser({
-        to: customer.email,
-        customerName: customer.name ?? 'there',
+        to: user.email,
+        parentEmail: user.parent_email ?? null,
+        customerName: user.full_name ?? 'there',
         moveInDate: booking.move_in_date,
         school: booking.school ?? '',
         currentDorm: booking.dorm ?? undefined,

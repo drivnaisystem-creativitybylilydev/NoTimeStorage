@@ -199,12 +199,14 @@ export async function sendMoveInDetailsUpdatedAdmin(params: {
 
 export async function sendMoveInReminderUser({
   to,
+  parentEmail,
   customerName,
   moveInDate,
   school,
   currentDorm,
 }: {
   to: string;
+  parentEmail?: string | null;
   customerName: string;
   moveInDate: string;
   school: string;
@@ -213,8 +215,9 @@ export async function sendMoveInReminderUser({
   const html = await render(
     MoveInReminderUserEmail({ customerName, moveInDate, school, currentDorm, dashboardUrl: 'https://notimestorage.co/dashboard' })
   );
+  const recipients = [to, parentEmail].filter(Boolean) as string[];
   await sendEmail(
-    to,
+    recipients,
     `📦 Confirm your move-in delivery dorm — NoTime Storage`,
     html,
   );
