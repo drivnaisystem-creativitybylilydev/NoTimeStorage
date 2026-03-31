@@ -1,16 +1,16 @@
 'use client';
+/* Immediate login after sign up requires Supabase → Authentication → Providers → Email → Confirm email: OFF */
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import Link from 'next/link';
 import Image from 'next/image';
 import { SCHOOL_NAMES } from '@/lib/schools/config';
 import { AuthPageWrapper } from '@/app/components/AuthPageWrapper';
 import { SUPPORTED_COUNTRIES, normalizePhoneForStorage, formatPhoneForDisplay } from '@/lib/phone/format';
+import { finalizeAuthCallback } from '@/app/auth/callback/actions';
 
 export default function SignUpPage() {
-  const router = useRouter();
   const supabase = createClient();
   
   const [formData, setFormData] = useState({
@@ -55,7 +55,6 @@ export default function SignUpPage() {
         email: formData.email,
         password: formData.password,
         options: {
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
           data: {
             full_name: `${formData.firstName} ${formData.lastName}`,
             phone: normalizedPhone,
@@ -67,8 +66,14 @@ export default function SignUpPage() {
 
       if (authError) throw authError;
 
+      // With "Confirm email" OFF in Supabase, signUp returns a session — log in immediately.
+      if (authData.session) {
+        await finalizeAuthCallback();
+        window.location.replace(`${window.location.origin}/dashboard`);
+        return;
+      }
+
       if (authData.user) {
-        // Profile is automatically created by database trigger
         setSuccess(true);
       }
     } catch (err: any) {
@@ -146,16 +151,13 @@ export default function SignUpPage() {
               Check your email
             </h1>
             <p style={{ color: '#4A3A34', marginBottom: '8px' }}>
-              We&apos;ve sent a confirmation link to
+              We sent a confirmation link to
             </p>
             <p style={{ fontWeight: '700', color: 'var(--color-coffee)', marginBottom: '16px' }}>
               {formData.email}
             </p>
             <p style={{ color: '#6B5A52', fontSize: '0.9rem' }}>
-              Click the link in the email to activate your account.
-            </p>
-            <p style={{ color: '#9B8880', fontSize: '0.8rem', marginTop: '12px', padding: '8px 12px', background: 'var(--color-paper)', borderRadius: '8px', border: '1px solid var(--color-latte)' }}>
-              📬 Don&apos;t see it? Check <strong>junk or spam</strong>. If you used a <strong>.edu</strong> address, the email may be blocked — sign up again with a <strong>personal email</strong> if nothing arrives within a few minutes.
+              Click the link to finish creating your account. If nothing arrives, check spam or try <Link href="/auth/login">log in</Link> in case you&apos;re already active.
             </p>
           </div>
         </div>
@@ -198,9 +200,8 @@ export default function SignUpPage() {
           <strong style={{ display: 'block', marginBottom: '6px', color: 'var(--color-coffee)' }}>
             Use a personal email for this account
           </strong>
-          Sign up with <strong>Gmail, Outlook, iCloud, or Yahoo</strong> — not your school (.edu) address. We send a{' '}
-          <strong>confirmation link</strong> and <strong>password resets</strong> to this email, and many colleges block
-          or delay those messages.
+          Sign up with <strong>Gmail, Outlook, iCloud, or Yahoo</strong> when you can — school (.edu) inboxes often block
+          or delay <strong>password resets</strong> and booking emails.
         </div>
 
         <form onSubmit={handleSubmit} className="auth-form">
@@ -235,7 +236,7 @@ export default function SignUpPage() {
           </div>
 
           <div className="form-group">
-            <label htmlFor="email">Email (login &amp; confirmations)</label>
+            <label htmlFor="email">Email (for login)</label>
             <input
               type="email"
               id="email"
