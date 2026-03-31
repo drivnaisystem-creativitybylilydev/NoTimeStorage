@@ -51,29 +51,8 @@ export function verifySendEmailPayload(
 }
 
 /**
- * Supabase `/auth/v1/verify` requires the public anon key as `apikey` (query or header).
- * Without it, mobile browsers show raw JSON: "No API key found in request".
- */
-export function buildVerifyLink(
-  supabaseUrl: string,
-  tokenHash: string,
-  emailActionType: string,
-  redirectTo: string,
-  supabaseAnonKey: string
-): string {
-  const base = supabaseUrl.replace(/\/$/, '');
-  const qs = new URLSearchParams({
-    token: tokenHash,
-    type: emailActionType,
-    redirect_to: redirectTo,
-    apikey: supabaseAnonKey.trim(),
-  });
-  return `${base}/auth/v1/verify?${qs.toString()}`;
-}
-
-/**
  * `verifyOtp({ token_hash, type })` works in any browser/app (Mail, Gmail, IG) — no PKCE code_verifier.
- * Supabase /auth/v1/verify → redirect with ?code= requires the same browser that called signUp.
+ * Never put `*.supabase.co/auth/v1/verify` in the email body: mail apps often strip the `apikey` param.
  */
 const VERIFY_OTP_HASH_TYPES = new Set([
   'signup',
@@ -83,6 +62,24 @@ const VERIFY_OTP_HASH_TYPES = new Set([
   'email_change',
   'email',
 ]);
+
+/** Types that must hit GoTrue verify (not verifyOtp) — use our /api/auth/supabase-verify redirect. */
+const PROXY_VERIFY_TYPES = new Set(['reauthentication']);
+
+function buildProxyVerifyLink(
+  appOrigin: string,
+  token: string,
+  emailActionType: string,
+  redirectTo: string
+): string {
+  const origin = appOrigin.replace(/\/$/, '').trim();
+  const qs = new URLSearchParams({
+    token,
+    type: emailActionType,
+    redirect_to: redirectTo,
+  });
+  return `${origin}/api/auth/supabase-verify?${qs.toString()}`;
+}
 
 export function nextPathAfterEmailConfirm(redirectTo: string, emailActionType: string): string {
   if (emailActionType === 'recovery') return sanitizeNext('/auth/update-password');
@@ -114,18 +111,31 @@ export function buildAppEmailConfirmLink(
   return `${origin}/auth/confirm?${qs.toString()}`;
 }
 
-/** Prefer in-app confirm (any device); fall back to Supabase verify for unknown types (e.g. reauthentication). */
+/**
+ * All CTAs use our origin only: `/auth/confirm` (verifyOtp) or `/api/auth/supabase-verify` (server redirect with apikey).
+ * Never link directly to `*.supabase.co` — mobile clients strip `apikey` and show raw JSON errors.
+ */
 export function buildAuthEmailCtaUrl(
-  supabaseUrl: string,
   siteUrl: string,
   tokenHash: string,
   emailActionType: string,
-  redirectTo: string,
-  supabaseAnonKey: string
+  redirectTo: string
 ): string {
-  const app = buildAppEmailConfirmLink(siteUrl, tokenHash, emailActionType, redirectTo);
-  if (app) return app;
-  return buildVerifyLink(supabaseUrl, tokenHash, emailActionType, redirectTo, supabaseAnonKey);
+  const origin = siteUrl.replace(/\/$/, '').trim();
+  if (!origin.startsWith('http')) {
+    throw new Error('[auth email] invalid site URL for CTA');
+  }
+
+  if (VERIFY_OTP_HASH_TYPES.has(emailActionType)) {
+    const app = buildAppEmailConfirmLink(origin, tokenHash, emailActionType, redirectTo);
+    if (app) return app;
+  }
+
+  if (PROXY_VERIFY_TYPES.has(emailActionType)) {
+    return buildProxyVerifyLink(origin, tokenHash, emailActionType, redirectTo);
+  }
+
+  throw new Error(`[auth email] unsupported action for CTA: ${emailActionType}`);
 }
 
 const SUBJECTS: Record<string, string> = {
@@ -222,15 +232,13 @@ export const AUTH_EMAIL_SITE_FALLBACK = 'https://notimestorage.co';
 
 /** Build one or more outbound auth emails for Resend (render HTML in route with @react-email/render) */
 export function prepareAuthEmails(
-  supabaseUrl: string,
   user: HookUser,
   email_data: HookEmailData,
   /** If `email_data.site_url` is empty, use this (e.g. NEXT_PUBLIC_SITE_URL). */
-  siteUrlFallback: string | undefined,
-  /** Public anon key — required on Supabase /auth/v1/verify fallback URLs. */
-  supabaseAnonKey: string
+  siteUrlFallback: string | undefined
 ): PreparedAuthEmail[] {
-  const { email_action_type, token_hash, redirect_to, token_hash_new, site_url } = email_data;
+  const { email_action_type, token_hash, token, redirect_to, token_hash_new, site_url } = email_data;
+  const effectiveHash = (token_hash?.trim() || token?.trim() || '') as string;
   const appSiteUrl = (
     site_url?.trim() ||
     siteUrlFallback?.trim() ||
@@ -239,28 +247,9 @@ export function prepareAuthEmails(
   const out: PreparedAuthEmail[] = [];
 
   // Secure email change: two emails — https://supabase.com/docs/guides/auth/auth-hooks/send-email-hook
-  if (
-    email_action_type === 'email_change' &&
-    user.new_email &&
-    token_hash_new &&
-    token_hash
-  ) {
-    const linkCurrent = buildAuthEmailCtaUrl(
-      supabaseUrl,
-      appSiteUrl,
-      token_hash_new,
-      'email_change',
-      redirect_to,
-      supabaseAnonKey
-    );
-    const linkNew = buildAuthEmailCtaUrl(
-      supabaseUrl,
-      appSiteUrl,
-      token_hash,
-      'email_change',
-      redirect_to,
-      supabaseAnonKey
-    );
+  if (email_action_type === 'email_change' && user.new_email && token_hash_new && effectiveHash) {
+    const linkCurrent = buildAuthEmailCtaUrl(appSiteUrl, token_hash_new.trim(), 'email_change', redirect_to);
+    const linkNew = buildAuthEmailCtaUrl(appSiteUrl, effectiveHash, 'email_change', redirect_to);
     const base = introForAction('email_change', user.email);
 
     out.push({
@@ -293,15 +282,12 @@ export function prepareAuthEmails(
 
   const { title, body, buttonLabel, preview } = introForAction(email_action_type, user.email);
   let ctaUrl: string | undefined;
-  if (usesVerifyLink(email_action_type) && token_hash) {
-    ctaUrl = buildAuthEmailCtaUrl(
-      supabaseUrl,
-      appSiteUrl,
-      token_hash,
-      email_action_type,
-      redirect_to,
-      supabaseAnonKey
-    );
+  if (usesVerifyLink(email_action_type) && effectiveHash) {
+    try {
+      ctaUrl = buildAuthEmailCtaUrl(appSiteUrl, effectiveHash, email_action_type, redirect_to);
+    } catch (e) {
+      console.error('[prepareAuthEmails] CTA build failed:', e);
+    }
   }
 
   out.push({

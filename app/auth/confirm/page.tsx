@@ -33,7 +33,8 @@ function ConfirmContent() {
   const searchParams = useSearchParams();
   const [status, setStatus] = useState('Confirming your email...');
 
-  const tokenHash = searchParams.get('token_hash');
+  const tokenHash =
+    searchParams.get('token_hash')?.trim() || searchParams.get('token')?.trim() || null;
   const typeRaw = searchParams.get('type');
   const nextParam = searchParams.get('next');
 
@@ -43,7 +44,7 @@ function ConfirmContent() {
     const run = async () => {
       const nextPath = sanitizeNext(nextParam);
 
-      if (!tokenHash?.trim() || !typeRaw || !OTP_TYPES.has(typeRaw)) {
+      if (!tokenHash || !typeRaw || !OTP_TYPES.has(typeRaw)) {
         hardRedirect('/auth/login?error=auth');
         return;
       }
@@ -52,7 +53,7 @@ function ConfirmContent() {
       const otpType = typeRaw as EmailOtpType;
 
       const { error } = await supabase.auth.verifyOtp({
-        token_hash: tokenHash.trim(),
+        token_hash: tokenHash,
         type: otpType,
       });
 

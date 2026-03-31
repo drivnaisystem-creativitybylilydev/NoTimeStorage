@@ -32,6 +32,20 @@ export function AuthVerifyEmail({
             </Link>
           </div>
         ) : null}
+        {ctaUrl ? (
+          <Text
+            style={{
+              ...emailStyles.paragraph,
+              fontSize: '12px',
+              color: colors.muted,
+              marginTop: '16px',
+              wordBreak: 'break-all',
+            }}
+          >
+            If the button doesn&apos;t work, copy and paste this link into Safari or Chrome:{' '}
+            <span style={{ color: colors.coffee }}>{ctaUrl}</span>
+          </Text>
+        ) : null}
         <Text style={{ ...emailStyles.paragraph, fontSize: '13px', color: colors.muted, marginTop: '8px' }}>
           If you didn&apos;t request this, you can ignore this email.
         </Text>

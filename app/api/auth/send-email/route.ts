@@ -15,8 +15,7 @@ import { SITE_CONTACT_EMAIL } from '@/lib/site/contact';
  * When configured in Supabase Dashboard → Authentication → Auth Hooks,
  * all auth emails (signup, recovery, etc.) go through Resend API (same as booking emails).
  *
- * Env: SEND_EMAIL_HOOK_SECRET, RESEND_API_KEY, NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY,
- *      NEXT_PUBLIC_SITE_URL (optional; defaults to https://notimestorage.co for in-app /auth/confirm links)
+ * Env: SEND_EMAIL_HOOK_SECRET, RESEND_API_KEY, NEXT_PUBLIC_SITE_URL (optional; defaults to notimestorage.co for CTAs)
  */
 export const runtime = 'nodejs';
 
@@ -45,24 +44,14 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim();
   const apiKey = process.env.RESEND_API_KEY?.trim();
-  if (!supabaseUrl || !supabaseAnonKey || !apiKey) {
-    console.error(
-      '[auth/send-email] missing NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY, or RESEND_API_KEY'
-    );
+  if (!apiKey) {
+    console.error('[auth/send-email] missing RESEND_API_KEY');
     return NextResponse.json({ error: 'Server misconfigured' }, { status: 500 });
   }
 
   const siteFallback = process.env.NEXT_PUBLIC_SITE_URL?.trim() || AUTH_EMAIL_SITE_FALLBACK;
-  const emails = prepareAuthEmails(
-    supabaseUrl,
-    verified.user,
-    verified.email_data,
-    siteFallback,
-    supabaseAnonKey
-  );
+  const emails = prepareAuthEmails(verified.user, verified.email_data, siteFallback);
   const resend = new Resend(apiKey);
 
   try {
