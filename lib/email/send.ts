@@ -223,6 +223,76 @@ export async function sendMoveInReminderUser({
   );
 }
 
+// ── Admin: early move-in request ─────────────────────────────────────────────
+
+export async function sendEarlyMoveInRequestAdmin(params: {
+  customerName: string;
+  customerEmail: string;
+  bookingId: string;
+  school: string;
+  dorm: string;
+  currentMoveInDate: string;
+  requestedMoveInDate: string;
+  message?: string;
+}) {
+  const to = adminNotifyTo();
+  if (!to) return;
+  const { customerName, customerEmail, bookingId, school, dorm, currentMoveInDate, requestedMoveInDate, message } = params;
+  const fmt = (d: string) => new Date(d + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  const html = `
+    <div style="font-family:sans-serif;max-width:560px;margin:0 auto;padding:32px 24px;color:#1a1a1a">
+      ${emailInlineLogoHeaderHtml()}
+      <h2 style="color:#4B2E25;margin-bottom:4px">📅 Early Move-In Request</h2>
+      <p style="color:#666;margin-top:0;margin-bottom:24px">A student has requested an earlier move-in date.</p>
+      <table style="width:100%;border-collapse:collapse;font-size:0.9rem">
+        <tr><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;color:#666;width:160px">Student</td><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;font-weight:600">${escapeHtml(customerName)}</td></tr>
+        <tr><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;color:#666">Email</td><td style="padding:8px 0;border-bottom:1px solid #e5e7eb">${escapeHtml(customerEmail)}</td></tr>
+        <tr><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;color:#666">School</td><td style="padding:8px 0;border-bottom:1px solid #e5e7eb">${escapeHtml(school)}</td></tr>
+        <tr><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;color:#666">Dorm</td><td style="padding:8px 0;border-bottom:1px solid #e5e7eb">${escapeHtml(dorm)}</td></tr>
+        <tr><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;color:#666">Current move-in</td><td style="padding:8px 0;border-bottom:1px solid #e5e7eb">${fmt(currentMoveInDate)}</td></tr>
+        <tr><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;color:#4B2E25;font-weight:700">Requested date</td><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;font-weight:700;color:#4B2E25">${fmt(requestedMoveInDate)}</td></tr>
+        ${message ? `<tr><td style="padding:8px 0;color:#666;vertical-align:top">Message</td><td style="padding:8px 0;white-space:pre-wrap">${escapeHtml(message)}</td></tr>` : ''}
+      </table>
+      <p style="margin-top:24px;font-size:0.8rem;color:#999">Booking ID: ${bookingId}</p>
+    </div>
+  `;
+  await sendEmail(
+    to,
+    `📅 Early move-in request — ${customerName} · ${fmt(requestedMoveInDate)}`,
+    html,
+  );
+}
+
+/** Student (+ optional parent): receipt that the request was received */
+export async function sendEarlyMoveInRequestUser(params: {
+  to: string;
+  parentEmail?: string | null;
+  customerName: string;
+  currentMoveInDate: string;
+  requestedMoveInDate: string;
+}) {
+  const { to, parentEmail, customerName, currentMoveInDate, requestedMoveInDate } = params;
+  const fmt = (d: string) => new Date(d + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  const html = `
+    <div style="font-family:sans-serif;max-width:560px;margin:0 auto;padding:32px 24px;color:#1a1a1a">
+      ${emailInlineLogoHeaderHtml()}
+      <h2 style="color:#4B2E25;margin-bottom:4px">We got your request</h2>
+      <p style="color:#666;margin-top:0;margin-bottom:16px;line-height:1.5">Hi ${escapeHtml(customerName)},</p>
+      <p style="color:#333;margin:0 0 16px;line-height:1.6">
+        Thanks for asking about an <strong>earlier move-in</strong>. We received your request for
+        <strong>${fmt(requestedMoveInDate)}</strong> (your current move-in is <strong>${fmt(currentMoveInDate)}</strong>).
+      </p>
+      <p style="color:#333;margin:0 0 16px;line-height:1.6">
+        Our team will review availability and follow up by email soon. If you need anything right away, reply to this message or write us at
+        <a href="mailto:${escapeHtml(SITE_CONTACT_EMAIL)}">${escapeHtml(SITE_CONTACT_EMAIL)}</a>.
+      </p>
+      <p style="margin-top:24px;font-size:0.8rem;color:#999">— NoTime Storage</p>
+    </div>
+  `;
+  const recipients = [to, parentEmail].filter(Boolean) as string[];
+  await sendEmail(recipients, 'We received your early move-in request — NoTime Storage', html);
+}
+
 /** Notify business inbox when someone uses /contact (same destination as booking alerts, else admin@). */
 export async function sendContactFormAdminNotification(params: {
   name: string;
