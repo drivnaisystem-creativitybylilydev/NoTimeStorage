@@ -16,12 +16,7 @@ export async function finalizeAuthCallback() {
       error,
     } = await supabase.auth.getUser();
     if (user && !error) {
-      await syncUserProfile(
-        supabase,
-        user.id,
-        user.email ?? '',
-        user.user_metadata ?? {}
-      );
+      await syncUserProfile(user.id, user.email ?? '', user.user_metadata ?? {});
       return { ok: true as const };
     }
     if (attempt < 4) {

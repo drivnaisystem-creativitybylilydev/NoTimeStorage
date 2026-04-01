@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
+import { ensureProfileRowForUser } from '@/lib/auth/ensure-profile';
 import { DepositForm } from './DepositForm';
 
 export default async function DepositPage() {
@@ -8,12 +9,14 @@ export default async function DepositPage() {
 
   if (!user) redirect('/auth/signup?redirect=/deposit');
 
+  await ensureProfileRowForUser(user);
+
   const { data: profile } = await supabase
     .from('users')
     .select('deposit_paid, full_name')
     .or(`id.eq.${user.id},auth_id.eq.${user.id}`)
     .limit(1)
-    .single();
+    .maybeSingle();
 
   // Already paid — send straight to booking
   if (profile?.deposit_paid) redirect('/booking/configure');

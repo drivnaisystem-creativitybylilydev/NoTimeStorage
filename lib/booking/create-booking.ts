@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { ensureProfileRowForUser } from '@/lib/auth/ensure-profile';
 import type { CreateBookingInput, BookingWithItems, BookingItemType } from './types';
 import { validateItemsAndMonthlyTotal } from './addon-pricing';
 import { onBookingCreated } from './integrations';
@@ -31,6 +32,9 @@ export async function createBooking(input: CreateBookingInput): Promise<CreateBo
   if (!user) {
     return { success: false, error: 'You must be logged in to create a booking.' };
   }
+
+  await ensureProfileRowForUser(user);
+
   // All DB writes via admin client (bypasses RLS)
   const supabase = createAdminClient();
 

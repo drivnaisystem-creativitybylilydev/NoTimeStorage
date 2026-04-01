@@ -1,14 +1,13 @@
 'use client';
 
 import { useState, Suspense } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import Link from 'next/link';
 import Image from 'next/image';
 import { AuthPageWrapper } from '@/app/components/AuthPageWrapper';
 
 function LoginPageContent() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const supabase = createClient();
   const redirectTo = searchParams.get('redirect');
@@ -38,8 +37,8 @@ function LoginPageContent() {
 
       if (data.user) {
         const path = redirectTo?.startsWith('/') ? redirectTo : '/dashboard';
-        router.push(path);
-        router.refresh();
+        // Full reload so server components pick up the new session cookies immediately
+        window.location.replace(path);
       }
     } catch (err: any) {
       setError(err.message || 'Invalid email or password');

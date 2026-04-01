@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { randomUUID } from 'crypto';
 import { sendDepositConfirmedUser, sendDepositPaidAdmin } from '@/lib/email/send';
+import { ensureProfileRowForUser } from '@/lib/auth/ensure-profile';
 
 export type DepositResult =
   | { success: true; paymentId: string }
@@ -32,6 +33,8 @@ export async function chargeDeposit(
   const authClient = await createClient();
   const { data: { user } } = await authClient.auth.getUser();
   if (!user) return { success: false, error: 'Not logged in.' };
+
+  await ensureProfileRowForUser(user);
 
   // DB reads/writes via admin client (bypasses RLS)
   const supabase = createAdminClient();

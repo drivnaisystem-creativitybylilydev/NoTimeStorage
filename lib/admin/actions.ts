@@ -117,6 +117,8 @@ export type CustomerRow = {
   total_outstanding: number;
   paid_booking_count: number;
   unpaid_booking_count: number;
+  /** From public.users — false until $50 deposit succeeds */
+  deposit_paid: boolean;
 };
 
 /** Sync the current auth user's full_name, email, phone into public.users so admin lists show correct data. */
@@ -168,7 +170,7 @@ export async function getCustomers(): Promise<CustomerRow[]> {
 
   const { data: usersData, error: usersError } = await supabase
     .from('users')
-    .select('id, full_name, email, phone, school')
+    .select('id, full_name, email, phone, school, deposit_paid')
     .order('full_name', { ascending: true, nullsFirst: false });
 
   if (usersError || !usersData?.length) {
@@ -270,7 +272,15 @@ export async function getCustomers(): Promise<CustomerRow[]> {
     }
   }
 
-  return usersData.map((u: { id: string; full_name: string | null; email: string | null; phone: string | null; school: string | null }) => {
+  return usersData.map(
+    (u: {
+      id: string;
+      full_name: string | null;
+      email: string | null;
+      phone: string | null;
+      school: string | null;
+      deposit_paid?: boolean | null;
+    }) => {
     const a = aggByUserId[u.id];
     const profileSchool = u.school?.trim() || null;
     const school_display = profileSchool || schoolFromBookings[u.id] || null;
@@ -281,6 +291,7 @@ export async function getCustomers(): Promise<CustomerRow[]> {
       phone: u.phone ?? null,
       school: profileSchool,
       school_display,
+      deposit_paid: u.deposit_paid === true,
       booking_count: a?.booking_count ?? 0,
       total_paid: a?.total_paid ?? 0,
       total_outstanding: a?.total_outstanding ?? 0,

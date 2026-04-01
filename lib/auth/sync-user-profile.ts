@@ -1,8 +1,10 @@
-import type { SupabaseClient } from '@supabase/supabase-js';
+import { createAdminClient } from '@/lib/supabase/admin';
 
-/** Sync auth user (full_name, email, phone) into public.users so admin and bookings show correct customer details. */
+/**
+ * Upsert public.users for this auth user using the service role so RLS never blocks
+ * the first insert after signup/login. Only call after the session is verified (e.g. getUser()).
+ */
 export async function syncUserProfile(
-  supabase: SupabaseClient,
   authUserId: string,
   email: string,
   metadata: Record<string, unknown>
@@ -12,15 +14,17 @@ export async function syncUserProfile(
   const school = (metadata?.school as string)?.trim() || null;
   const parent_email = (metadata?.parent_email as string)?.trim() || null;
 
+  const supabase = createAdminClient();
+
   const { data: existing } = await supabase
     .from('users')
     .select('id')
     .or(`id.eq.${authUserId},auth_id.eq.${authUserId}`)
     .limit(1)
-    .single();
+    .maybeSingle();
 
   if (existing?.id) {
-    await supabase
+    const { error } = await supabase
       .from('users')
       .update({
         full_name: full_name ?? undefined,
@@ -30,6 +34,9 @@ export async function syncUserProfile(
         parent_email: parent_email ?? undefined,
       })
       .eq('id', existing.id);
+    if (error) {
+      console.error('[syncUserProfile] update failed:', error.message);
+    }
   } else {
     const { error } = await supabase.from('users').insert({
       id: authUserId,
@@ -41,7 +48,7 @@ export async function syncUserProfile(
       parent_email: parent_email ?? undefined,
     });
     if (error) {
-      console.warn('[syncUserProfile] insert skipped:', error.message);
+      console.error('[syncUserProfile] insert failed:', error.message);
     }
   }
 }

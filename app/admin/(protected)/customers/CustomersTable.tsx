@@ -67,6 +67,7 @@ export function CustomersTable({ customers }: { customers: CustomerRow[] }) {
                 <th>Email</th>
                 <th>Phone</th>
                 <th>School</th>
+                <th style={{ textAlign: 'center' }}>Deposit</th>
                 <th style={{ textAlign: 'right' }}>Collected</th>
                 <th style={{ textAlign: 'right' }}>Balance due</th>
                 <th style={{ textAlign: 'center' }}>Bookings</th>
@@ -76,7 +77,7 @@ export function CustomersTable({ customers }: { customers: CustomerRow[] }) {
             <tbody>
               {filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={8} style={{ padding: '48px 24px', textAlign: 'center', fontSize: '15px', color: 'var(--color-gray-600)' }}>
+                  <td colSpan={9} style={{ padding: '48px 24px', textAlign: 'center', fontSize: '15px', color: 'var(--color-gray-600)' }}>
                     {search ? 'No students match your search.' : 'No customers found.'}
                   </td>
                 </tr>
@@ -99,6 +100,17 @@ export function CustomersTable({ customers }: { customers: CustomerRow[] }) {
                       {c.school_display && !c.school && (
                         <div style={{ fontSize: '11px', color: 'var(--color-gray-500)', marginTop: '2px' }}>From booking</div>
                       )}
+                    </td>
+                    <td data-label="Deposit" style={{ textAlign: 'center' }}>
+                      <span
+                        className={
+                          c.deposit_paid
+                            ? 'admin-badge admin-badge-success'
+                            : 'admin-badge admin-badge-neutral'
+                        }
+                      >
+                        {c.deposit_paid ? 'Paid' : 'Not paid'}
+                      </span>
                     </td>
                     <td data-label="Collected" style={{ textAlign: 'right', fontWeight: 600, color: '#15803d' }}>
                       <div>{fmtMoney(c.total_paid)}</div>
@@ -155,7 +167,7 @@ export function CustomersTable({ customers }: { customers: CustomerRow[] }) {
           }}>
             {filtered.length} student{filtered.length !== 1 ? 's' : ''}
             {search ? ` matching "${search}"` : ' total'}
-            . <strong>School</strong> is from signup (profile) when present, otherwise the most recent active booking campus. <strong>Collected</strong> sums succeeded rows in <strong>payments</strong> (deposits, full pay, installments) per booking, plus legacy paid bookings with no payment rows. <strong>Balance due</strong> is unpaid bookings’ contract total minus payments already recorded toward that booking.
+            . <strong>Deposit</strong> is the $50 commitment flag. <strong>School</strong> is from signup (profile) when present, otherwise the most recent active booking campus. <strong>Collected</strong> sums succeeded rows in <strong>payments</strong> (deposits, full pay, installments) per booking, plus legacy paid bookings with no payment rows. <strong>Balance due</strong> is unpaid bookings’ contract total minus payments already recorded toward that booking.
             
           </div>
         )}

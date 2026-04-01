@@ -9,6 +9,8 @@ import { ProfileEditor } from './ProfileEditor';
 import { LogoutButton } from './LogoutButton';
 import { MoveInConfirmCard } from './MoveInConfirmCard';
 import { SITE_CONTACT_EMAIL } from '@/lib/site/contact';
+import { ensureProfileRowForUser } from '@/lib/auth/ensure-profile';
+import { SyncAccountButton } from './SyncAccountButton';
 
 type BookingItem = { item_type: string; quantity: number; monthly_rate: number; subtotal: number };
 type BookingRow = {
@@ -42,6 +44,8 @@ export default async function DashboardPage() {
   if (!user) {
     redirect('/auth/login');
   }
+
+  await ensureProfileRowForUser(user);
 
   // Resolve profile (same as create-booking: id or auth_id)
   const { data: profile } = await supabase
@@ -263,6 +267,8 @@ export default async function DashboardPage() {
               </a>
 
               {/* FAQ / Contact page */}
+              <SyncAccountButton />
+
               <Link
                 href="/#contact"
                 style={{
