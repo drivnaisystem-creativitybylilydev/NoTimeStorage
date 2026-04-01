@@ -350,7 +350,7 @@ function SchedulePageContent() {
             Schedule Your Pickup
           </h1>
           <p style={{ fontSize: '1.125rem', color: 'var(--color-gray-600)' }}>
-            Choose when and where we'll pick up your items
+            Choose when and where we&apos;ll pick up your items
           </p>
         </div>
 

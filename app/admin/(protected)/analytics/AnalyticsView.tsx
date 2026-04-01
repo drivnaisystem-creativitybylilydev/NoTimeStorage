@@ -95,9 +95,9 @@ function smoothCurve(pts: { x: number; y: number }[], maxY: number): string {
     const curr = pts[i];
     const pp   = pts[Math.max(0, i - 2)];
     const next = pts[Math.min(pts.length - 1, i + 1)];
-    let cp1x = prev.x + (curr.x - pp.x) / 6;
+    const cp1x = prev.x + (curr.x - pp.x) / 6;
     let cp1y = prev.y + (curr.y - pp.y) / 6;
-    let cp2x = curr.x - (next.x - prev.x) / 6;
+    const cp2x = curr.x - (next.x - prev.x) / 6;
     let cp2y = curr.y - (next.y - prev.y) / 6;
     cp1y = Math.min(cp1y, maxY);
     cp2y = Math.min(cp2y, maxY);

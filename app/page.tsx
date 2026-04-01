@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useSyncExternalStore } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
@@ -31,6 +31,12 @@ const FAQ_ITEMS = [
 ];
 import { SiteHeader } from '@/app/components/SiteHeader';
 import { SITE_CONTACT_EMAIL } from '@/lib/site/contact';
+import type { User } from '@supabase/supabase-js';
+
+const noopSubscribe = () => () => {};
+function getDocumentBody(): Element | null {
+  return typeof document !== 'undefined' ? document.body : null;
+}
 
 function FixedCarousel({
   images,
@@ -47,13 +53,9 @@ function FixedCarousel({
   const [current, setCurrent] = useState(0);
   const [loaded, setLoaded] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
-  const [portalEl, setPortalEl] = useState<Element | null>(null);
+  const portalEl = useSyncExternalStore(noopSubscribe, getDocumentBody, () => null);
 
   useEffect(() => { setLoaded(false); }, [current]);
-
-  useEffect(() => {
-    setPortalEl(document.body);
-  }, []);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -391,7 +393,7 @@ function BoxShowcase() {
 }
 
 export default function Home() {
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(false);
 
   // Check authentication status (never block the page: timeout + show content)
@@ -938,7 +940,7 @@ export default function Home() {
               <div className="additional-items-toggle-content">
                 <div>
                   <h3 className="pricing-subsection-title">Additional Items (Optional)</h3>
-                  <p className="pricing-subsection-subtitle">Store items that don't fit in boxes — furniture, sports equipment, and more</p>
+                  <p className="pricing-subsection-subtitle">Store items that don&apos;t fit in boxes — furniture, sports equipment, and more</p>
                 </div>
                 <svg 
                   className={`additional-items-chevron ${additionalItemsOpen ? 'open' : ''}`}
@@ -1306,7 +1308,7 @@ export default function Home() {
 
           {reminderSuccess && (
             <p className="reminder-note reminder-success">
-              You're on the list. We'll email you when storage booking opens.
+              You&apos;re on the list. We&apos;ll email you when storage booking opens.
             </p>
           )}
           {reminderError && (
@@ -1315,7 +1317,7 @@ export default function Home() {
             </p>
           )}
           {!reminderSuccess && !reminderError && (
-            <p className="reminder-note">We'll notify you when the next season opens.</p>
+            <p className="reminder-note">We&apos;ll notify you when the next season opens.</p>
           )}
         </div>
       </section>

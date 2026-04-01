@@ -60,7 +60,7 @@ function ResetPasswordForm() {
           
           <div className="auth-success">
             <h1>Check your email</h1>
-            <p>We've sent password reset instructions to <strong>{email}</strong></p>
+            <p>We&apos;ve sent password reset instructions to <strong>{email}</strong></p>
             <p>Click the link in the email to reset your password.</p>
             <p style={{ fontSize: '0.8rem', color: '#5c4f48', marginTop: '8px', padding: '8px 12px', background: 'var(--color-paper)', borderRadius: '8px', border: '1px solid var(--color-latte)', lineHeight: 1.5 }}>
               Open the link <strong>within about an hour</strong>. Each link works <strong>once</strong>{' '}
@@ -94,7 +94,7 @@ function ResetPasswordForm() {
         
         <div className="auth-header">
           <h1>Reset your password</h1>
-          <p>Enter your email and we'll send you reset instructions</p>
+          <p>Enter your email and we&apos;ll send you reset instructions</p>
         </div>
 
         <form onSubmit={handleSubmit} className="auth-form">

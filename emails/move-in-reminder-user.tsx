@@ -1,7 +1,6 @@
 import {
   Section,
   Text,
-  Link,
   Hr,
   Button,
 } from '@react-email/components';
@@ -87,7 +86,7 @@ export function MoveInReminderUserEmail({
           <Hr style={emailStyles.divider} />
           <Section style={{ padding: '0 40px 24px' }}>
             <Text style={{ ...emailStyles.paragraph, color: colors.muted, fontSize: '13px' }}>
-              Your move-out dorm on file was <strong>{currentDorm}</strong>. If your delivery dorm is the same, still confirm it so we know you're all set.
+              Your move-out dorm on file was <strong>{currentDorm}</strong>. If your delivery dorm is the same, still confirm it so we know you&apos;re all set.
             </Text>
           </Section>
         </>

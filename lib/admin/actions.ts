@@ -508,6 +508,10 @@ export type BookingsFilters = {
   userId?: string;
 };
 
+function normalizePaymentPlan(raw: string | null | undefined): BookingWithCustomer['payment_plan'] {
+  return raw === 'monthly' ? 'monthly' : 'full';
+}
+
 function normalizeAdminBookingItems(raw: unknown): AdminBookingItemRow[] {
   if (!Array.isArray(raw)) return [];
   return raw.map((r) => {
@@ -522,6 +526,41 @@ function normalizeAdminBookingItems(raw: unknown): AdminBookingItemRow[] {
     };
   });
 }
+
+/** Raw row from bookings + booking_items + users join (admin list + calendar). */
+type AdminBookingJoinRow = {
+  id: string;
+  status: string;
+  payment_status: string;
+  payment_plan?: string | null;
+  move_out_date: string;
+  move_in_date: string;
+  move_out_time_slot: string;
+  move_in_time_slot?: string | null;
+  dorm: string;
+  room?: string | null;
+  elevator_available: boolean;
+  stairs_required: boolean;
+  school: string;
+  special_instructions?: string | null;
+  total_price: number | string;
+  total_monthly_rate: number | string;
+  storage_months: number;
+  box_quantity: number;
+  created_at: string;
+  paid_at?: string | null;
+  booking_items: unknown;
+  users: unknown;
+  monthly_payment_amount?: number | null;
+  monthly_payments_remaining?: number | null;
+  next_payment_date?: string | null;
+  square_customer_id?: string | null;
+  square_card_id?: string | null;
+  square_invoice_id?: string | null;
+  move_in_dorm?: string | null;
+  move_in_room?: string | null;
+  move_in_confirmed_at?: string | null;
+};
 
 export async function getBookings(
   page: number = 1,
@@ -646,7 +685,7 @@ export async function getBookings(
     };
   };
 
-  const bookings: BookingWithCustomer[] = (data || []).map((row: any) => {
+  const bookings: BookingWithCustomer[] = (data || []).map((row: AdminBookingJoinRow) => {
     const userRow = Array.isArray(row.users) ? row.users[0] : row.users;
     const customer = pickUser(userRow);
     const items = normalizeAdminBookingItems(row.booking_items);
@@ -654,7 +693,7 @@ export async function getBookings(
       id: row.id,
       status: row.status,
       payment_status: row.payment_status,
-      payment_plan: row.payment_plan ?? 'full',
+      payment_plan: normalizePaymentPlan(row.payment_plan),
       move_out_date: row.move_out_date,
       move_in_date: row.move_in_date,
       move_out_time_slot: row.move_out_time_slot,
@@ -731,6 +770,22 @@ export type AnalyticsData = {
   boxDistribution: { range: string; count: number }[];
 };
 
+type AnalyticsBookingRow = {
+  id: string;
+  status: string;
+  payment_status: string;
+  school: string | null;
+  total_price: number | string;
+  total_monthly_rate?: number | string;
+  box_quantity: number | null;
+  storage_months?: number | null;
+  created_at: string;
+  move_out_date?: string;
+  paid_at: string | null;
+};
+
+type AnalyticsBookingRowFallback = Omit<AnalyticsBookingRow, 'paid_at'>;
+
 export async function getAnalyticsData(): Promise<AnalyticsData> {
   const supabase = await createClient();
 
@@ -745,7 +800,7 @@ export async function getAnalyticsData(): Promise<AnalyticsData> {
   if (!adminUser) return emptyAnalytics();
 
   // Try with paid_at first; fall back without it if column doesn't exist
-  let bookings: any[] | null = null;
+  let bookings: AnalyticsBookingRow[] | null = null;
   const { data: withPaidAt, error: err1 } = await supabase
     .from('bookings')
     .select('id, status, payment_status, school, total_price, total_monthly_rate, box_quantity, storage_months, created_at, move_out_date, paid_at')
@@ -757,12 +812,12 @@ export async function getAnalyticsData(): Promise<AnalyticsData> {
       .select('id, status, payment_status, school, total_price, total_monthly_rate, box_quantity, storage_months, created_at, move_out_date')
       .neq('status', 'cancelled');
     if (err2) { console.error('[getAnalyticsData]', err2); return emptyAnalytics(); }
-    bookings = (fallback || []).map((r: any) => ({ ...r, paid_at: null }));
+    bookings = (fallback || []).map((r: AnalyticsBookingRowFallback): AnalyticsBookingRow => ({ ...r, paid_at: null }));
   } else if (err1) {
     console.error('[getAnalyticsData]', err1);
     return emptyAnalytics();
   } else {
-    bookings = withPaidAt || [];
+    bookings = (withPaidAt || []) as AnalyticsBookingRow[];
   }
 
   const allSchoolNames = SCHOOLS.map(s => s.name);
@@ -774,41 +829,41 @@ export async function getAnalyticsData(): Promise<AnalyticsData> {
   const lastMonthEnd   = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59);
 
   // Revenue date: use paid_at if set, else created_at
-  const getRevenueDate = (row: any): Date =>
+  const getRevenueDate = (row: AnalyticsBookingRow): Date =>
     row.paid_at ? new Date(row.paid_at) : row.created_at ? new Date(row.created_at) : new Date(0);
 
-  const paidBookings = bookings.filter((b: any) => b.payment_status === 'paid');
+  const paidBookings = bookings.filter((b) => b.payment_status === 'paid');
 
   // KPIs — revenue is ONLY from paid bookings (consistent with Bookings dashboard)
   let totalRevenue = 0, revenueThisMonth = 0, revenueLastMonth = 0;
   let totalBoxes = 0;
-  paidBookings.forEach((b: any) => {
-    const price = typeof b.total_price === 'number' ? b.total_price : parseFloat(b.total_price || '0');
+  paidBookings.forEach((b) => {
+    const price = typeof b.total_price === 'number' ? b.total_price : parseFloat(String(b.total_price || '0'));
     totalRevenue += price;
     const d = getRevenueDate(b);
     if (d >= thisMonthStart) revenueThisMonth += price;
     if (d >= lastMonthStart && d <= lastMonthEnd) revenueLastMonth += price;
   });
-  bookings.forEach((b: any) => { totalBoxes += b.box_quantity ?? 0; });
+  bookings.forEach((b) => { totalBoxes += b.box_quantity ?? 0; });
 
-  const bookingsThisMonth = bookings.filter((b: any) => new Date(b.created_at) >= thisMonthStart).length;
-  const bookingsLastMonth = bookings.filter((b: any) => {
+  const bookingsThisMonth = bookings.filter((b) => new Date(b.created_at) >= thisMonthStart).length;
+  const bookingsLastMonth = bookings.filter((b) => {
     const d = new Date(b.created_at); return d >= lastMonthStart && d <= lastMonthEnd;
   }).length;
   const avgBoxesPerBooking = bookings.length ? Math.round((totalBoxes / bookings.length) * 10) / 10 : 0;
 
   // By school — bookings/boxes = all active, revenue = paid only
   const schoolMap: Record<string, { bookings: number; revenue: number; boxes: number }> = {};
-  bookings.forEach((b: any) => {
+  bookings.forEach((b) => {
     const s = b.school || 'Unknown';
     if (!schoolMap[s]) schoolMap[s] = { bookings: 0, revenue: 0, boxes: 0 };
     schoolMap[s].bookings++;
     schoolMap[s].boxes += b.box_quantity ?? 0;
   });
-  paidBookings.forEach((b: any) => {
+  paidBookings.forEach((b) => {
     const s = b.school || 'Unknown';
     if (!schoolMap[s]) schoolMap[s] = { bookings: 0, revenue: 0, boxes: 0 };
-    schoolMap[s].revenue += typeof b.total_price === 'number' ? b.total_price : parseFloat(b.total_price || '0');
+    schoolMap[s].revenue += typeof b.total_price === 'number' ? b.total_price : parseFloat(String(b.total_price || '0'));
   });
   const bySchool = Object.entries(schoolMap).map(([school, v]) => ({ school, ...v }))
     .sort((a, b) => b.bookings - a.bookings);
@@ -825,19 +880,19 @@ export async function getAnalyticsData(): Promise<AnalyticsData> {
     allSchoolNames.forEach(name => { schoolData[name] = { revenue: 0, bookings: 0 }; });
 
     const schoolSet = new Set(allSchoolNames);
-    bookings.forEach((b: any) => {
+    bookings.forEach((b) => {
       const d = b.created_at ? new Date(b.created_at) : new Date(0);
       if (d >= start && d <= end) {
-        const s = schoolSet.has(b.school) ? b.school : 'Other';
+        const s = b.school != null && schoolSet.has(b.school) ? b.school : 'Other';
         if (!schoolData[s]) schoolData[s] = { revenue: 0, bookings: 0 };
         schoolData[s].bookings++;
       }
     });
-    paidBookings.forEach((b: any) => {
+    paidBookings.forEach((b) => {
       const d = getRevenueDate(b);
       if (d >= start && d <= end) {
-        const s = schoolSet.has(b.school) ? b.school : 'Other';
-        const price = typeof b.total_price === 'number' ? b.total_price : parseFloat(b.total_price || '0');
+        const s = b.school != null && schoolSet.has(b.school) ? b.school : 'Other';
+        const price = typeof b.total_price === 'number' ? b.total_price : parseFloat(String(b.total_price || '0'));
         if (!schoolData[s]) schoolData[s] = { revenue: 0, bookings: 0 };
         schoolData[s].revenue += price;
       }
@@ -850,7 +905,7 @@ export async function getAnalyticsData(): Promise<AnalyticsData> {
 
   // By status
   const statusMap: Record<string, number> = {};
-  bookings.forEach((b: any) => {
+  bookings.forEach((b) => {
     statusMap[b.status] = (statusMap[b.status] || 0) + 1;
   });
   const byStatus = Object.entries(statusMap).map(([status, count]) => ({ status, count }))
@@ -865,7 +920,7 @@ export async function getAnalyticsData(): Promise<AnalyticsData> {
   ];
   const boxDistribution = boxRanges.map(r => ({
     range: r.range,
-    count: bookings.filter((b: any) => (b.box_quantity ?? 0) >= r.min && (b.box_quantity ?? 0) <= r.max).length,
+    count: bookings.filter((b) => (b.box_quantity ?? 0) >= r.min && (b.box_quantity ?? 0) <= r.max).length,
   }));
 
   return {
@@ -972,13 +1027,13 @@ export async function getCalendarBookings(): Promise<BookingWithCustomer[]> {
     };
   };
 
-  return (data || []).map((row: any) => {
+  return (data || []).map((row: AdminBookingJoinRow) => {
     const userRow = Array.isArray(row.users) ? row.users[0] : row.users;
     return {
       id: row.id,
       status: row.status,
       payment_status: row.payment_status,
-      payment_plan: row.payment_plan ?? 'full',
+      payment_plan: normalizePaymentPlan(row.payment_plan),
       move_out_date: row.move_out_date,
       move_in_date: row.move_in_date,
       move_out_time_slot: row.move_out_time_slot,
