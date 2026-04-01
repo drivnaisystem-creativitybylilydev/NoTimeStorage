@@ -1,0 +1,23 @@
+# Run on every push / PR — catches TypeScript and build breaks before production.
+# If `git push` fails with "workflow scope", add this file via GitHub web UI or use a PAT with `workflow` scope.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+      - run: npm ci
+      - run: npx tsc --noEmit
+      - run: npm run lint
+      - run: npm run build
