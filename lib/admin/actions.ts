@@ -784,36 +784,60 @@ type AnalyticsBookingRow = {
   paid_at: string | null;
 };
 
-type AnalyticsBookingRowDb = AnalyticsBookingRow & {
-  booking_items?: { item_type: string; quantity: number | string | null }[] | null;
-};
-
-/** Prefer `bookings.box_quantity`; if 0/missing, sum box lines from `booking_items` (fixes legacy / mismatched rows). */
-function effectiveBoxCountForAnalytics(row: AnalyticsBookingRowDb): number {
+/** Prefer `bookings.box_quantity`; if 0/missing, add sum of box lines from `booking_items` (separate query — embeds often fail in prod). */
+function effectiveBoxCountFromParts(
+  row: AnalyticsBookingRow,
+  boxQtyFromLineItems: number,
+): number {
   const fromCol =
     typeof row.box_quantity === 'number'
       ? row.box_quantity
       : parseInt(String(row.box_quantity ?? 0), 10) || 0;
-  let fromItems = 0;
-  if (Array.isArray(row.booking_items)) {
-    for (const it of row.booking_items) {
-      if (it.item_type === 'box') {
-        const q =
-          typeof it.quantity === 'number'
-            ? it.quantity
-            : parseInt(String(it.quantity ?? 0), 10) || 0;
-        fromItems += q;
-      }
-    }
-  }
-  return Math.max(fromCol, fromItems);
+  return Math.max(fromCol, boxQtyFromLineItems);
 }
 
 const ANALYTICS_BOOKING_SELECT_WITH_PAID =
-  'id, status, payment_status, school, total_price, total_monthly_rate, box_quantity, storage_months, created_at, move_out_date, paid_at, booking_items ( item_type, quantity )';
+  'id, status, payment_status, school, total_price, total_monthly_rate, box_quantity, storage_months, created_at, move_out_date, paid_at';
 
 const ANALYTICS_BOOKING_SELECT_NO_PAID =
-  'id, status, payment_status, school, total_price, total_monthly_rate, box_quantity, storage_months, created_at, move_out_date, booking_items ( item_type, quantity )';
+  'id, status, payment_status, school, total_price, total_monthly_rate, box_quantity, storage_months, created_at, move_out_date';
+
+const BOOKING_ITEMS_CHUNK = 200;
+
+/** Sum box quantities per booking_id from line items (item_type or item_category = box, case-insensitive). */
+async function fetchBoxQuantitiesByBookingId(
+  db: ReturnType<typeof createAdminClient>,
+  bookingIds: string[],
+): Promise<Record<string, number>> {
+  const out: Record<string, number> = {};
+  if (!bookingIds.length) return out;
+
+  for (let i = 0; i < bookingIds.length; i += BOOKING_ITEMS_CHUNK) {
+    const chunk = bookingIds.slice(i, i + BOOKING_ITEMS_CHUNK);
+    const { data: itemRows, error } = await db
+      .from('booking_items')
+      .select('booking_id, item_type, item_category, quantity')
+      .in('booking_id', chunk);
+
+    if (error) {
+      console.error('[getAnalyticsData] booking_items batch', error);
+      continue;
+    }
+
+    for (const row of itemRows || []) {
+      const type = String((row as { item_type?: string }).item_type || '').toLowerCase();
+      const cat = String((row as { item_category?: string }).item_category || '').toLowerCase();
+      const isBox = type === 'box' || cat === 'box';
+      if (!isBox) continue;
+      const bid = String((row as { booking_id: string }).booking_id);
+      const qRaw = (row as { quantity?: number | string | null }).quantity;
+      const q = typeof qRaw === 'number' ? qRaw : parseInt(String(qRaw ?? 0), 10) || 0;
+      out[bid] = (out[bid] || 0) + q;
+    }
+  }
+
+  return out;
+}
 
 export async function getAnalyticsData(): Promise<AnalyticsData> {
   const supabase = await createClient();
@@ -831,7 +855,7 @@ export async function getAnalyticsData(): Promise<AnalyticsData> {
   // Service role: same as calendar/bookings table — analytics must see all rows regardless of RLS on bookings.
   const db = createAdminClient();
 
-  let rawRows: AnalyticsBookingRowDb[] | null = null;
+  let rawRows: AnalyticsBookingRow[] | null = null;
   const { data: withPaidAt, error: err1 } = await db
     .from('bookings')
     .select(ANALYTICS_BOOKING_SELECT_WITH_PAID)
@@ -847,21 +871,22 @@ export async function getAnalyticsData(): Promise<AnalyticsData> {
       return emptyAnalytics();
     }
     rawRows = (fallback || []).map(
-      (r: Omit<AnalyticsBookingRowDb, 'paid_at'>): AnalyticsBookingRowDb => ({ ...r, paid_at: null }),
+      (r: Omit<AnalyticsBookingRow, 'paid_at'>): AnalyticsBookingRow => ({ ...r, paid_at: null }),
     );
   } else if (err1) {
     console.error('[getAnalyticsData]', err1);
     return emptyAnalytics();
   } else {
-    rawRows = (withPaidAt || []) as AnalyticsBookingRowDb[];
+    rawRows = (withPaidAt || []) as AnalyticsBookingRow[];
   }
 
-  const bookings: AnalyticsBookingRow[] = (rawRows || []).map(
-    ({ booking_items: _bi, ...rest }) => rest,
-  );
+  const bookings = rawRows || [];
+  const bookingIds = bookings.map((b) => b.id).filter(Boolean);
+  const boxQtyByBooking = await fetchBoxQuantitiesByBookingId(db, bookingIds);
+
   const effectiveById: Record<string, number> = {};
-  for (const r of rawRows || []) {
-    effectiveById[r.id] = effectiveBoxCountForAnalytics(r);
+  for (const r of bookings) {
+    effectiveById[r.id] = effectiveBoxCountFromParts(r, boxQtyByBooking[r.id] ?? 0);
   }
   const boxFor = (b: AnalyticsBookingRow) => effectiveById[b.id] ?? 0;
 
