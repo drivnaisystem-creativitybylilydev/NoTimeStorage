@@ -12,7 +12,7 @@ import { emailInlineLogoHeaderHtml } from '@/lib/email/branding';
 const FROM = 'NoTime Storage <noreply@notimestorage.co>';
 const REPLY_TO = SITE_CONTACT_EMAIL;
 
-/** Operational alerts: deposit paid, new booking, move-in updates, contact form. Env overrides; else SITE_CONTACT_EMAIL (admin@). */
+/** Operational alerts: deposit paid, new booking, move-in updates, contact form. Env overrides; else SITE_CONTACT_EMAIL. */
 function adminNotifyTo(): string {
   return (process.env.BOOKING_NOTIFY_EMAIL || SITE_CONTACT_EMAIL).trim();
 }
