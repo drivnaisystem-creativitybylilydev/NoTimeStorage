@@ -71,8 +71,9 @@ function BarChart({ data, valueKey, labelKey, colorFn, formatValue }: {
         const pct = (val / max) * 100;
         const color = colorFn ? colorFn(item) : '#4B2E25';
         const label = formatValue ? formatValue(val) : String(val);
+        const key = typeof item[labelKey] === 'string' ? item[labelKey] : i;
         return (
-          <div key={i}>
+          <div key={key}>
             <div className="admin-analytics-bar-row">
               <span className="admin-analytics-bar-label">{item[labelKey]}</span>
               <span className="admin-analytics-bar-value" style={{ color }}>{label}</span>
