@@ -5293,6 +5293,19 @@ button {
   gap: 20px;
 }
 
+/* Single full-width row below revenue / school split (booking status only) */
+.admin-analytics-status-full {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.admin-analytics-status-full .admin-analytics-card {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
 .admin-analytics-card {
   background: #fff;
   border: 1px solid #e7d3bf;
@@ -5394,6 +5407,10 @@ button {
   .admin-analytics-split,
   .admin-analytics-split-equal {
     grid-template-columns: 1fr;
+  }
+
+  .admin-analytics-status-full {
+    width: 100%;
   }
 
   .admin-analytics-card {

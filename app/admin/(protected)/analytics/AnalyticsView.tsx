@@ -56,38 +56,6 @@ function KpiCard({ label, value, sub, deltaVal, color }: {
   );
 }
 
-function BarChart({ data, valueKey, labelKey, colorFn, formatValue }: {
-  data: any[];
-  valueKey: string;
-  labelKey: string;
-  colorFn?: (item: any) => string;
-  formatValue?: (v: number) => string;
-}) {
-  const max = Math.max(...data.map(d => d[valueKey]), 1);
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-      {data.map((item, i) => {
-        const val = item[valueKey];
-        const pct = (val / max) * 100;
-        const color = colorFn ? colorFn(item) : '#4B2E25';
-        const label = formatValue ? formatValue(val) : String(val);
-        const key = typeof item[labelKey] === 'string' ? item[labelKey] : i;
-        return (
-          <div key={key}>
-            <div className="admin-analytics-bar-row">
-              <span className="admin-analytics-bar-label">{item[labelKey]}</span>
-              <span className="admin-analytics-bar-value" style={{ color }}>{label}</span>
-            </div>
-            <div style={{ background: '#F5EFE7', borderRadius: '6px', height: '10px', overflow: 'hidden' }}>
-              <div style={{ width: `${pct}%`, height: '100%', background: color, borderRadius: '6px', transition: 'width 0.6s ease' }} />
-            </div>
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
 function smoothCurve(pts: { x: number; y: number }[], maxY: number): string {
   if (pts.length < 2) return '';
   let d = `M ${pts[0].x.toFixed(2)} ${pts[0].y.toFixed(2)}`;
@@ -227,7 +195,6 @@ export function AnalyticsView({ data }: { data: AnalyticsData }) {
   const [filterSchool, setFilterSchool] = useState<string | null>(null);
   const revDelta  = delta(data.revenueThisMonth, data.revenueLastMonth);
   const bookDelta = delta(data.bookingsThisMonth, data.bookingsLastMonth);
-  const totalBoxAll = data.bySchool.reduce((s, x) => s + x.boxes, 0);
 
   const bySchoolMap = Object.fromEntries(data.bySchool.map(s => [s.school, s]));
   const allSchools = [...new Set([...SCHOOLS.map(s => s.name), ...Object.keys(bySchoolMap)])];
@@ -241,7 +208,6 @@ export function AnalyticsView({ data }: { data: AnalyticsData }) {
         <KpiCard label="Revenue This Month" value={fmt(data.revenueThisMonth)} deltaVal={revDelta} color="#4B2E25" />
         <KpiCard label="Total Bookings" value={String(data.totalBookings)} sub="active" />
         <KpiCard label="Bookings This Month" value={String(data.bookingsThisMonth)} deltaVal={bookDelta} />
-        <KpiCard label="Avg Boxes / Booking" value={String(data.avgBoxesPerBooking)} sub={`${data.totalBoxes} total boxes`} />
       </div>
 
       {/* Revenue Trend + School Breakdown */}
@@ -276,7 +242,7 @@ export function AnalyticsView({ data }: { data: AnalyticsData }) {
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', maxHeight: '400px', overflowY: 'auto' }}>
             {allSchools.map((school, i) => {
-              const s = bySchoolMap[school] ?? { school, bookings: 0, revenue: 0, boxes: 0 };
+              const s = bySchoolMap[school] ?? { school, bookings: 0, revenue: 0 };
               const color = SCHOOL_COLORS[school] ?? schoolColor(school, i);
               const bookingPct = data.totalBookings ? Math.round((s.bookings / data.totalBookings) * 100) : 0;
               const isSelected = filterSchool === school;
@@ -311,7 +277,6 @@ export function AnalyticsView({ data }: { data: AnalyticsData }) {
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '0.72rem', color: '#aaa' }}>
                     <span>{s.bookings} booking{s.bookings !== 1 ? 's' : ''}</span>
                     <span>{fmt(s.revenue)} revenue</span>
-                    <span>{s.boxes} boxes</span>
                   </div>
                 </button>
               );
@@ -320,10 +285,8 @@ export function AnalyticsView({ data }: { data: AnalyticsData }) {
         </div>
       </div>
 
-      {/* Status + Box Distribution */}
-      <div className="admin-analytics-split-equal">
-
-        {/* Booking status */}
+      {/* Booking status — full width (replaces former two-column layout with box volume) */}
+      <div className="admin-analytics-status-full">
         <div className="admin-analytics-card">
           <div style={{ marginBottom: '20px' }}>
             <div style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#999', marginBottom: '4px' }}>Booking Status</div>
@@ -349,32 +312,6 @@ export function AnalyticsView({ data }: { data: AnalyticsData }) {
             })}
           </div>
         </div>
-
-        {/* Box distribution */}
-        <div className="admin-analytics-card">
-          <div style={{ marginBottom: '20px' }}>
-            <div style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#999', marginBottom: '4px' }}>Box Volume</div>
-            <div style={{ fontSize: '1.1rem', fontWeight: 700, color: '#4B2E25' }}>Boxes per booking</div>
-          </div>
-          <BarChart
-            data={data.boxDistribution}
-            valueKey="count"
-            labelKey="range"
-            colorFn={() => '#C9A47E'}
-            formatValue={v => `${v} booking${v !== 1 ? 's' : ''}`}
-          />
-          <div className="admin-analytics-metric-row" style={{ marginTop: '20px', paddingTop: '16px', borderTop: '1px solid #F0E8DE' }}>
-            <div>
-              <div style={{ fontSize: '0.68rem', color: '#aaa', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Total Boxes</div>
-              <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#4B2E25' }}>{data.totalBoxes}</div>
-            </div>
-            <div>
-              <div style={{ fontSize: '0.68rem', color: '#aaa', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Avg / Booking</div>
-              <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#4B2E25' }}>{data.avgBoxesPerBooking}</div>
-            </div>
-          </div>
-        </div>
-
       </div>
     </div>
   );

@@ -754,20 +754,15 @@ export type AnalyticsData = {
   totalBookings: number;
   bookingsThisMonth: number;
   bookingsLastMonth: number;
-  avgBoxesPerBooking: number;
-  totalBoxes: number;
 
   // Breakdown by school
-  bySchool: { school: string; bookings: number; revenue: number; boxes: number }[];
+  bySchool: { school: string; bookings: number; revenue: number }[];
 
   // Monthly revenue trend (last 6 months) — per-school, all schools included
   monthlyRevenue: { month: string; revenue: number; bookings: number; schoolData: Record<string, { revenue: number; bookings: number }> }[];
 
   // Booking status breakdown
   byStatus: { status: string; count: number }[];
-
-  // Box quantity distribution (1–5 boxes per booking; "5 boxes" includes 5+)
-  boxDistribution: { range: string; count: number }[];
 };
 
 type AnalyticsBookingRow = {
@@ -777,67 +772,17 @@ type AnalyticsBookingRow = {
   school: string | null;
   total_price: number | string;
   total_monthly_rate?: number | string;
-  box_quantity: number | null;
   storage_months?: number | null;
   created_at: string;
   move_out_date?: string;
   paid_at: string | null;
 };
 
-/** Prefer `bookings.box_quantity`; if 0/missing, add sum of box lines from `booking_items` (separate query — embeds often fail in prod). */
-function effectiveBoxCountFromParts(
-  row: AnalyticsBookingRow,
-  boxQtyFromLineItems: number,
-): number {
-  const fromCol =
-    typeof row.box_quantity === 'number'
-      ? row.box_quantity
-      : parseInt(String(row.box_quantity ?? 0), 10) || 0;
-  return Math.max(fromCol, boxQtyFromLineItems);
-}
-
 const ANALYTICS_BOOKING_SELECT_WITH_PAID =
-  'id, status, payment_status, school, total_price, total_monthly_rate, box_quantity, storage_months, created_at, move_out_date, paid_at';
+  'id, status, payment_status, school, total_price, total_monthly_rate, storage_months, created_at, move_out_date, paid_at';
 
 const ANALYTICS_BOOKING_SELECT_NO_PAID =
-  'id, status, payment_status, school, total_price, total_monthly_rate, box_quantity, storage_months, created_at, move_out_date';
-
-const BOOKING_ITEMS_CHUNK = 200;
-
-/** Sum box quantities per booking_id from line items (item_type or item_category = box, case-insensitive). */
-async function fetchBoxQuantitiesByBookingId(
-  db: ReturnType<typeof createAdminClient>,
-  bookingIds: string[],
-): Promise<Record<string, number>> {
-  const out: Record<string, number> = {};
-  if (!bookingIds.length) return out;
-
-  for (let i = 0; i < bookingIds.length; i += BOOKING_ITEMS_CHUNK) {
-    const chunk = bookingIds.slice(i, i + BOOKING_ITEMS_CHUNK);
-    const { data: itemRows, error } = await db
-      .from('booking_items')
-      .select('booking_id, item_type, item_category, quantity')
-      .in('booking_id', chunk);
-
-    if (error) {
-      console.error('[getAnalyticsData] booking_items batch', error);
-      continue;
-    }
-
-    for (const row of itemRows || []) {
-      const type = String((row as { item_type?: string }).item_type || '').toLowerCase();
-      const cat = String((row as { item_category?: string }).item_category || '').toLowerCase();
-      const isBox = type === 'box' || cat === 'box';
-      if (!isBox) continue;
-      const bid = String((row as { booking_id: string }).booking_id);
-      const qRaw = (row as { quantity?: number | string | null }).quantity;
-      const q = typeof qRaw === 'number' ? qRaw : parseInt(String(qRaw ?? 0), 10) || 0;
-      out[bid] = (out[bid] || 0) + q;
-    }
-  }
-
-  return out;
-}
+  'id, status, payment_status, school, total_price, total_monthly_rate, storage_months, created_at, move_out_date';
 
 export async function getAnalyticsData(): Promise<AnalyticsData> {
   const supabase = await createClient();
@@ -881,14 +826,6 @@ export async function getAnalyticsData(): Promise<AnalyticsData> {
   }
 
   const bookings = rawRows || [];
-  const bookingIds = bookings.map((b) => b.id).filter(Boolean);
-  const boxQtyByBooking = await fetchBoxQuantitiesByBookingId(db, bookingIds);
-
-  const effectiveById: Record<string, number> = {};
-  for (const r of bookings) {
-    effectiveById[r.id] = effectiveBoxCountFromParts(r, boxQtyByBooking[r.id] ?? 0);
-  }
-  const boxFor = (b: AnalyticsBookingRow) => effectiveById[b.id] ?? 0;
 
   const allSchoolNames = SCHOOLS.map(s => s.name);
   if (!bookings.length) return emptyAnalytics(allSchoolNames);
@@ -906,7 +843,6 @@ export async function getAnalyticsData(): Promise<AnalyticsData> {
 
   // KPIs — revenue is ONLY from paid bookings (consistent with Bookings dashboard)
   let totalRevenue = 0, revenueThisMonth = 0, revenueLastMonth = 0;
-  let totalBoxes = 0;
   paidBookings.forEach((b) => {
     const price = typeof b.total_price === 'number' ? b.total_price : parseFloat(String(b.total_price || '0'));
     totalRevenue += price;
@@ -914,27 +850,22 @@ export async function getAnalyticsData(): Promise<AnalyticsData> {
     if (d >= thisMonthStart) revenueThisMonth += price;
     if (d >= lastMonthStart && d <= lastMonthEnd) revenueLastMonth += price;
   });
-  bookings.forEach((b) => {
-    totalBoxes += boxFor(b);
-  });
 
   const bookingsThisMonth = bookings.filter((b) => new Date(b.created_at) >= thisMonthStart).length;
   const bookingsLastMonth = bookings.filter((b) => {
     const d = new Date(b.created_at); return d >= lastMonthStart && d <= lastMonthEnd;
   }).length;
-  const avgBoxesPerBooking = bookings.length ? Math.round((totalBoxes / bookings.length) * 10) / 10 : 0;
 
-  // By school — bookings/boxes = all active, revenue = paid only
-  const schoolMap: Record<string, { bookings: number; revenue: number; boxes: number }> = {};
+  // By school — bookings = all active, revenue = paid only
+  const schoolMap: Record<string, { bookings: number; revenue: number }> = {};
   bookings.forEach((b) => {
     const s = b.school || 'Unknown';
-    if (!schoolMap[s]) schoolMap[s] = { bookings: 0, revenue: 0, boxes: 0 };
+    if (!schoolMap[s]) schoolMap[s] = { bookings: 0, revenue: 0 };
     schoolMap[s].bookings++;
-    schoolMap[s].boxes += boxFor(b);
   });
   paidBookings.forEach((b) => {
     const s = b.school || 'Unknown';
-    if (!schoolMap[s]) schoolMap[s] = { bookings: 0, revenue: 0, boxes: 0 };
+    if (!schoolMap[s]) schoolMap[s] = { bookings: 0, revenue: 0 };
     schoolMap[s].revenue += typeof b.total_price === 'number' ? b.total_price : parseFloat(String(b.total_price || '0'));
   });
   const bySchool = Object.entries(schoolMap).map(([school, v]) => ({ school, ...v }))
@@ -983,22 +914,10 @@ export async function getAnalyticsData(): Promise<AnalyticsData> {
   const byStatus = Object.entries(statusMap).map(([status, count]) => ({ status, count }))
     .sort((a, b) => b.count - a.count);
 
-  // Box distribution: one row per count 1–5 (row 5 = 5 or more boxes)
-  const boxDistribution = [1, 2, 3, 4, 5].map((n) => ({
-    range: n === 1 ? '1 box' : n === 5 ? '5 boxes' : `${n} boxes`,
-    count: bookings.filter((b) => {
-      const c = boxFor(b);
-      if (c === 0) return false;
-      if (n === 5) return c >= 5;
-      return c === n;
-    }).length,
-  }));
-
   return {
     totalRevenue, revenueThisMonth, revenueLastMonth,
     totalBookings: bookings.length, bookingsThisMonth, bookingsLastMonth,
-    avgBoxesPerBooking, totalBoxes,
-    bySchool, monthlyRevenue, byStatus, boxDistribution,
+    bySchool, monthlyRevenue, byStatus,
   };
 }
 
@@ -1016,15 +935,7 @@ function emptyAnalytics(allSchoolNames?: string[]): AnalyticsData {
   return {
     totalRevenue: 0, revenueThisMonth: 0, revenueLastMonth: 0,
     totalBookings: 0, bookingsThisMonth: 0, bookingsLastMonth: 0,
-    avgBoxesPerBooking: 0, totalBoxes: 0,
     bySchool: [], monthlyRevenue, byStatus: [],
-    boxDistribution: [
-      { range: '1 box', count: 0 },
-      { range: '2 boxes', count: 0 },
-      { range: '3 boxes', count: 0 },
-      { range: '4 boxes', count: 0 },
-      { range: '5 boxes', count: 0 },
-    ],
   };
 }
 
