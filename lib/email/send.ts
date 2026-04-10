@@ -6,6 +6,7 @@ import { OrderConfirmedUserEmail } from '@/emails/order-confirmed-user';
 import { DepositPaidAdminEmail } from '@/emails/deposit-paid-admin';
 import { NewBookingAdminEmail } from '@/emails/new-booking-admin';
 import { MoveInReminderUserEmail } from '@/emails/move-in-reminder-user';
+import { DepositNudgeUserEmail } from '@/emails/deposit-nudge-user';
 import { SITE_CONTACT_EMAIL } from '@/lib/site/contact';
 import { emailInlineLogoHeaderHtml } from '@/lib/email/branding';
 
@@ -30,12 +31,12 @@ async function sendEmail(
   subject: string,
   html: string,
   replyToOverride?: string | null,
-) {
+): Promise<boolean> {
   const apiKey = process.env.RESEND_API_KEY?.trim();
   const recipients = Array.isArray(to) ? to.filter(Boolean) : [to];
   if (!apiKey || !recipients.length) {
     console.warn('[email] Skipped — missing RESEND_API_KEY or recipient');
-    return;
+    return false;
   }
   const replyTo = (replyToOverride && replyToOverride.trim()) || REPLY_TO;
   try {
@@ -48,10 +49,15 @@ async function sendEmail(
       subject,
       html,
     });
-    if (error) console.error('[email] Send error:', error);
-    else console.log('[email] Sent to', recipients.join(', '), '–', subject);
+    if (error) {
+      console.error('[email] Send error:', error);
+      return false;
+    }
+    console.log('[email] Sent to', recipients.join(', '), '–', subject);
+    return true;
   } catch (err) {
     console.error('[email] Exception:', err);
+    return false;
   }
 }
 
@@ -195,6 +201,32 @@ export async function sendMoveInDetailsUpdatedAdmin(params: {
     `📍 Move-in details updated — ${studentName} · ${moveInDate}`,
     html,
   );
+}
+
+function siteUrlBase(): string {
+  const u = process.env.NEXT_PUBLIC_SITE_URL?.trim() || process.env.NEXT_PUBLIC_APP_URL?.trim();
+  if (u) return u.replace(/\/$/, '');
+  return 'https://notimestorage.co';
+}
+
+/** Cron: nudge signed-up users who have not paid deposit (throttled per user). Returns whether Resend accepted the send. */
+export async function sendDepositNudgeUser(params: {
+  to: string;
+  parentEmail?: string | null;
+  customerName: string;
+  depositAmount?: number;
+}): Promise<boolean> {
+  const base = siteUrlBase();
+  const depositUrl = `${base}/deposit`;
+  const html = await render(
+    DepositNudgeUserEmail({
+      customerName: params.customerName,
+      depositUrl,
+      depositAmount: params.depositAmount ?? 50,
+    }),
+  );
+  const recipients = [params.to, params.parentEmail].filter(Boolean) as string[];
+  return sendEmail(recipients, 'Complete your deposit — reserve NoTime Storage', html);
 }
 
 export async function sendMoveInReminderUser({
