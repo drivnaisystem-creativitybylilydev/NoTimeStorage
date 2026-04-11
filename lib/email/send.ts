@@ -8,6 +8,7 @@ import { NewBookingAdminEmail } from '@/emails/new-booking-admin';
 import { MoveInReminderUserEmail } from '@/emails/move-in-reminder-user';
 import { DepositNudgeUserEmail } from '@/emails/deposit-nudge-user';
 import { SITE_CONTACT_EMAIL } from '@/lib/site/contact';
+import { tryMagicLinkToPath } from '@/lib/auth/magic-link';
 import { emailInlineLogoHeaderHtml } from '@/lib/email/branding';
 
 const FROM = 'NoTime Storage <noreply@notimestorage.co>';
@@ -217,12 +218,16 @@ export async function sendDepositNudgeUser(params: {
   depositAmount?: number;
 }): Promise<boolean> {
   const base = siteUrlBase();
-  const depositUrl = `${base}/deposit`;
+  // One-click sign-in → /deposit when Supabase magic link works; else password login with same destination.
+  const magic = await tryMagicLinkToPath(params.to, '/deposit');
+  const ctaUrl =
+    magic ?? `${base}/auth/login?redirect=${encodeURIComponent('/deposit')}`;
   const html = await render(
     DepositNudgeUserEmail({
       customerName: params.customerName,
-      depositUrl,
+      depositUrl: ctaUrl,
       depositAmount: params.depositAmount ?? 50,
+      useOneClick: Boolean(magic),
     }),
   );
   const recipients = [params.to, params.parentEmail].filter(Boolean) as string[];

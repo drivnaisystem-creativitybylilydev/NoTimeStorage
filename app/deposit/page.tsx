@@ -7,7 +7,8 @@ export default async function DepositPage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
-  if (!user) redirect('/auth/signup?redirect=/deposit');
+  // Existing accounts: send to login with return to deposit (nudge emails use magic link or this path).
+  if (!user) redirect('/auth/login?redirect=/deposit');
 
   await ensureProfileRowForUser(user);
 
