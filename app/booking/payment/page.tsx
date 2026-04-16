@@ -120,7 +120,7 @@ function PaymentPageContent() {
       items,
       payment_plan: 'full',
     };
-  }, [userId, moveOutDate, moveInDate, moveOutTime, dorm, elevator, stairs, room, instructions, school, boxQty, monthlyTotalCents, searchParams]);
+  }, [userId, moveOutDate, moveInDate, moveOutTime, moveInTime, dorm, elevator, stairs, room, instructions, school, boxQty, monthlyTotalCents, searchParams]);
 
   useEffect(() => {
     const supabase = createClient();
