@@ -49,7 +49,7 @@ export default function TermsOfServicePage() {
             <h2>5. Bookings and Payments</h2>
             <ul>
               <li><strong>Deposit:</strong> A non-refundable commitment fee (currently $50) is required before booking. This amount is applied to your total storage cost.</li>
-              <li><strong>Payment:</strong> You agree to pay all fees for storage, pickup, and delivery as displayed at checkout. Payment is due as specified (full payment or monthly installments).</li>
+              <li><strong>Payment:</strong> You agree to pay all fees for storage, pickup, and delivery as displayed at checkout. Storage fees are due in full at checkout (after your commitment deposit).</li>
               <li><strong>Cancellation:</strong> Cancellation terms are disclosed at booking. The deposit is non-refundable once a pickup is scheduled. Remaining balances may be refunded per our cancellation policy.</li>
               <li><strong>Price changes:</strong> Prices are as displayed at the time of booking. We reserve the right to change prices for future bookings.</li>
             </ul>

@@ -31,7 +31,7 @@ export default function PrivacyPolicyPage() {
               <li><strong>Account information:</strong> Name, email address, phone number, and school affiliation when you create an account or book storage.</li>
               <li><strong>Booking information:</strong> Storage dates, dorm/address details, pickup and delivery preferences, and payment information.</li>
               <li><strong>Communications:</strong> Messages you send us via contact forms, email, or support channels.</li>
-              <li><strong>Payment data:</strong> Processed securely through Square; we do not store full card numbers.</li>
+              <li><strong>Payment data:</strong> Payments may be completed through Venmo (PayPal). We do not collect or store full card numbers on our servers.</li>
             </ul>
           </section>
 
@@ -54,7 +54,7 @@ export default function PrivacyPolicyPage() {
               We do not sell your personal information. We may share your information with:
             </p>
             <ul>
-              <li><strong>Service providers:</strong> Payment processors (Square), email services, and hosting providers necessary to operate our Service.</li>
+              <li><strong>Service providers:</strong> Payment and communications providers (for example Venmo / PayPal, email delivery, and hosting) necessary to operate our Service.</li>
               <li><strong>Logistics partners:</strong> To coordinate pickup and delivery of your items.</li>
               <li><strong>Legal requirements:</strong> When required by law, court order, or to protect our rights and safety.</li>
             </ul>
@@ -63,7 +63,7 @@ export default function PrivacyPolicyPage() {
           <section>
             <h2>5. Data Security</h2>
             <p>
-              We implement industry-standard security measures to protect your personal information. Payment data is processed by Square and subject to their security standards. We cannot guarantee absolute security of data transmitted over the internet.
+              We implement industry-standard security measures to protect your personal information. Payments you send through Venmo or similar services are subject to that provider&apos;s terms and security practices. We cannot guarantee absolute security of data transmitted over the internet.
             </p>
           </section>
 

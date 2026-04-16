@@ -304,6 +304,83 @@ export async function getCustomers(): Promise<CustomerRow[]> {
 export type ActionResult = { success: true } | { success: false; error: string };
 
 /**
+ * Admin: toggle a customer's $50 commitment deposit flag.
+ * Used in the Venmo-only flow — admin flips this to true after confirming
+ * the $50 landed in the Venmo account, which unlocks /booking/* for the user.
+ */
+export async function setCustomerDepositPaid(
+  userId: string,
+  paid: boolean,
+): Promise<ActionResult> {
+  const supabase = await createClient();
+
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { success: false, error: 'Not authenticated' };
+
+  const { data: adminUser } = await supabase
+    .from('admin_users')
+    .select('id')
+    .eq('auth_user_id', user.id)
+    .single();
+  if (!adminUser) return { success: false, error: 'Admin access required' };
+
+  const admin = createAdminClient();
+  const { data: target, error: fetchErr } = await admin
+    .from('users')
+    .select('id, full_name, email, phone, school, parent_email, deposit_paid')
+    .eq('id', userId)
+    .single();
+  if (fetchErr || !target) {
+    return { success: false, error: fetchErr?.message ?? 'Customer not found' };
+  }
+
+  const { error } = await admin
+    .from('users')
+    .update({ deposit_paid: paid })
+    .eq('id', userId);
+
+  if (error) {
+    console.error('[setCustomerDepositPaid]', error);
+    return { success: false, error: error.message };
+  }
+
+  // Fire confirmation emails only on the 0 → 1 transition (avoid spamming on
+  // repeated clicks). We don't block success on email delivery failures.
+  if (paid && target.deposit_paid !== true) {
+    try {
+      const { sendDepositConfirmedUser, sendDepositPaidAdmin } = await import('@/lib/email/send');
+      const customerName = target.full_name?.trim() || target.email || 'Customer';
+      if (target.email) {
+        await sendDepositConfirmedUser({
+          to: target.email,
+          parentEmail: target.parent_email ?? null,
+          customerName,
+          depositAmount: 50,
+        });
+      }
+      await sendDepositPaidAdmin({
+        customerName,
+        customerEmail: target.email ?? '',
+        customerPhone: target.phone ?? undefined,
+        school: target.school ?? '—',
+        depositAmount: 50,
+        userId,
+        paidAt: new Date().toISOString(),
+      });
+    } catch (err) {
+      console.error('[setCustomerDepositPaid] email error', err);
+    }
+  }
+
+  // Note: we intentionally do NOT insert a standalone `payments` row here
+  // because `payments.booking_id` is non-null in the current schema.
+  // Deposit is recorded on the first booking via `createBooking` (it always
+  // writes a $50 deposit payment row tied to that booking).
+
+  return { success: true };
+}
+
+/**
  * Mark a booking as paid and confirmed.
  * Designed to be called from admin UI or payment processor webhook.
  * When payment processor integration is added, webhook will call this same function.
@@ -382,14 +459,15 @@ export async function markBookingPaid(bookingId: string): Promise<ActionResult> 
   }
 
   // Insert full_payment record into payments table
-  const { data: booking } = await supabase
+  const adminDb = createAdminClient();
+  const { data: booking } = await adminDb
     .from('bookings')
-    .select('total_price')
+    .select('id, user_id, total_price, total_monthly_rate, school, dorm, room, elevator_available, stairs_required, move_out_date, move_in_date, move_out_time_slot, move_in_time_slot, special_instructions, status, box_quantity, created_at, updated_at, payment_plan, booking_items(item_type, quantity, monthly_rate, subtotal)')
     .eq('id', bookingId)
     .single();
 
   if (booking?.total_price) {
-    const { error: paymentError } = await supabase
+    const { error: paymentError } = await adminDb
       .from('payments')
       .insert({
         booking_id: bookingId,
@@ -400,6 +478,47 @@ export async function markBookingPaid(bookingId: string): Promise<ActionResult> 
     if (paymentError) {
       console.error('[markBookingPaid] payments insert error:', paymentError);
     }
+  }
+
+  // Send the order-confirmed customer email now that payment is verified.
+  try {
+    if (booking) {
+      const { sendBookingConfirmationToCustomer } = await import('@/lib/booking/integrations');
+      type BItemRow = { item_type: string; quantity: number; monthly_rate: number | string };
+      const items = ((booking.booking_items as BItemRow[] | null) ?? []).map((r) => ({
+        item_type: r.item_type as unknown as import('@/lib/booking/types').BookingItemType,
+        quantity: Number(r.quantity) || 0,
+        unit_price_cents: Math.round((typeof r.monthly_rate === 'number' ? r.monthly_rate : parseFloat(String(r.monthly_rate || 0))) * 100),
+      }));
+      const monthlyRateNum = typeof booking.total_monthly_rate === 'number'
+        ? booking.total_monthly_rate
+        : parseFloat(String(booking.total_monthly_rate || 0));
+      await sendBookingConfirmationToCustomer({
+        id: booking.id,
+        user_id: booking.user_id,
+        status: 'confirmed',
+        move_out_date: booking.move_out_date,
+        move_in_date: booking.move_in_date,
+        move_out_time_slot: booking.move_out_time_slot,
+        dorm: booking.dorm,
+        room: booking.room ?? null,
+        elevator_available: !!booking.elevator_available,
+        stairs_required: !!booking.stairs_required,
+        school: booking.school,
+        monthly_total_cents: Math.round(monthlyRateNum * 100),
+        total_monthly_rate: monthlyRateNum,
+        total_price: typeof booking.total_price === 'number' ? booking.total_price : parseFloat(String(booking.total_price)) || 0,
+        box_quantity: booking.box_quantity ?? 0,
+        payment_plan: (booking.payment_plan as 'full' | 'monthly') ?? 'full',
+        special_instructions: booking.special_instructions ?? null,
+        created_at: booking.created_at,
+        updated_at: booking.updated_at,
+        items,
+      });
+    }
+  } catch (err) {
+    console.error('[markBookingPaid] confirmation email error', err);
+    // Non-fatal — admin has already marked it paid.
   }
 
   return { success: true };

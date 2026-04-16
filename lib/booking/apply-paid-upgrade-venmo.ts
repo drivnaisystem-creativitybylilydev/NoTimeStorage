@@ -1,14 +1,12 @@
 'use server';
 
-import { squareClient, squareConfig } from './client';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import type { BookingItemInput } from '@/lib/booking/types';
 import { validateBookingLineItems } from '@/lib/booking/addon-pricing';
-import { randomUUID } from 'crypto';
 
-export type ChargeUpgradeResult =
-  | { success: true; paymentId: string }
+export type ApplyUpgradeVenmoResult =
+  | { success: true }
   | { success: false; error: string };
 
 function storageMonths(moveOut: string, moveIn: string): number {
@@ -23,21 +21,18 @@ function getItemCategory(itemType: string): string {
 }
 
 /**
- * For a PAID booking: update items and charge only the delta (newMonthly - origMonthly) × months.
- * For an UNPAID booking: just update items, no charge.
+ * After the customer pays the upgrade difference via Venmo (off-site),
+ * applies new line items and totals for a paid booking. Verifies the
+ * price increase server-side from the submitted line items.
  */
-export async function chargeBookingUpgrade(
+export async function applyPaidBookingItemUpgradeVenmo(
   bookingId: string,
   newItems: BookingItemInput[],
-  sourceId: string | null, // null = no charge needed (no increase or unpaid)
-  deltaAmountCents: number,
-): Promise<ChargeUpgradeResult> {
-  // Auth check via anon client (reads session cookie)
+): Promise<ApplyUpgradeVenmoResult> {
   const authClient = await createClient();
   const { data: { user } } = await authClient.auth.getUser();
   if (!user) return { success: false, error: 'Not logged in.' };
 
-  // All DB reads/writes via admin client (bypasses RLS — safe in server actions only)
   const supabase = createAdminClient();
 
   const { data: profile } = await supabase
@@ -50,56 +45,33 @@ export async function chargeBookingUpgrade(
 
   const { data: booking } = await supabase
     .from('bookings')
-    .select('id, user_id, payment_status, move_out_date, move_in_date, total_monthly_rate, total_price')
+    .select('id, user_id, payment_status, move_out_date, move_in_date, total_price')
     .eq('id', bookingId)
     .single();
 
   if (!booking) return { success: false, error: 'Booking not found.' };
   if (booking.user_id !== profile.id) return { success: false, error: 'Unauthorized.' };
+  if (booking.payment_status !== 'paid') {
+    return { success: false, error: 'This flow only applies to paid bookings.' };
+  }
 
   const lineErr = validateBookingLineItems(newItems);
   if (lineErr) return { success: false, error: lineErr };
 
-  if (deltaAmountCents > 0 && !sourceId) {
-    return { success: false, error: 'A card payment is required for this upgrade.' };
-  }
-
-  // Charge Square if needed
-  let squarePaymentId: string | null = null;
-  if (sourceId && deltaAmountCents > 0) {
-    try {
-      const { payment, errors } = await squareClient.payments.create({
-        sourceId,
-        idempotencyKey: randomUUID(),
-        amountMoney: {
-          amount: BigInt(deltaAmountCents),
-          currency: 'USD',
-        },
-        locationId: squareConfig.locationId!,
-        note: `NoTime Storage – upgrade booking ${bookingId}`,
-      });
-
-      if (errors?.length || !payment?.id) {
-        return { success: false, error: errors?.[0]?.detail ?? 'Payment failed. Please try again.' };
-      }
-      squarePaymentId = payment.id;
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Unexpected payment error.';
-      console.error('[chargeBookingUpgrade] Square error:', err);
-      return { success: false, error: msg };
-    }
-  }
-
-  // Recalculate totals
   const months = storageMonths(booking.move_out_date, booking.move_in_date);
   const newMonthlyRate = newItems.reduce((sum, i) => sum + (i.unit_price_cents / 100) * i.quantity, 0);
   const newTotalPrice = newMonthlyRate * months;
+  const oldTotal = Number(booking.total_price);
+  const deltaCents = Math.round((newTotalPrice - oldTotal) * 100);
+  if (deltaCents <= 0) {
+    return { success: false, error: 'No price increase to apply. Use save without upgrade payment.' };
+  }
+
   const boxItem = newItems.find(i => i.item_type === 'box');
   const boxQty = boxItem?.quantity ?? 0;
 
-  // Replace booking_items
   await supabase.from('booking_items').delete().eq('booking_id', bookingId);
-  await supabase.from('booking_items').insert(
+  const { error: insertErr } = await supabase.from('booking_items').insert(
     newItems.map(item => ({
       booking_id: bookingId,
       item_category: getItemCategory(item.item_type),
@@ -107,11 +79,14 @@ export async function chargeBookingUpgrade(
       quantity: item.quantity,
       monthly_rate: item.unit_price_cents / 100,
       subtotal: (item.unit_price_cents / 100) * item.quantity,
-    }))
+    })),
   );
+  if (insertErr) {
+    console.error('[applyPaidBookingItemUpgradeVenmo] items insert', insertErr);
+    return { success: false, error: insertErr.message };
+  }
 
-  // Update booking totals
-  await supabase.from('bookings').update({
+  const { error: updateErr } = await supabase.from('bookings').update({
     box_quantity: boxQty,
     total_monthly_rate: newMonthlyRate,
     total_price: newTotalPrice,
@@ -119,16 +94,26 @@ export async function chargeBookingUpgrade(
     updated_at: new Date().toISOString(),
   }).eq('id', bookingId);
 
-  // Record upgrade payment
-  if (squarePaymentId && deltaAmountCents > 0) {
-    await supabase.from('payments').insert({
-      booking_id: bookingId,
-      amount: deltaAmountCents / 100,
-      payment_type: 'full_payment',
-      stripe_transaction_id: squarePaymentId,
-      status: 'succeeded',
-    });
+  if (updateErr) {
+    console.error('[applyPaidBookingItemUpgradeVenmo] booking update', updateErr);
+    return { success: false, error: updateErr.message };
   }
 
-  return { success: true, paymentId: squarePaymentId ?? 'no-charge' };
+  // Audit trail: log the upgrade delta as a `pending` payment so admin can
+  // reconcile when the Venmo transfer shows up. We do NOT mark succeeded
+  // here — admin verifies manually in Venmo and then marks it in the DB.
+  const { error: payErr } = await supabase
+    .from('payments')
+    .insert({
+      booking_id: bookingId,
+      amount: deltaCents / 100,
+      payment_type: 'full_payment',
+      status: 'pending',
+    });
+  if (payErr) {
+    // Non-fatal; upgrade is already applied.
+    console.warn('[applyPaidBookingItemUpgradeVenmo] pending payment insert skipped:', payErr.message);
+  }
+
+  return { success: true };
 }

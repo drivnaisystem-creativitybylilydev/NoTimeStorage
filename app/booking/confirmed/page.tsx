@@ -17,17 +17,11 @@ function BookingConfirmedContent() {
   const monthlyTotal = searchParams.get('monthlyTotal') || '';
   const totalPrice = searchParams.get('totalPrice') || '';
   const months = searchParams.get('months') || '';
-  const paymentPlan = searchParams.get('paymentPlan') || 'full';
-  const month1Cents = parseInt(searchParams.get('month1') || '0');
-  const month2Cents = parseInt(searchParams.get('month2') || '0');
-  const month2Date = searchParams.get('month2Date') || '';
-  const month3Cents = parseInt(searchParams.get('month3') || '0');
-  const month3Date = searchParams.get('month3Date') || '';
+  const venmoPending = searchParams.get('venmoPending') === '1';
+  const bookingId = searchParams.get('bookingId') || '';
 
-  const isMonthly = paymentPlan === 'monthly' && month1Cents > 0;
-
-  const fmtDate = (iso: string) =>
-    iso ? new Date(iso + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '';
+  const totalPriceNum = parseFloat(totalPrice) || 0;
+  const balanceDueLabel = totalPriceNum > 0 ? (totalPriceNum - 50).toFixed(2) : '';
 
   const formattedDate = moveOutDate ? formatDate(moveOutDate) : '';
 
@@ -67,17 +61,27 @@ function BookingConfirmedContent() {
 
           <motion.h1 custom={0.15} variants={childVar} initial="hidden" animate="visible"
             style={{ fontSize: '1.6rem', fontWeight: '800', color: 'var(--color-coffee)', marginBottom: '10px' }}>
-            {isMonthly ? 'First Payment Complete!' : 'You\'re all set!'}
+            {venmoPending ? 'Booking saved — finish on Venmo' : 'You\'re almost set!'}
           </motion.h1>
           <motion.p custom={0.22} variants={childVar} initial="hidden" animate="visible"
             style={{ color: '#4A3A34', fontSize: '1rem', marginBottom: '24px', lineHeight: '1.6' }}>
-            {isMonthly
-              ? <>Your booking is confirmed and your first payment of <strong>${(month1Cents / 100).toFixed(2)}</strong> has been processed. Remaining payments will be auto-charged on the dates shown below.</>
-              : 'Your storage is booked. A confirmation is on its way to your inbox — check your email.'
-            }
-            <span style={{ display: 'block', marginTop: '8px', fontSize: '0.85rem', color: '#9B8880', padding: '8px 12px', background: 'var(--color-paper)', borderRadius: '8px', border: '1px solid var(--color-latte)' }}>
-              📬 Don&apos;t see it? Check your <strong>junk or spam folder</strong> — it may have landed there.
-            </span>
+            {venmoPending ? (
+              <>
+                Your booking is in our system but it&apos;s <strong>not confirmed yet</strong>. Send the balance you saw on the payment page via Venmo, then we&apos;ll email you a confirmation once we&apos;ve verified the transfer (usually within one business day).
+                {bookingId ? (
+                  <span style={{ display: 'block', marginTop: '12px', fontSize: '0.85rem', color: '#6B5A52' }}>
+                    Reference ID: <strong style={{ fontFamily: 'monospace' }}>{bookingId}</strong> — please include this in your Venmo note so we can match it.
+                  </span>
+                ) : null}
+              </>
+            ) : (
+              'Your storage is booked. A confirmation is on its way to your inbox — check your email.'
+            )}
+            {!venmoPending && (
+              <span style={{ display: 'block', marginTop: '8px', fontSize: '0.85rem', color: '#9B8880', padding: '8px 12px', background: 'var(--color-paper)', borderRadius: '8px', border: '1px solid var(--color-latte)' }}>
+                📬 Don&apos;t see it? Check your <strong>junk or spam folder</strong> — it may have landed there.
+              </span>
+            )}
           </motion.p>
 
           {(formattedDate || school || boxes || monthlyTotal) && (
@@ -111,67 +115,22 @@ function BookingConfirmedContent() {
                 </div>
               )}
 
-              {/* Payment summary — branches on plan */}
               <div style={{ borderTop: '1px solid var(--color-latte)', paddingTop: '12px', marginTop: '4px' }}>
-                {isMonthly ? (
-                  <>
-                    <div style={{ fontSize: '0.6875rem', fontWeight: '700', letterSpacing: '0.1em', color: 'var(--color-gray-500)', textTransform: 'uppercase', marginBottom: '10px' }}>
-                      Payment Schedule
-                    </div>
-                    {/* Month 1 */}
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                      <div>
-                        <div style={{ fontSize: '0.875rem', fontWeight: '600', color: 'var(--color-coffee)' }}>Today (Month 1)</div>
-                        <div style={{ fontSize: '0.75rem', color: '#2e7d32' }}>Deposit credit applied</div>
-                      </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <span style={{ color: '#2e7d32', fontWeight: '700', fontSize: '0.875rem' }}>✓ Paid</span>
-                        <span style={{ fontWeight: '700', color: 'var(--color-coffee)' }}>${(month1Cents / 100).toFixed(2)}</span>
-                      </div>
-                    </div>
-                    {/* Month 2 */}
-                    {month2Cents > 0 && (
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', opacity: 0.75 }}>
-                        <div>
-                          <div style={{ fontSize: '0.875rem', fontWeight: '600', color: 'var(--color-coffee)' }}>Month 2</div>
-                          {month2Date && <div style={{ fontSize: '0.75rem', color: '#6B5A52' }}>{fmtDate(month2Date)} · auto-charged</div>}
-                        </div>
-                        <span style={{ fontWeight: '600', color: 'var(--color-coffee)' }}>🔄 ${(month2Cents / 100).toFixed(2)}</span>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                  <span style={{ color: '#6B5A52', fontSize: '0.875rem', fontWeight: '600' }}>
+                    {venmoPending ? 'Balance due on Venmo' : 'Total charged'}
+                  </span>
+                  <div style={{ textAlign: 'right' }}>
+                    <span style={{ color: 'var(--color-coffee)', fontWeight: '800', fontSize: '1.1rem' }}>
+                      ${venmoPending && balanceDueLabel ? balanceDueLabel : (totalPrice || monthlyTotal)}{months ? ` · ${months} months` : ''}
+                    </span>
+                    {monthlyTotal && totalPrice && (
+                      <div style={{ color: '#9E8E88', fontSize: '0.75rem', marginTop: '2px' }}>
+                        ${monthlyTotal}/month{venmoPending && balanceDueLabel ? ` · $50 deposit already paid` : ''}
                       </div>
                     )}
-                    {/* Month 3 */}
-                    {month3Cents > 0 && (
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', opacity: 0.75 }}>
-                        <div>
-                          <div style={{ fontSize: '0.875rem', fontWeight: '600', color: 'var(--color-coffee)' }}>Month 3</div>
-                          {month3Date && <div style={{ fontSize: '0.75rem', color: '#6B5A52' }}>{fmtDate(month3Date)} · auto-charged</div>}
-                        </div>
-                        <span style={{ fontWeight: '600', color: 'var(--color-coffee)' }}>🔄 ${(month3Cents / 100).toFixed(2)}</span>
-                      </div>
-                    )}
-                    <div style={{ borderTop: '1px solid var(--color-latte)', paddingTop: '8px', marginTop: '4px', display: 'flex', justifyContent: 'space-between' }}>
-                      <span style={{ fontSize: '0.875rem', color: '#6B5A52' }}>Total over 3 months</span>
-                      <span style={{ fontWeight: '700', color: 'var(--color-coffee)' }}>${totalPrice || ''}</span>
-                    </div>
-                    <div style={{ fontSize: '0.75rem', color: '#9B8880', marginTop: '6px' }}>
-                      We&apos;ll email you a reminder before each auto-charge.
-                    </div>
-                  </>
-                ) : (
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-                    <span style={{ color: '#6B5A52', fontSize: '0.875rem', fontWeight: '600' }}>Total charged</span>
-                    <div style={{ textAlign: 'right' }}>
-                      <span style={{ color: 'var(--color-coffee)', fontWeight: '800', fontSize: '1.1rem' }}>
-                        ${totalPrice || monthlyTotal}{months ? ` · ${months} months` : ''}
-                      </span>
-                      {monthlyTotal && totalPrice && (
-                        <div style={{ color: '#9E8E88', fontSize: '0.75rem', marginTop: '2px' }}>
-                          ${monthlyTotal}/month
-                        </div>
-                      )}
-                    </div>
                   </div>
-                )}
+                </div>
               </div>
             </motion.div>
           )}

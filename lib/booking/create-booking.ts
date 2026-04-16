@@ -93,7 +93,7 @@ export async function createBooking(input: CreateBookingInput): Promise<CreateBo
       total_monthly_rate: totalMonthlyRate,
       total_price: totalPrice,
       payment_status: 'unpaid',
-      payment_plan: input.payment_plan ?? 'full',
+      payment_plan: 'full',
       room: input.room ?? null,
       special_instructions: input.special_instructions ?? null,
       move_out_date: input.move_out_date,
@@ -222,7 +222,7 @@ export async function createBooking(input: CreateBookingInput): Promise<CreateBo
     total_monthly_rate: totalMonthlyRate,
     total_price: totalPrice,
     box_quantity: boxQuantity,
-    payment_plan: (input.payment_plan ?? 'full') as 'full' | 'monthly',
+    payment_plan: 'full',
     special_instructions: booking.special_instructions ?? null,
     created_at: booking.created_at,
     updated_at: booking.updated_at,
@@ -239,7 +239,7 @@ export async function createBooking(input: CreateBookingInput): Promise<CreateBo
       : undefined;
 
   try {
-    await onBookingCreated(bookingForHooks);
+    await onBookingCreated(bookingForHooks, { isPaid: false });
     if (debug) {
       debug.integrationHook = 'ok';
     }

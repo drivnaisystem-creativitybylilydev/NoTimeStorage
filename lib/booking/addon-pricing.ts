@@ -3,7 +3,7 @@ import type { BookingItemInput, BookingItemType } from './types';
 /** Max additional-item units (sum of all non-box lines) in configure / checkout / edit UI */
 export const MAX_ADDITIONAL_ITEMS = 99;
 
-/** Canonical monthly add-on rates in cents — single source for DB, Square, and UI */
+/** Canonical monthly add-on rates in cents — single source for DB and UI */
 export const ADDON_UNIT_PRICE_CENTS: Record<Exclude<BookingItemType, 'box'>, number> = {
   small_with_box: 600,
   small_without_box: 900,

@@ -264,11 +264,10 @@ export function BookingDetailModal({ booking, onClose }: BookingDetailModalProps
             </div>
           </div>
 
-          {/* Square IDs */}
-          {(booking.square_customer_id || booking.square_invoice_id) && (
+          {(booking.square_customer_id || booking.square_invoice_id || booking.square_card_id) && (
             <div>
               <h3 style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--color-gray-600)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '12px' }}>
-                Square IDs
+                Legacy payment references
               </h3>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                 {booking.square_customer_id && (

@@ -1,9 +1,12 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useTransition } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Search, ExternalLink } from 'lucide-react';
+import { Search, ExternalLink, Check, X } from 'lucide-react';
 import type { CustomerRow } from '@/lib/admin/actions';
+import { setCustomerDepositPaid } from '@/lib/admin/actions';
+import { useAppModal } from '@/app/components/AppModalProvider';
 
 function fmtMoney(n: number) {
   return `$${n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -11,6 +14,40 @@ function fmtMoney(n: number) {
 
 export function CustomersTable({ customers }: { customers: CustomerRow[] }) {
   const [search, setSearch] = useState('');
+  const [pendingId, setPendingId] = useState<string | null>(null);
+  const [isPending, startTransition] = useTransition();
+  const router = useRouter();
+  const appModal = useAppModal();
+
+  const toggleDeposit = async (c: CustomerRow) => {
+    const nextValue = !c.deposit_paid;
+    const label = c.full_name?.trim() || c.email || 'this customer';
+    const confirmed = await appModal.confirm({
+      title: nextValue ? `Mark deposit as paid?` : `Undo deposit for ${label}?`,
+      message: nextValue
+        ? `Only do this after you've confirmed the $50 Venmo payment from ${label}. They'll immediately be able to book.`
+        : `This will lock ${label} out of the booking flow until they pay the $50 again.`,
+      confirmLabel: nextValue ? 'Yes, mark paid' : 'Yes, undo',
+      cancelLabel: 'Cancel',
+      destructive: !nextValue,
+    });
+    if (!confirmed) return;
+
+    setPendingId(c.id);
+    try {
+      const result = await setCustomerDepositPaid(c.id, nextValue);
+      if (!result.success) {
+        await appModal.alert({ title: 'Error', message: result.error });
+        return;
+      }
+      startTransition(() => router.refresh());
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Something went wrong';
+      await appModal.alert({ title: 'Error', message });
+    } finally {
+      setPendingId(null);
+    }
+  };
 
   const filtered = useMemo(() => {
     if (!search.trim()) return customers;
@@ -102,15 +139,28 @@ export function CustomersTable({ customers }: { customers: CustomerRow[] }) {
                       )}
                     </td>
                     <td data-label="Deposit" style={{ textAlign: 'center' }}>
-                      <span
-                        className={
-                          c.deposit_paid
-                            ? 'admin-badge admin-badge-success'
-                            : 'admin-badge admin-badge-neutral'
-                        }
-                      >
-                        {c.deposit_paid ? 'Paid' : 'Not paid'}
-                      </span>
+                      <div style={{ display: 'inline-flex', flexDirection: 'column', gap: '6px', alignItems: 'center' }}>
+                        <span
+                          className={
+                            c.deposit_paid
+                              ? 'admin-badge admin-badge-success'
+                              : 'admin-badge admin-badge-neutral'
+                          }
+                        >
+                          {c.deposit_paid ? 'Paid' : 'Not paid'}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => toggleDeposit(c)}
+                          disabled={(pendingId === c.id) || isPending}
+                          className="admin-btn admin-btn-ghost"
+                          style={{ fontSize: '12px', padding: '4px 8px', display: 'inline-flex', alignItems: 'center', gap: '4px', opacity: (pendingId === c.id) ? 0.6 : 1 }}
+                          title={c.deposit_paid ? 'Undo deposit (re-lock booking)' : 'Mark $50 Venmo deposit received'}
+                        >
+                          {c.deposit_paid ? <X size={12} /> : <Check size={12} />}
+                          {c.deposit_paid ? 'Undo' : 'Mark paid'}
+                        </button>
+                      </div>
                     </td>
                     <td data-label="Collected" style={{ textAlign: 'right', fontWeight: 600, color: '#15803d' }}>
                       <div>{fmtMoney(c.total_paid)}</div>

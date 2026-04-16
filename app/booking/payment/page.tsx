@@ -1,17 +1,17 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback, Suspense } from 'react';
+import { useState, useEffect, useCallback, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import { createBooking } from '@/lib/booking/create-booking';
-import { chargeBookingPayment } from '@/lib/square/charge-booking';
-import { chargeFirstMonthPayment, createMonthlyPaymentSchedule } from '@/app/actions/monthly-payments';
 import type { CreateBookingInput, BookingItemType } from '@/lib/booking/types';
 import { formatDate, formatTime } from '@/lib/utils/date';
 import { AuthPageWrapper } from '@/app/components/AuthPageWrapper';
-import { isEligibleForMonthlyPlan, calculateMonthlyBreakdown } from '@/lib/payment-plan-calculator';
+import { VenmoBackupSection } from '@/app/components/VenmoBackupSection';
+import { getVenmoHandleFromEnv } from '@/lib/payment/venmo';
+import { SITE_CONTACT_EMAIL } from '@/lib/site/contact';
 import {
   ADDON_PRICE_USD_MONTH,
   ADDON_UNIT_PRICE_CENTS,
@@ -32,27 +32,9 @@ function PaymentPageContent() {
   const router = useRouter();
 
   const [userId, setUserId] = useState<string | null>(null);
-  const [isSandbox, setIsSandbox] = useState(true);
-  const [appId, setAppId] = useState('');
-  const [locationId, setLocationId] = useState('');
-
-  const [sdkReady, setSdkReady] = useState(false);
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [step, setStep] = useState<'idle' | 'creating' | 'charging' | 'done'>('idle');
-
-  const [applePayInstance, setApplePayInstance] = useState<any>(null);
-  const [googlePayInstance, setGooglePayInstance] = useState<any>(null);
-
-  const cardInstanceRef = useRef<any>(null);
-  const applePayRef = useRef<any>(null);
-  const googlePayRef = useRef<any>(null);
-  const paymentsRef = useRef<any>(null);
-  const [billingAddress, setBillingAddress] = useState<{ addressLine1: string; city: string; state?: string; postalCode: string; country?: string }>({
-    addressLine1: '', city: '', state: '', postalCode: '', country: 'US',
-  });
-  const paymentProcessorRef = useRef<((token: string, verificationToken?: string, billingAddress?: { addressLine1: string; city: string; state?: string; postalCode: string; country?: string }) => Promise<void>) | null>(null);
-  const initializingRef = useRef(false);
+  const [step, setStep] = useState<'idle' | 'creating' | 'done'>('idle');
 
   // URL params (unchanged)
   const boxes = searchParams.get('boxes') || '0';
@@ -66,7 +48,6 @@ function PaymentPageContent() {
   const room = searchParams.get('room') || '';
   const instructions = searchParams.get('instructions') || '';
   const school = searchParams.get('school') || 'Stonehill College';
-  const paymentPlan = (searchParams.get('paymentPlan') || 'full') as 'full' | 'monthly';
 
   const storageMonths = (() => {
     if (!moveOutDate || !moveInDate) return 3;
@@ -100,19 +81,6 @@ function PaymentPageContent() {
   const monthlyTotal = boxesTotal + itemsTotal;
   const monthlyTotalCents = Math.round(monthlyTotal * 100);
   const totalPrice = monthlyTotal * storageMonths;
-  // totalPriceCents = remaining balance after deposit (used for full-pay charge)
-  const totalPriceCents = Math.round((totalPrice - 50) * 100);
-  // fullPriceCents = total before deposit (used as input to monthly breakdown)
-  const fullPriceCents = Math.round(totalPrice * 100);
-
-  const monthlyBreakdown =
-    paymentPlan === 'monthly' && isEligibleForMonthlyPlan(totalPriceCents)
-      ? calculateMonthlyBreakdown(fullPriceCents, new Date())
-      : null;
-
-  // Amount actually charged today
-  const dueTodayCents = monthlyBreakdown ? monthlyBreakdown.month1Cents : totalPriceCents;
-
   const buildBookingPayload = useCallback((): CreateBookingInput | null => {
     if (!userId || !moveOutDate || !moveInDate || !moveOutTime || !dorm || !elevator || !stairs) return null;
     const additionalQty = ['smallWithBox', 'smallWithoutBox', 'mediumWithBox', 'mediumWithoutBox', 'large']
@@ -150,330 +118,53 @@ function PaymentPageContent() {
       school,
       monthly_total_cents: monthlyTotalCents,
       items,
-      payment_plan: paymentPlan,
+      payment_plan: 'full',
     };
-  }, [userId, moveOutDate, moveInDate, moveOutTime, dorm, elevator, stairs, room, instructions, school, boxQty, monthlyTotalCents, paymentPlan, searchParams]);
+  }, [userId, moveOutDate, moveInDate, moveOutTime, dorm, elevator, stairs, room, instructions, school, boxQty, monthlyTotalCents, searchParams]);
 
-  const DECLINE_MSG = 'Your card was declined. This can happen with new merchants. Please try a different card, or contact your bank to approve the transaction.';
-
-  const formatPaymentError = useCallback((raw: string) => {
-    const lower = raw.toLowerCase();
-    if (lower.includes('generic_decline') || lower.includes('declined') || lower.includes('authorization error')) return DECLINE_MSG;
-    return raw;
-  }, []);
-
-  const verifyAndProcess = useCallback(async (token: string) => {
-    let verificationToken: string | undefined;
-    const payments = paymentsRef.current;
-    const hasBilling = billingAddress.addressLine1?.trim() && billingAddress.city?.trim() && billingAddress.postalCode?.trim();
-    const billingContact = hasBilling ? {
-      addressLines: [billingAddress.addressLine1.trim()],
-      city: billingAddress.city.trim(),
-      state: billingAddress.state?.trim() || undefined,
-      postalCode: billingAddress.postalCode.trim(),
-      country: billingAddress.country || 'US',
-    } : {};
-
-    if (payments?.verifyBuyer) {
-      try {
-        const verificationResult = await payments.verifyBuyer(token, {
-          amount: (dueTodayCents / 100).toFixed(2),
-          currencyCode: 'USD',
-          intent: 'CHARGE',
-          billingContact,
-        });
-        if (verificationResult?.token) verificationToken = verificationResult.token;
-      } catch (err) {
-        console.warn('[3DS] verifyBuyer failed, proceeding without:', err);
-      }
-    }
-
-    const billingForApi = hasBilling ? {
-      addressLine1: billingAddress.addressLine1.trim(),
-      city: billingAddress.city.trim(),
-      state: billingAddress.state?.trim(),
-      postalCode: billingAddress.postalCode.trim(),
-      country: billingAddress.country || 'US',
-    } : undefined;
-
-    await paymentProcessorRef.current?.(token, verificationToken, billingForApi);
-  }, [dueTodayCents, billingAddress]);
-
-  const processPaymentWithToken = useCallback(async (
-    token: string,
-    verificationToken?: string,
-    billingAddress?: { addressLine1: string; city: string; state?: string; postalCode: string; country?: string },
-  ) => {
-    const payload = buildBookingPayload();
-    if (!payload) {
-      setError('Missing booking details.');
-      setProcessing(false);
-      return;
-    }
-
-    setStep('creating');
-    const bookingResult = await createBooking(payload);
-    if (!bookingResult.success) {
-      setError(bookingResult.error);
-      setProcessing(false);
-      setStep('idle');
-      return;
-    }
-
-    setStep('charging');
-    const bookingId = bookingResult.bookingId;
-    const confirmedBase = `/booking/confirmed?moveOutDate=${moveOutDate}&school=${encodeURIComponent(school)}&boxes=${boxes}&monthlyTotal=${monthlyTotal}&totalPrice=${totalPrice}&months=${storageMonths}`;
-
-    if (paymentPlan === 'monthly' && monthlyBreakdown) {
-      // — Monthly path —
-      const month1Result = await chargeFirstMonthPayment(token, bookingId, monthlyBreakdown.month1Cents, verificationToken, billingAddress);
-      if (!month1Result.success) {
-        setError(`Payment failed: ${formatPaymentError(month1Result.error)} — Your booking was saved. Please contact support.`);
-        setProcessing(false);
-        setStep('idle');
-        return;
-      }
-
-      // Fire-and-forget invoice creation (non-blocking — booking is confirmed even if invoice fails)
-      createMonthlyPaymentSchedule({
-        bookingId,
-        customerId: month1Result.customerId,
-        cardId: month1Result.cardId,
-        month2Cents: monthlyBreakdown.month2Cents,
-        month2Date: monthlyBreakdown.month2Date,
-        month3Cents: monthlyBreakdown.month3Cents,
-        month3Date: monthlyBreakdown.month3Date,
-      }).catch((err) => console.error('[monthly invoice]', err));
-
-      setStep('done');
-      window.location.href = `${confirmedBase}&paymentPlan=monthly&month1=${monthlyBreakdown.month1Cents}&month2=${monthlyBreakdown.month2Cents}&month2Date=${monthlyBreakdown.month2Date}&month3=${monthlyBreakdown.month3Cents}&month3Date=${monthlyBreakdown.month3Date}`;
-    } else {
-      // — Pay in Full path (unchanged) —
-      const chargeResult = await chargeBookingPayment(token, bookingId, totalPriceCents, verificationToken, billingAddress);
-      if (!chargeResult.success) {
-        setError(`Payment failed: ${formatPaymentError(chargeResult.error)} — Your booking was saved but not charged. Please contact support.`);
-        setProcessing(false);
-        setStep('idle');
-        return;
-      }
-      setStep('done');
-      window.location.href = `${confirmedBase}&paymentPlan=full`;
-    }
-  }, [buildBookingPayload, totalPriceCents, paymentPlan, monthlyBreakdown, moveOutDate, school, boxes, monthlyTotal, totalPrice, storageMonths, formatPaymentError]);
-
-  paymentProcessorRef.current = processPaymentWithToken;
-
-  // Load user + Square config
   useEffect(() => {
     const supabase = createClient();
     supabase.auth.getUser().then(({ data: { user } }) => setUserId(user?.id ?? null));
-    fetch('/api/square-config')
-      .then(r => r.json())
-      .then(({ applicationId, locationId: loc, isSandbox: sb }) => {
-        setAppId(applicationId);
-        setLocationId(loc);
-        setIsSandbox(sb);
-      })
-      .catch(console.error);
   }, []);
 
-  // Init Square Web Payments SDK (card + wallets), existing script pattern
-  useEffect(() => {
-    if (!appId || !locationId) return;
-    if (cardInstanceRef.current) return;
-
-    let googlePayCleanup: (() => void) | null = null;
-    const scriptSrc = isSandbox
-      ? 'https://sandbox.web.squarecdn.com/v1/square.js'
-      : 'https://web.squarecdn.com/v1/square.js';
-
-    const waitForSquare = (): Promise<any> => new Promise((resolve, reject) => {
-      const sq = (window as any).Square;
-      if (sq) { resolve(sq); return; }
-      let attempts = 0;
-      const interval = setInterval(() => {
-        const s = (window as any).Square;
-        if (s) { clearInterval(interval); resolve(s); }
-        else if (++attempts > 20) { clearInterval(interval); reject(new Error('Square SDK timed out')); }
-      }, 150);
-    });
-
-    const existing = document.querySelector(`script[src="${scriptSrc}"]`);
-    const initSquare = async () => {
-      if (cardInstanceRef.current || initializingRef.current) return;
-      initializingRef.current = true;
-      try {
-        const sq = await waitForSquare().catch(() => null);
-        if (!sq) { initializingRef.current = false; return; }
-        const payments = sq.payments(appId, locationId);
-        paymentsRef.current = payments;
-        const cardContainer = document.getElementById('sq-card-booking');
-        if (cardContainer) cardContainer.innerHTML = '';
-
-        // Square card style: only properties Square accepts (no boxShadow, no fontSize).
-        const card = await payments.card({
-          style: {
-            input: {
-              color: '#4B2E25',
-              fontFamily: 'Helvetica Neue, sans-serif',
-            },
-            '.input-container': {
-              borderColor: '#C9A47E',
-              borderRadius: '8px',
-              borderWidth: '2px',
-            },
-            '.input-container.is-focus': {
-              borderColor: '#4B2E25',
-              borderWidth: '2px',
-            },
-            '.input-container.is-error': {
-              borderColor: '#991b1b',
-            },
-            '.message-text': { color: '#4B2E25' },
-          },
-        });
-        await card.attach('#sq-card-booking');
-        cardInstanceRef.current = card;
-        setSdkReady(true);
-
-        // PaymentRequest: amount must be decimal string for display (e.g. "393.00"), not cents
-        const totalAmountDisplay = (dueTodayCents / 100).toFixed(2);
-        const paymentRequest = payments.paymentRequest({
-          countryCode: 'US',
-          currencyCode: 'USD',
-          total: { amount: totalAmountDisplay, label: 'NoTime Storage' },
-        });
-
-        // Apple Pay: create with paymentRequest, no attach (Square docs). Custom button + tokenize on click.
-        try {
-          const applePay = await payments.applePay(paymentRequest);
-          applePayRef.current = applePay;
-          setApplePayInstance(applePay);
-        } catch (e) {
-          console.log('Apple Pay not available', e);
-        }
-
-        // Google Pay: create with paymentRequest, attach to div with button options only
-        try {
-          if (googlePayRef.current) throw new Error('already attached');
-          const gpContainer = document.getElementById('google-pay-button');
-          if (gpContainer) gpContainer.innerHTML = '';
-          const googlePay = await payments.googlePay(paymentRequest);
-          // Double-check after async — another concurrent init may have won
-          if (googlePayRef.current) {
-            googlePay.destroy?.();
-            throw new Error('already attached');
-          }
-          if (gpContainer) gpContainer.innerHTML = '';
-          await googlePay.attach('#google-pay-button', { buttonColor: 'default', buttonType: 'long' });
-          googlePayRef.current = googlePay;
-          setGooglePayInstance(googlePay);
-          const googlePayEl = document.getElementById('google-pay-button');
-          const onGooglePayClick = async () => {
-            setProcessing(true);
-            setError(null);
-            try {
-              const result = await googlePay.tokenize();
-              if (result.status === 'OK' && result.token) {
-                await paymentProcessorRef.current?.(result.token);
-              } else {
-                setError(result.errors?.[0]?.message ?? 'Google Pay failed');
-              }
-            } catch (err: any) {
-              setError(err?.message ?? 'Google Pay failed');
-            } finally {
-              setProcessing(false);
-            }
-          };
-          // Google Pay handles its own authentication natively — no verifyBuyer needed
-          googlePayEl?.addEventListener('click', onGooglePayClick);
-          googlePayCleanup = () => googlePayEl?.removeEventListener('click', onGooglePayClick);
-        } catch (e) {
-          console.log('Google Pay not available', e);
-        }
-      } catch (err: any) {
-        setError(err?.message ?? 'Could not load payment form.');
-      } finally {
-        initializingRef.current = false;
-      }
-    };
-
-    if (existing) {
-      initSquare();
-    } else {
-      const script = document.createElement('script');
-      script.src = scriptSrc;
-      script.onload = initSquare;
-      script.onerror = () => setError('Failed to load payment SDK. Please refresh.');
-      document.head.appendChild(script);
-    }
-
-    return () => {
-      initializingRef.current = false;
-      googlePayCleanup?.();
-      if (googlePayRef.current && typeof googlePayRef.current.destroy === 'function') {
-        googlePayRef.current.destroy();
-      }
-      googlePayRef.current = null;
-      cardInstanceRef.current?.destroy?.();
-      cardInstanceRef.current = null;
-      applePayRef.current = null;
-      setSdkReady(false);
-      setApplePayInstance(null);
-      setGooglePayInstance(null);
-      const cardEl = document.getElementById('sq-card-booking');
-      if (cardEl) cardEl.innerHTML = '';
-      const gpEl = document.getElementById('google-pay-button');
-      if (gpEl) gpEl.innerHTML = '';
-    };
-  }, [appId, locationId, isSandbox, dueTodayCents]);
-
-  const handleApplePayClick = async (e: React.MouseEvent) => {
-    e.preventDefault();
-    if (!applePayRef.current) return;
-    setError(null);
-    setProcessing(true);
-    try {
-      const result = await applePayRef.current.tokenize();
-      if (result.status === 'OK' && result.token) {
-        await verifyAndProcess(result.token);
-      } else {
-        setError(result.errors?.[0]?.message ?? 'Apple Pay failed');
-      }
-    } catch (err: any) {
-      setError(err?.message ?? 'Apple Pay failed');
-    } finally {
-      setProcessing(false);
-    }
-  };
-
-  const handlePayAndConfirm = async () => {
+  const handleSaveBookingAndPayVenmo = async () => {
     if (!userId) {
       router.push(`/auth/login?redirect=${encodeURIComponent(`/booking/payment?${searchParams.toString()}`)}`);
       return;
     }
-    if (!cardInstanceRef.current) {
-      setError('Payment form not ready. Please wait.');
+    const payload = buildBookingPayload();
+    if (!payload) {
+      setError('Missing booking details.');
       return;
     }
     setError(null);
     setProcessing(true);
+    setStep('creating');
     try {
-      const tokenResult = await cardInstanceRef.current.tokenize();
-      if (tokenResult.status !== 'OK') {
-        setError(tokenResult.errors?.[0]?.message ?? 'Card details invalid.');
+      const bookingResult = await createBooking(payload);
+      if (!bookingResult.success) {
+        setError(bookingResult.error);
         setProcessing(false);
+        setStep('idle');
         return;
       }
-      await verifyAndProcess(tokenResult.token);
-    } catch (err: any) {
-      setError(err?.message ?? 'Payment processing failed. Please try again.');
+      setStep('done');
+      const bookingId = bookingResult.bookingId;
+      const confirmedBase =
+        `/booking/confirmed?moveOutDate=${moveOutDate}&school=${encodeURIComponent(school)}&boxes=${boxes}&monthlyTotal=${monthlyTotal}&totalPrice=${totalPrice}&months=${storageMonths}` +
+        `&venmoPending=1&bookingId=${encodeURIComponent(bookingId)}`;
+
+      window.location.href = `${confirmedBase}&paymentPlan=full`;
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Something went wrong. Please try again.');
       setProcessing(false);
+      setStep('idle');
     }
   };
 
-  const stepLabel = step === 'creating' ? 'Saving booking…' : step === 'charging' ? 'Processing payment…' : 'Pay & Confirm';
-  const hasWallet = applePayInstance || googlePayInstance;
+  const stepLabel = step === 'creating' ? 'Saving your booking…' : 'Continue';
+  const venmoSlug = getVenmoHandleFromEnv();
+  const venmoAmountLabel = `$${(totalPrice - 50).toFixed(2)}`;
 
   return (
     <AuthPageWrapper>
@@ -565,84 +256,28 @@ function PaymentPageContent() {
               </div>
             </div>
 
-            {/* Payment schedule — monthly plan */}
-            {paymentPlan === 'monthly' && monthlyBreakdown ? (
-              <div className="payment-schedule-card">
-                <div style={{ fontSize: '0.6875rem', fontWeight: '700', letterSpacing: '0.1em', color: 'var(--color-coffee)', marginBottom: '14px', textTransform: 'uppercase' }}>
-                  Payment Schedule
-                </div>
-
-                {/* Month 1 — today */}
-                <div className="payment-schedule-row today">
-                  <div>
-                    <div style={{ fontWeight: '700', color: 'var(--color-coffee)' }}>Today (Month 1)</div>
-                    <div style={{ fontSize: '0.8125rem', color: 'var(--color-gray-600)' }}>Auto-charged today</div>
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
-                    <span style={{ color: '#2e7d32', fontWeight: '700' }}>✓</span>
-                    <span style={{ fontWeight: '700', color: 'var(--color-coffee)', fontSize: '1.0625rem' }}>
-                      ${(monthlyBreakdown.month1Cents / 100).toFixed(2)}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Month 2 */}
-                <div className="payment-schedule-row future">
-                  <div>
-                    <div style={{ fontWeight: '600' }}>Month 2</div>
-                    <div style={{ fontSize: '0.8125rem', color: 'var(--color-gray-500)' }}>
-                      {new Date(monthlyBreakdown.month2Date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                    </div>
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
-                    <span>🔄</span>
-                    <span style={{ fontWeight: '600' }}>${(monthlyBreakdown.month2Cents / 100).toFixed(2)}</span>
-                  </div>
-                </div>
-
-                {/* Month 3 */}
-                <div className="payment-schedule-row future">
-                  <div>
-                    <div style={{ fontWeight: '600' }}>Month 3</div>
-                    <div style={{ fontSize: '0.8125rem', color: 'var(--color-gray-500)' }}>
-                      {new Date(monthlyBreakdown.month3Date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                    </div>
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
-                    <span>🔄</span>
-                    <span style={{ fontWeight: '600' }}>${(monthlyBreakdown.month3Cents / 100).toFixed(2)}</span>
-                  </div>
-                </div>
-
-                <div className="payment-schedule-footer-total">
-                  <span style={{ fontWeight: '700', color: 'var(--color-coffee)' }}>Total</span>
-                  <span style={{ fontWeight: '700', color: 'var(--color-coffee)' }}>${(monthlyBreakdown.totalCents / 100).toFixed(2)}</span>
-                </div>
-                <div style={{ fontSize: '0.75rem', color: 'var(--color-gray-500)', marginTop: '8px' }}>
-                  ✓ = Charged today · 🔄 = Auto-charged on date shown
-                </div>
-              </div>
-            ) : (
-              <div className="booking-summary-total">
-                <span>Total due today</span>
-                <span>${(totalPrice - 50).toFixed(2)}</span>
-              </div>
-            )}
+            <div className="booking-summary-total">
+              <span>Total due today (pay in full)</span>
+              <span>${(totalPrice - 50).toFixed(2)}</span>
+            </div>
           </div>
 
         {/* Payment: CSS order places it left on ≥768px */}
         <div className="booking-payment-card">
             <h2>Payment</h2>
             <div className="payment-trust-message">
-              {paymentPlan === 'monthly' && monthlyBreakdown
-                ? <>Your $50 deposit credit is applied to month 1. You will be charged <strong>${(monthlyBreakdown.month1Cents / 100).toFixed(2)}</strong> today, then auto-charged monthly.</>
-                : <>Your $50 commitment deposit has been deducted. You will be charged <strong>${(totalPrice - 50).toFixed(2)}</strong> today.</>
-              }
+              Your $50 commitment deposit has been deducted. Send <strong>${(totalPrice - 50).toFixed(2)}</strong> via Venmo to pay the remainder in full and finish checkout.
             </div>
 
-            {isSandbox && (
-              <div className="sandbox-warning">
-                Test mode — use card 4111 1111 1111 1111, any future date, any CVV. No real charges.
+            {venmoSlug ? (
+              <VenmoBackupSection venmoSlug={venmoSlug} amountLabel={venmoAmountLabel} purpose="booking" />
+            ) : (
+              <div className="payment-error-message" role="status">
+                Venmo checkout is not configured. Please email{' '}
+                <a href={`mailto:${SITE_CONTACT_EMAIL}`} style={{ fontWeight: 700 }}>
+                  {SITE_CONTACT_EMAIL}
+                </a>{' '}
+                to complete your booking.
               </div>
             )}
 
@@ -652,97 +287,24 @@ function PaymentPageContent() {
               </div>
             )}
 
-            {/* Apple Pay: custom button (Square has no attach); Google Pay: attach renders into div */}
-            <div className="payment-digital-wallets" style={{ display: hasWallet ? 'flex' : 'none' }}>
-              {applePayInstance && (
-                <button
-                  type="button"
-                  id="apple-pay-button"
-                  className="payment-wallet-button payment-wallet-button-apple"
-                  onClick={handleApplePayClick}
-                  disabled={processing}
-                  aria-label="Pay with Apple Pay"
-                />
-              )}
-              <div id="google-pay-button" className="payment-wallet-button" />
-            </div>
-
-            {hasWallet && (
-              <div className="payment-method-divider">
-                <span>or pay with card</span>
-              </div>
-            )}
-
-            <div className="billing-address-block">
-              <div style={{ fontSize: '0.8rem', fontWeight: 600, color: '#6B5A52', marginBottom: '8px' }}>
-                Billing address <span style={{ fontWeight: 400, color: '#9E8E88' }}>(optional — helps reduce declines)</span>
-              </div>
-              <div className="billing-address-fields">
-                <input
-                  type="text"
-                  placeholder="Street address"
-                  value={billingAddress.addressLine1}
-                  onChange={e => setBillingAddress(a => ({ ...a, addressLine1: e.target.value }))}
-                  className="billing-address-input"
-                  autoComplete="street-address"
-                />
-                <div className="billing-address-fields__row2">
-                  <input
-                    type="text"
-                    placeholder="City"
-                    value={billingAddress.city}
-                    onChange={e => setBillingAddress(a => ({ ...a, city: e.target.value }))}
-                    className="billing-address-input"
-                    autoComplete="address-level2"
-                  />
-                  <input
-                    type="text"
-                    placeholder="State"
-                    value={billingAddress.state}
-                    onChange={e => setBillingAddress(a => ({ ...a, state: e.target.value }))}
-                    className="billing-address-input"
-                    autoComplete="address-level1"
-                  />
-                </div>
-                <input
-                  type="text"
-                  placeholder="ZIP / Postal code"
-                  value={billingAddress.postalCode}
-                  onChange={e => setBillingAddress(a => ({ ...a, postalCode: e.target.value }))}
-                  className="billing-address-input"
-                  autoComplete="postal-code"
-                />
-              </div>
-            </div>
-
-            <div style={{ display: 'flex', gap: '6px', alignItems: 'center', marginBottom: '10px' }}>
-              {['visa', 'mastercard', 'amex', 'discovery'].map((card) => (
-                <div key={card} style={{ width: '44px', height: '28px', borderRadius: '4px', overflow: 'hidden', border: '1px solid #e5e7eb', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <img src={`/card-logos/${card}.jpg`} alt={card} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
-                </div>
-              ))}
-            </div>
-            <div id="sq-card-booking" className="square-card-container" />
+            {venmoSlug ? (
+              <p style={{ fontSize: '0.85rem', color: 'var(--color-gray-600)', marginBottom: '16px', lineHeight: 1.5 }}>
+                Tap the button below to save your booking. Then complete your Venmo payment using the instructions above. We confirm your spot after we receive payment.
+              </p>
+            ) : null}
 
             <button
               type="button"
               className="booking-payment-button"
-              onClick={handlePayAndConfirm}
-              disabled={!sdkReady || processing}
+              onClick={handleSaveBookingAndPayVenmo}
+              disabled={!venmoSlug || processing}
             >
               {processing && <span className="payment-spinner" aria-hidden />}
-              {processing
-                ? stepLabel
-                : paymentPlan === 'monthly' && monthlyBreakdown
-                  ? `Pay $${(monthlyBreakdown.month1Cents / 100).toFixed(2)} Today & Confirm`
-                  : `Pay $${(totalPrice - 50).toFixed(2)} & Confirm`
-              }
+              {processing ? stepLabel : `Save booking — then pay ${venmoAmountLabel} on Venmo`}
             </button>
 
             <div className="payment-trust-badges">
-              <span>🔒 256-bit encrypted</span>
-              <span>✓ PCI compliant</span>
-              <span>Powered by Square</span>
+              <span>Pay securely through Venmo</span>
             </div>
           </div>
         </div>

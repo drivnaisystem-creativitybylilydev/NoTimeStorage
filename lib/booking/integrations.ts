@@ -177,7 +177,7 @@ async function syncToAirtable(b: BookingWithCustomer): Promise<void> {
 
 // ---- New booking emails (Resend — branded templates) ----
 
-async function sendNewBookingEmail(b: BookingWithCustomer): Promise<void> {
+async function sendNewBookingEmail(b: BookingWithCustomer, opts?: { skipCustomer?: boolean }): Promise<void> {
   const { sendNewBookingAdmin, sendOrderConfirmedUser } = await import('@/lib/email/send');
 
   const customerName = b.customer?.full_name || b.customer?.email || 'Customer';
@@ -239,7 +239,10 @@ async function sendNewBookingEmail(b: BookingWithCustomer): Promise<void> {
   });
 
   // Confirmation email to user (+ parent if provided)
-  if (customerEmail) {
+  // In the Venmo-only flow we skip this on creation because the booking is
+  // unpaid at that moment — the customer would receive a "confirmed" email
+  // before they've actually paid. We send it from `markBookingPaid` instead.
+  if (!opts?.skipCustomer && customerEmail) {
     await sendOrderConfirmedUser({
       ...sharedParams,
       to: customerEmail,
@@ -248,14 +251,63 @@ async function sendNewBookingEmail(b: BookingWithCustomer): Promise<void> {
   }
 }
 
+/** Sends only the customer-facing order-confirmed email.
+ *  Called from `markBookingPaid` after admin verifies a manual Venmo payment.
+ */
+export async function sendBookingConfirmationToCustomer(booking: BookingWithItems): Promise<void> {
+  const { sendOrderConfirmedUser } = await import('@/lib/email/send');
+  const withCustomer = await getBookingWithCustomer(booking);
+  const customerEmail = withCustomer.customer?.email || '';
+  if (!customerEmail) return;
+
+  const customerName = withCustomer.customer?.full_name || customerEmail || 'Customer';
+  const moveOutFormatted = formatDate(withCustomer.move_out_date);
+  const moveOutTime = formatTimeSlot(withCustomer.move_out_time_slot);
+  const moveInFormatted = formatDate(withCustomer.move_in_date);
+  const boxItem = withCustomer.items?.find((i) => i.item_type === 'box');
+  const boxQty = boxItem?.quantity ?? 1;
+  const additionalItems = withCustomer.items
+    ?.filter((i) => i.item_type !== 'box')
+    .map((i) => `${i.quantity}× ${i.item_type.replace(/_/g, ' ')}`)
+    .join(', ') || '';
+  const monthlyTotal = typeof withCustomer.total_monthly_rate === 'number'
+    ? withCustomer.total_monthly_rate
+    : parseFloat(String(withCustomer.total_monthly_rate || 0));
+  const totalPriceNum = typeof withCustomer.total_price === 'number'
+    ? withCustomer.total_price
+    : parseFloat(String(withCustomer.total_price || 0));
+
+  await sendOrderConfirmedUser({
+    to: customerEmail,
+    parentEmail: withCustomer.customer?.parent_email ?? undefined,
+    customerName,
+    bookingId: withCustomer.id,
+    school: withCustomer.school ?? '—',
+    dorm: withCustomer.dorm ?? '—',
+    moveOutDate: moveOutFormatted,
+    moveOutTime,
+    moveInDate: moveInFormatted,
+    boxQuantity: boxQty,
+    monthlyTotal,
+    additionalItems,
+    paymentPlan: 'full',
+    totalPrice: totalPriceNum,
+  });
+}
+
 // ---- Public hooks ----
 
-export async function onBookingCreated(booking: BookingWithItems): Promise<void> {
+export async function onBookingCreated(
+  booking: BookingWithItems,
+  opts?: { isPaid?: boolean },
+): Promise<void> {
   if (process.env.NODE_ENV === 'development') {
-    console.log('[integrations] onBookingCreated called – booking id:', booking.id);
+    console.log('[integrations] onBookingCreated called – booking id:', booking.id, 'isPaid:', opts?.isPaid);
   }
   const withCustomer = await getBookingWithCustomer(booking);
-  await sendNewBookingEmail(withCustomer);
+  // Skip the "confirmed" customer email when the booking is not yet paid
+  // (Venmo-only flow). Admin email still fires so the team knows to collect.
+  await sendNewBookingEmail(withCustomer, { skipCustomer: opts?.isPaid === false });
   await Promise.all([syncToGoogleCalendar(withCustomer), syncToAirtable(withCustomer)]);
   if (process.env.NODE_ENV === 'development') {
     console.log('[integrations] onBookingCreated', booking.id, withCustomer.customer?.full_name);

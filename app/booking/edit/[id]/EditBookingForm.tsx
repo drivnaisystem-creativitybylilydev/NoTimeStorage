@@ -1,11 +1,14 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
 import { updateBookingItems } from '@/lib/booking/update-booking';
 import { chargeBookingUpgrade } from '@/lib/square/charge-upgrade';
+import { applyPaidBookingItemUpgradeVenmo } from '@/lib/booking/apply-paid-upgrade-venmo';
+import { VenmoBackupSection } from '@/app/components/VenmoBackupSection';
+import { getVenmoHandleFromEnv } from '@/lib/payment/venmo';
 import type { BookingItemInput, BookingItemType } from '@/lib/booking/types';
 import { AuthPageWrapper } from '@/app/components/AuthPageWrapper';
 import {
@@ -63,19 +66,7 @@ export function EditBookingForm({
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Square SDK state (only needed when isPaid and delta > 0)
-  const [isSandbox, setIsSandbox] = useState(true);
-  const [appId, setAppId] = useState('');
-  const [locationId, setLocationId] = useState('');
-  const [sdkReady, setSdkReady] = useState(false);
-  const cardInstanceRef = useRef<any>(null);
-  const applePayRef = useRef<any>(null);
-  const googlePayRef = useRef<any>(null);
-  const initializingRef = useRef(false);
-  const [applePayInstance, setApplePayInstance] = useState<any>(null);
-  const [googlePayInstance, setGooglePayInstance] = useState<any>(null);
-  const buildItemsRef = useRef<() => BookingItemInput[]>(() => []);
-  const upgradeCtxRef = useRef({ bookingId, deltaTotalCents: 0 });
+  const venmoSlug = getVenmoHandleFromEnv();
 
   const withBoxItemsUnlocked = boxQuantity >= 1;
   const withoutBoxItemsUnlocked = boxQuantity < 1;
@@ -109,162 +100,6 @@ export function EditBookingForm({
   // Charge whenever more items are added, regardless of whether the booking is paid or not
   const needsPayment = deltaMonthly > 0;
 
-  // Fetch Square config once when upgrade payment becomes needed
-  useEffect(() => {
-    if (!needsPayment) return;
-    fetch('/api/square-config')
-      .then(r => r.json())
-      .then(({ applicationId, locationId: loc, isSandbox: sb }) => {
-        setAppId(applicationId);
-        setLocationId(loc);
-        setIsSandbox(sb);
-      })
-      .catch(console.error);
-  }, [needsPayment]);
-
-  // Mount Square card + Apple Pay / Google Pay when upgrade charge is due (amount tracks delta)
-  useEffect(() => {
-    if (!needsPayment || !appId || !locationId || deltaTotalCents <= 0) return;
-
-    let googlePayCleanup: (() => void) | null = null;
-    const scriptSrc = isSandbox
-      ? 'https://sandbox.web.squarecdn.com/v1/square.js'
-      : 'https://web.squarecdn.com/v1/square.js';
-
-    const waitForSquare = (): Promise<any> =>
-      new Promise((resolve, reject) => {
-        const sq = (window as any).Square;
-        if (sq) {
-          resolve(sq);
-          return;
-        }
-        let attempts = 0;
-        const interval = setInterval(() => {
-          const s = (window as any).Square;
-          if (s) {
-            clearInterval(interval);
-            resolve(s);
-          } else if (++attempts > 40) {
-            clearInterval(interval);
-            reject(new Error('Square SDK timed out'));
-          }
-        }, 150);
-      });
-
-    const initSquare = async () => {
-      if (initializingRef.current) return;
-      initializingRef.current = true;
-      try {
-        const sq = await waitForSquare().catch(() => null);
-        if (!sq) {
-          initializingRef.current = false;
-          return;
-        }
-        const payments = sq.payments(appId, locationId);
-        const container = document.getElementById('sq-card-upgrade');
-        if (container) container.innerHTML = '';
-        const card = await payments.card({
-          style: {
-            input: { color: '#4B2E25', fontSize: '15px' },
-            '.input-container': { borderColor: '#C9A47E', borderRadius: '8px' },
-            '.input-container.is-focus': { borderColor: '#4B2E25' },
-          },
-        });
-        await card.attach('#sq-card-upgrade');
-        cardInstanceRef.current = card;
-        setSdkReady(true);
-
-        const totalAmountDisplay = (deltaTotalCents / 100).toFixed(2);
-        const paymentRequest = payments.paymentRequest({
-          countryCode: 'US',
-          currencyCode: 'USD',
-          total: { amount: totalAmountDisplay, label: 'NoTime Storage' },
-        });
-
-        try {
-          const applePay = await payments.applePay(paymentRequest);
-          applePayRef.current = applePay;
-          setApplePayInstance(applePay);
-        } catch {
-          setApplePayInstance(null);
-        }
-
-        try {
-          if (googlePayRef.current) throw new Error('already attached');
-          const gpContainer = document.getElementById('upgrade-google-pay-button');
-          if (gpContainer) gpContainer.innerHTML = '';
-          const googlePay = await payments.googlePay(paymentRequest);
-          if (googlePayRef.current) {
-            googlePay.destroy?.();
-            throw new Error('already attached');
-          }
-          if (gpContainer) gpContainer.innerHTML = '';
-          await googlePay.attach('#upgrade-google-pay-button', { buttonColor: 'default', buttonType: 'long' });
-          googlePayRef.current = googlePay;
-          setGooglePayInstance(googlePay);
-          const googlePayEl = document.getElementById('upgrade-google-pay-button');
-          const onGooglePayClick = async () => {
-            const items = buildItemsRef.current();
-            const { bookingId: bid, deltaTotalCents: dtc } = upgradeCtxRef.current;
-            setProcessing(true);
-            setError(null);
-            try {
-              const result = await googlePay.tokenize();
-              if (result.status === 'OK' && result.token) {
-                const res = await chargeBookingUpgrade(bid, items, result.token, dtc);
-                if (res.success) router.push('/booking/updated?type=items');
-                else setError(res.error);
-              } else {
-                setError(result.errors?.[0]?.message ?? 'Google Pay failed');
-              }
-            } catch (err: any) {
-              setError(err?.message ?? 'Google Pay failed');
-            } finally {
-              setProcessing(false);
-            }
-          };
-          googlePayEl?.addEventListener('click', onGooglePayClick);
-          googlePayCleanup = () => googlePayEl?.removeEventListener('click', onGooglePayClick);
-        } catch {
-          setGooglePayInstance(null);
-        }
-      } catch (err: any) {
-        setError(err?.message ?? 'Could not load payment form.');
-      } finally {
-        initializingRef.current = false;
-      }
-    };
-
-    const existing = document.querySelector(`script[src="${scriptSrc}"]`);
-    if (existing) initSquare();
-    else {
-      const script = document.createElement('script');
-      script.src = scriptSrc;
-      script.onload = () => { initSquare(); };
-      script.onerror = () => setError('Failed to load payment SDK.');
-      document.head.appendChild(script);
-    }
-
-    return () => {
-      googlePayCleanup?.();
-      if (googlePayRef.current && typeof googlePayRef.current.destroy === 'function') {
-        googlePayRef.current.destroy();
-      }
-      googlePayRef.current = null;
-      applePayRef.current = null;
-      setApplePayInstance(null);
-      setGooglePayInstance(null);
-      cardInstanceRef.current?.destroy?.();
-      cardInstanceRef.current = null;
-      setSdkReady(false);
-      initializingRef.current = false;
-      const cardEl = document.getElementById('sq-card-upgrade');
-      if (cardEl) cardEl.innerHTML = '';
-      const gpEl = document.getElementById('upgrade-google-pay-button');
-      if (gpEl) gpEl.innerHTML = '';
-    };
-  }, [needsPayment, appId, locationId, isSandbox, deltaTotalCents]);
-
   const updateItem = (key: keyof AdditionalItems, delta: number) => {
     const isWithBox = key === 'smallWithBox' || key === 'mediumWithBox';
     const isWithoutBox = key === 'smallWithoutBox' || key === 'mediumWithoutBox';
@@ -297,32 +132,6 @@ export function EditBookingForm({
     return items;
   }, [boxQuantity, additionalItems]);
 
-  buildItemsRef.current = buildItems;
-  upgradeCtxRef.current = { bookingId, deltaTotalCents };
-
-  const handleApplePayClick = async (e: React.MouseEvent) => {
-    e.preventDefault();
-    if (!applePayRef.current) return;
-    setError(null);
-    setProcessing(true);
-    try {
-      const items = buildItemsRef.current();
-      const { bookingId: bid, deltaTotalCents: dtc } = upgradeCtxRef.current;
-      const result = await applePayRef.current.tokenize();
-      if (result.status === 'OK' && result.token) {
-        const res = await chargeBookingUpgrade(bid, items, result.token, dtc);
-        if (res.success) router.push('/booking/updated?type=items');
-        else setError(res.error);
-      } else {
-        setError(result.errors?.[0]?.message ?? 'Apple Pay failed');
-      }
-    } catch (err: any) {
-      setError(err?.message ?? 'Apple Pay failed');
-    } finally {
-      setProcessing(false);
-    }
-  };
-
   const handleSave = async () => {
     const items = buildItems();
     if (items.length === 0) { setError('Add at least one box or additional item.'); return; }
@@ -330,17 +139,27 @@ export function EditBookingForm({
     setProcessing(true);
 
     if (needsPayment) {
-      // Items increased: charge the delta via Square (works for both paid and unpaid bookings)
-      if (!cardInstanceRef.current) { setError('Payment form not ready.'); setProcessing(false); return; }
-      const tokenResult = await cardInstanceRef.current.tokenize();
-      if (tokenResult.status !== 'OK') {
-        setError(tokenResult.errors?.[0]?.message ?? 'Card details invalid.');
+      if (!venmoSlug) {
+        setError('Venmo checkout is not configured. Please contact support.');
         setProcessing(false);
         return;
       }
-      const result = await chargeBookingUpgrade(bookingId, items, tokenResult.token, deltaTotalCents);
+      if (isPaid) {
+        const result = await applyPaidBookingItemUpgradeVenmo(bookingId, items);
+        setProcessing(false);
+        if (result.success) {
+          router.push('/booking/updated?type=items');
+          return;
+        }
+        setError(result.error);
+        return;
+      }
+      const result = await updateBookingItems(bookingId, items);
       setProcessing(false);
-      if (result.success) { router.push('/booking/updated?type=items'); return; }
+      if (result.success) {
+        router.push('/booking/updated?type=items');
+        return;
+      }
       setError(result.error);
     } else if (isPaid) {
       // Paid booking, items equal or reduced: update via chargeBookingUpgrade with no charge
@@ -358,7 +177,6 @@ export function EditBookingForm({
   };
 
   const isAtItemCap = totalAdditionalItems >= MAX_ADDITIONAL_ITEMS;
-  const hasWallet = !!(applePayInstance || googlePayInstance);
 
   return (
     <AuthPageWrapper>
@@ -495,40 +313,24 @@ export function EditBookingForm({
         </div>
 
         {/* Upgrade payment section — only appears for paid bookings with a positive delta */}
-        {needsPayment && (
-          <div style={{ padding: '28px', background: 'var(--color-paper)', borderRadius: '12px', marginBottom: '24px', border: '2px solid var(--color-latte)' }}>
+        {needsPayment && !venmoSlug && (
+          <div style={{ padding: '14px 16px', marginBottom: '20px', background: '#FEF3C7', border: '1px solid #FCD34D', borderRadius: '10px', fontSize: '0.875rem', color: '#78350F' }}>
+            Extra storage requires a Venmo payment, but Venmo is not configured on this site. Please contact support before increasing your order.
+          </div>
+        )}
+
+        {needsPayment && venmoSlug && (
+          <div style={{ padding: '8px 0 0', marginBottom: '24px' }}>
             <h2 style={{ fontSize: '1.1rem', fontWeight: '700', color: 'var(--color-coffee)', marginBottom: '6px' }}>Additional charge required</h2>
-            <p style={{ fontSize: '0.875rem', color: '#6B5A52', marginBottom: '16px' }}>
+            <p style={{ fontSize: '0.875rem', color: '#6B5A52', marginBottom: '12px' }}>
               You&apos;re adding <strong>${deltaMonthly.toFixed(2)}/month</strong> more for {storageMonths} months.
-              You&apos;ll be charged the difference: <strong>${(deltaTotalCents / 100).toFixed(2)}</strong>.
+              One-time difference: <strong>${(deltaTotalCents / 100).toFixed(2)}</strong>.
             </p>
-            {isSandbox && (
-              <div style={{ background: '#FEF9C3', border: '1px solid #FDE047', borderRadius: '8px', padding: '8px 12px', marginBottom: '14px', fontSize: '0.78rem', color: '#713F12' }}>
-                <strong>Sandbox</strong> — Test card: <code>4111 1111 1111 1111</code>, any future date, any CVV.
-              </div>
-            )}
-            <p style={{ fontSize: '0.8125rem', color: '#6B5A52', marginBottom: '12px', marginTop: 0 }}>
-              Pay the upgrade with Apple Pay, Google Pay, or card when available on this device.
-            </p>
-            <div className="payment-digital-wallets" style={{ display: hasWallet ? 'flex' : 'none', marginBottom: hasWallet ? '12px' : 0 }}>
-              {applePayInstance && (
-                <button
-                  type="button"
-                  id="upgrade-apple-pay-button"
-                  className="payment-wallet-button payment-wallet-button-apple"
-                  onClick={handleApplePayClick}
-                  disabled={processing}
-                  aria-label="Pay upgrade with Apple Pay"
-                />
-              )}
-              <div id="upgrade-google-pay-button" className="payment-wallet-button" />
-            </div>
-            {hasWallet && (
-              <div className="payment-method-divider" style={{ marginBottom: '12px' }}>
-                <span>or pay with card</span>
-              </div>
-            )}
-            <div id="sq-card-upgrade" style={{ minHeight: '89px' }} />
+            <VenmoBackupSection
+              venmoSlug={venmoSlug}
+              amountLabel={`$${(deltaTotalCents / 100).toFixed(2)}`}
+              purpose="upgrade"
+            />
           </div>
         )}
 
@@ -551,9 +353,9 @@ export function EditBookingForm({
           </div>
           <button
             onClick={handleSave}
-            disabled={processing || (needsPayment && !sdkReady)}
+            disabled={processing || (needsPayment && !venmoSlug)}
             className="button-primary"
-            style={{ padding: '14px clamp(16px, 5vw, 48px)', fontSize: '1.05rem', flexShrink: 0, opacity: (processing || (needsPayment && !sdkReady)) ? 0.65 : 1 }}
+            style={{ padding: '14px clamp(16px, 5vw, 48px)', fontSize: '1.05rem', flexShrink: 0, opacity: (processing || (needsPayment && !venmoSlug)) ? 0.65 : 1 }}
           >
             {processing
               ? 'Processing…'
