@@ -9,8 +9,7 @@ import { createBooking } from '@/lib/booking/create-booking';
 import type { CreateBookingInput, BookingItemType } from '@/lib/booking/types';
 import { formatDate, formatTime } from '@/lib/utils/date';
 import { AuthPageWrapper } from '@/app/components/AuthPageWrapper';
-import { VenmoBackupSection } from '@/app/components/VenmoBackupSection';
-import { getVenmoHandleFromEnv } from '@/lib/payment/venmo';
+import { buildVenmoNote, buildVenmoPayUrl, getVenmoHandleFromEnv } from '@/lib/payment/venmo';
 import { SITE_CONTACT_EMAIL } from '@/lib/site/contact';
 import {
   ADDON_PRICE_USD_MONTH,
@@ -32,6 +31,7 @@ function PaymentPageContent() {
   const router = useRouter();
 
   const [userId, setUserId] = useState<string | null>(null);
+  const [firstName, setFirstName] = useState<string>('');
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [step, setStep] = useState<'idle' | 'creating' | 'done'>('idle');
@@ -124,12 +124,26 @@ function PaymentPageContent() {
 
   useEffect(() => {
     const supabase = createClient();
-    supabase.auth.getUser().then(({ data: { user } }) => setUserId(user?.id ?? null));
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      setUserId(user?.id ?? null);
+      const meta = user?.user_metadata as { full_name?: string; first_name?: string } | undefined;
+      const first = (meta?.first_name || meta?.full_name?.split(' ')[0] || '').trim();
+      setFirstName(first);
+    });
   }, []);
+
+  const venmoSlug = getVenmoHandleFromEnv();
+  const balanceDue = Math.max(0, totalPrice - 50);
+  const balanceDueCents = Math.round(balanceDue * 100);
+  const venmoAmountLabel = `$${balanceDue.toFixed(2)}`;
 
   const handleSaveBookingAndPayVenmo = async () => {
     if (!userId) {
       router.push(`/auth/login?redirect=${encodeURIComponent(`/booking/payment?${searchParams.toString()}`)}`);
+      return;
+    }
+    if (!venmoSlug) {
+      setError('Venmo checkout is not configured. Please contact support.');
       return;
     }
     const payload = buildBookingPayload();
@@ -137,6 +151,12 @@ function PaymentPageContent() {
       setError('Missing booking details.');
       return;
     }
+
+    // Open a named tab synchronously on click so popup blockers don't kill it —
+    // we'll rewrite its URL after createBooking returns. If the tab is blocked,
+    // we fall back to current-window navigation.
+    const venmoTab = window.open('about:blank', 'venmo-pay');
+
     setError(null);
     setProcessing(true);
     setStep('creating');
@@ -146,25 +166,43 @@ function PaymentPageContent() {
         setError(bookingResult.error);
         setProcessing(false);
         setStep('idle');
+        venmoTab?.close();
         return;
       }
       setStep('done');
       const bookingId = bookingResult.bookingId;
+      const note = buildVenmoNote({ kind: 'booking', bookingId, firstName });
+      const venmoUrl = buildVenmoPayUrl({
+        slug: venmoSlug,
+        amount: balanceDue,
+        note,
+      });
+
+      if (venmoTab && !venmoTab.closed) {
+        venmoTab.location.href = venmoUrl;
+      } else {
+        // Popup was blocked — fall back to opening in the same tab, then the
+        // user can hit back to reach the confirmed page.
+        window.location.href = venmoUrl;
+        return;
+      }
+
       const confirmedBase =
         `/booking/confirmed?moveOutDate=${moveOutDate}&school=${encodeURIComponent(school)}&boxes=${boxes}&monthlyTotal=${monthlyTotal}&totalPrice=${totalPrice}&months=${storageMonths}` +
-        `&venmoPending=1&bookingId=${encodeURIComponent(bookingId)}`;
+        `&venmoPending=1&bookingId=${encodeURIComponent(bookingId)}` +
+        `&venmoAmount=${balanceDueCents}` +
+        (firstName ? `&fn=${encodeURIComponent(firstName)}` : '');
 
       window.location.href = `${confirmedBase}&paymentPlan=full`;
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Something went wrong. Please try again.');
       setProcessing(false);
       setStep('idle');
+      venmoTab?.close();
     }
   };
 
   const stepLabel = step === 'creating' ? 'Saving your booking…' : 'Continue';
-  const venmoSlug = getVenmoHandleFromEnv();
-  const venmoAmountLabel = `$${(totalPrice - 50).toFixed(2)}`;
 
   return (
     <AuthPageWrapper>
@@ -266,12 +304,10 @@ function PaymentPageContent() {
         <div className="booking-payment-card">
             <h2>Payment</h2>
             <div className="payment-trust-message">
-              Your $50 commitment deposit has been deducted. Send <strong>${(totalPrice - 50).toFixed(2)}</strong> via Venmo to pay the remainder in full and finish checkout.
+              Your $50 deposit is already applied. Pay the remaining <strong>{venmoAmountLabel}</strong> on Venmo — amount and note are pre-filled.
             </div>
 
-            {venmoSlug ? (
-              <VenmoBackupSection venmoSlug={venmoSlug} amountLabel={venmoAmountLabel} purpose="booking" />
-            ) : (
+            {!venmoSlug && (
               <div className="payment-error-message" role="status">
                 Venmo checkout is not configured. Please email{' '}
                 <a href={`mailto:${SITE_CONTACT_EMAIL}`} style={{ fontWeight: 700 }}>
@@ -287,11 +323,52 @@ function PaymentPageContent() {
               </div>
             )}
 
-            {venmoSlug ? (
-              <p style={{ fontSize: '0.85rem', color: 'var(--color-gray-600)', marginBottom: '16px', lineHeight: 1.5 }}>
-                Tap the button below to save your booking. Then complete your Venmo payment using the instructions above. We confirm your spot after we receive payment.
-              </p>
-            ) : null}
+            {venmoSlug && (
+              <div
+                style={{
+                  margin: '0 0 20px',
+                  padding: '16px 18px',
+                  background: 'var(--color-paper)',
+                  border: '1px solid var(--color-latte)',
+                  borderRadius: '12px',
+                  fontSize: '0.88rem',
+                  color: 'var(--color-coffee)',
+                  lineHeight: 1.5,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '12px',
+                }}
+              >
+                {[
+                  'Tap the button below — we save your spot and open Venmo.',
+                  'Confirm the pre-filled payment (Venmo app or web).',
+                  'We verify the transfer and email your booking confirmation within one business day.',
+                ].map((text, i) => (
+                  <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
+                    <span
+                      style={{
+                        flexShrink: 0,
+                        width: '22px',
+                        height: '22px',
+                        borderRadius: '50%',
+                        background: 'var(--color-coffee)',
+                        color: 'var(--color-latte-soft)',
+                        fontSize: '0.72rem',
+                        fontWeight: 700,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        lineHeight: 1,
+                        marginTop: '1px',
+                      }}
+                    >
+                      {i + 1}
+                    </span>
+                    <span style={{ flex: 1 }}>{text}</span>
+                  </div>
+                ))}
+              </div>
+            )}
 
             <button
               type="button"
@@ -300,11 +377,11 @@ function PaymentPageContent() {
               disabled={!venmoSlug || processing}
             >
               {processing && <span className="payment-spinner" aria-hidden />}
-              {processing ? stepLabel : `Save booking — then pay ${venmoAmountLabel} on Venmo`}
+              {processing ? stepLabel : `Pay ${venmoAmountLabel} on Venmo`}
             </button>
 
             <div className="payment-trust-badges">
-              <span>Pay securely through Venmo</span>
+              <span>Pay securely through Venmo · no card info stored</span>
             </div>
           </div>
         </div>

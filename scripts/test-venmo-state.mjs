@@ -46,7 +46,9 @@ if (!url || !serviceKey) {
   process.exit(1);
 }
 
-const siteUrl = env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
+// Process env wins so you can override per-run:
+//   NEXT_PUBLIC_SITE_URL=http://localhost:3000 node scripts/test-venmo-state.mjs fresh
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
 
 const supabase = createClient(url, serviceKey, {
   auth: { autoRefreshToken: false, persistSession: false },
@@ -66,16 +68,34 @@ async function createAuthUser({ email, fullName, phone }) {
 }
 
 async function upsertProfile({ authUserId, email, fullName, phone, depositPaid }) {
+  const { data: existing } = await supabase
+    .from('users')
+    .select('id')
+    .or(`id.eq.${authUserId},auth_id.eq.${authUserId},email.eq.${email}`)
+    .limit(1)
+    .maybeSingle();
+
+  if (existing?.id) {
+    const { error } = await supabase
+      .from('users')
+      .update({ full_name: fullName, email, phone, school: 'Stonehill College', deposit_paid: depositPaid })
+      .eq('id', existing.id);
+    if (error) throw error;
+    return existing.id;
+  }
+
   const row = {
     id: authUserId,
+    auth_id: authUserId,
     full_name: fullName,
     email,
     phone,
     school: 'Stonehill College',
     deposit_paid: depositPaid,
   };
-  const { error } = await supabase.from('users').upsert(row, { onConflict: 'id' });
+  const { error } = await supabase.from('users').insert(row);
   if (error) throw error;
+  return authUserId;
 }
 
 async function magicLink(email) {
@@ -147,12 +167,6 @@ async function seedBooking({ userId, paid }) {
 }
 
 async function resetUserByEmail(email) {
-  const { data: users } = await supabase.auth.admin.listUsers();
-  const match = users?.users?.find((u) => u.email === email);
-  if (!match) {
-    console.log('No auth user with that email — nothing to clean.');
-    return;
-  }
   const { data: profile } = await supabase.from('users').select('id').eq('email', email).maybeSingle();
   const profileId = profile?.id;
   if (profileId) {
@@ -166,8 +180,10 @@ async function resetUserByEmail(email) {
     }
     await supabase.from('users').delete().eq('id', profileId);
   }
-  await supabase.auth.admin.deleteUser(match.id);
-  console.log(`Deleted ${email} (auth + profile + bookings).`);
+  const { data: users } = await supabase.auth.admin.listUsers();
+  const match = users?.users?.find((u) => u.email === email);
+  if (match) await supabase.auth.admin.deleteUser(match.id);
+  console.log(`Cleaned up ${email} (profile${match ? ' + auth' : ''}${profileId ? ' + bookings' : ''}).`);
 }
 
 async function main() {
@@ -193,13 +209,13 @@ async function main() {
 
   const authUser = await createAuthUser({ email, fullName, phone });
   const depositPaid = state !== 'fresh';
-  await upsertProfile({ authUserId: authUser.id, email, fullName, phone, depositPaid });
+  const profileId = await upsertProfile({ authUserId: authUser.id, email, fullName, phone, depositPaid });
 
   let bookingInfo = null;
   if (state === 'unpaid-booking') {
-    bookingInfo = await seedBooking({ userId: authUser.id, paid: false });
+    bookingInfo = await seedBooking({ userId: profileId, paid: false });
   } else if (state === 'paid-booking') {
-    bookingInfo = await seedBooking({ userId: authUser.id, paid: true });
+    bookingInfo = await seedBooking({ userId: profileId, paid: true });
   }
 
   const link = await magicLink(email);

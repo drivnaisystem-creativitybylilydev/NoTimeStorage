@@ -43,15 +43,11 @@ export default async function AdminBookingsPage({
     getBookings(page, 25, filters, sortBy, sortOrder),
   ]);
 
-  const revenueDisplay = `$${stats.revenueThisMonth.toFixed(2)}`;
-  const revenueBreakdown = [
-    { label: 'This week', value: `$${stats.revenueThisWeek.toFixed(2)}` },
-    { label: 'Today', value: `$${stats.revenueToday.toFixed(2)}` },
-  ];
+  const revenueDisplay = `$${stats.totalRevenue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
   return (
-    <div className="admin-page" style={{ display: 'flex', flexDirection: 'column', gap: '64px' }}>
-      <div style={{ marginBottom: '16px' }}>
+    <div className="admin-page" style={{ display: 'flex', flexDirection: 'column', gap: '48px' }}>
+      <div>
         <h1 className="admin-title">Bookings</h1>
         <p className="admin-subtitle">
           High-level snapshot and manage all student bookings. Filter, search, and take actions.
@@ -73,10 +69,9 @@ export default async function AdminBookingsPage({
           icon="check-circle"
         />
         <StatsCard
-          label="Revenue this month"
+          label="Total revenue"
           value={revenueDisplay}
-          breakdown={revenueBreakdown}
-          helper="Sum of paid bookings (this month). Week and today below."
+          helper="All-time, paid bookings only (cancelled bookings excluded)."
           tone="revenue"
           icon="dollar"
         />

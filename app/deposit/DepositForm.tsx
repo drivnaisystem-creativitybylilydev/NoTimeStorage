@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
@@ -9,10 +10,40 @@ import { SITE_CONTACT_EMAIL } from '@/lib/site/contact';
 
 interface DepositFormProps {
   customerName: string;
+  customerEmail: string;
   venmoHandle: string | null;
 }
 
-export function DepositForm({ customerName, venmoHandle }: DepositFormProps) {
+export function DepositForm({ customerName, customerEmail, venmoHandle }: DepositFormProps) {
+  const [sent, setSent] = useState(false);
+  const firstName = customerName.trim().split(/\s+/)[0] || '';
+
+  // Persist the "sent" flag in the URL so the confirmation card survives a
+  // page refresh, a back-button, or the browser navigating the original tab
+  // instead of honoring target="_blank".
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('sent') === '1') setSent(true);
+  }, []);
+
+  const markSent = () => {
+    setSent(true);
+    if (typeof window !== 'undefined') {
+      const url = new URL(window.location.href);
+      url.searchParams.set('sent', '1');
+      window.history.replaceState({}, '', url.toString());
+    }
+  };
+
+  const undoSent = () => {
+    setSent(false);
+    if (typeof window !== 'undefined') {
+      const url = new URL(window.location.href);
+      url.searchParams.delete('sent');
+      window.history.replaceState({}, '', url.toString());
+    }
+  };
   return (
     <AuthPageWrapper>
       <motion.div
@@ -155,7 +186,89 @@ export function DepositForm({ customerName, venmoHandle }: DepositFormProps) {
           </div>
 
           {venmoHandle ? (
-            <VenmoBackupSection venmoSlug={venmoHandle} amountLabel="$50.00" purpose="deposit" />
+            sent ? (
+              <div
+                style={{
+                  background: 'linear-gradient(135deg, #dcfce7 0%, #f0fdf4 100%)',
+                  border: '1px solid #86efac',
+                  borderRadius: '14px',
+                  padding: '22px 20px',
+                  marginBottom: '20px',
+                  textAlign: 'center',
+                }}
+              >
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    width: '44px',
+                    height: '44px',
+                    margin: '0 auto 12px',
+                    borderRadius: '50%',
+                    background: 'rgba(22, 163, 74, 0.15)',
+                    color: '#166534',
+                    fontSize: '1.4rem',
+                    fontWeight: 800,
+                  }}
+                >
+                  ✓
+                </div>
+                <div style={{ fontWeight: 700, color: '#166534', marginBottom: '8px', fontSize: '1rem' }}>
+                  We&apos;re verifying your $50
+                </div>
+                <p style={{ fontSize: '0.875rem', color: '#14532d', margin: '0 0 14px', lineHeight: 1.55 }}>
+                  We&apos;ll email <strong>{customerEmail || 'you'}</strong> as soon as the transfer clears — usually within one business day. Booking unlocks automatically.
+                </p>
+                <button
+                  type="button"
+                  onClick={undoSent}
+                  style={{
+                    background: 'transparent',
+                    border: 'none',
+                    color: '#166534',
+                    fontSize: '0.78rem',
+                    textDecoration: 'underline',
+                    cursor: 'pointer',
+                    padding: 0,
+                    opacity: 0.75,
+                  }}
+                >
+                  Didn&apos;t send it yet? Go back
+                </button>
+              </div>
+            ) : (
+              <>
+                <VenmoBackupSection
+                  venmoSlug={venmoHandle}
+                  amountLabel="$50.00"
+                  amountCents={5000}
+                  purpose="deposit"
+                  noteContext={{ kind: 'deposit', firstName, email: customerEmail }}
+                  ctaLabel="Pay $50 on Venmo"
+                  onOpened={markSent}
+                />
+                <div style={{ textAlign: 'center', marginBottom: '16px' }}>
+                  <button
+                    type="button"
+                    onClick={markSent}
+                    style={{
+                      background: 'transparent',
+                      border: 'none',
+                      color: 'var(--color-coffee)',
+                      fontSize: '0.82rem',
+                      fontWeight: 600,
+                      textDecoration: 'underline',
+                      cursor: 'pointer',
+                      padding: '4px 8px',
+                      opacity: 0.8,
+                    }}
+                  >
+                    Already sent it? Mark as sent
+                  </button>
+                </div>
+              </>
+            )
           ) : (
             <div
               style={{
@@ -176,9 +289,11 @@ export function DepositForm({ customerName, venmoHandle }: DepositFormProps) {
             </div>
           )}
 
-          <p style={{ textAlign: 'center', marginTop: '8px', fontSize: '0.8rem', color: '#9E8E88' }}>
-            After you send it, we confirm within one business day and email you when booking unlocks. The $50 is credited against your storage total at checkout.
-          </p>
+          {!sent && (
+            <p style={{ textAlign: 'center', marginTop: '8px', fontSize: '0.8rem', color: '#9E8E88' }}>
+              After you send it, we confirm within one business day and email you when booking unlocks. The $50 is credited against your storage total at checkout.
+            </p>
+          )}
         </motion.div>
 
         <div style={{ textAlign: 'center', marginTop: '16px' }}>

@@ -7,92 +7,55 @@ import { SCHOOLS } from '@/lib/schools/config';
 export type DashboardStats = {
   totalBookings: number;
   activeBookings: number;
-  revenueThisMonth: number;
-  revenueThisWeek: number;
-  revenueToday: number;
+  /**
+   * All-time revenue: sum of total_price across paid, non-cancelled bookings.
+   * Cancelling a booking in admin removes its contribution here immediately,
+   * which is what operators expect when they void a job.
+   */
+  totalRevenue: number;
   unpaidBookings: number;
 };
 
 export async function getDashboardStats(): Promise<DashboardStats> {
   const supabase = await createClient();
 
-  // Total bookings (all time)
   const { count: totalBookings = 0 } = await supabase
     .from('bookings')
     .select('*', { count: 'exact', head: true });
 
-  // Active bookings (pending / pending_payment / confirmed)
   const { count: activeBookings = 0 } = await supabase
     .from('bookings')
     .select('*', { count: 'exact', head: true })
     .in('status', ['pending', 'pending_payment', 'confirmed']);
 
-  // Unpaid bookings (not cancelled, payment_status != 'paid')
   const { count: unpaidBookings = 0 } = await supabase
     .from('bookings')
     .select('*', { count: 'exact', head: true })
     .neq('payment_status', 'paid')
     .neq('status', 'cancelled');
 
-  // Revenue this month: sum of total_price for paid bookings that count this month.
-  // Use paid_at when set (when marked paid in admin), else fall back to created_at for backward compatibility.
-  const now = new Date();
-  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
-  const nextMonthStart = new Date(now.getFullYear(), now.getMonth() + 1, 1, 0, 0, 0, 0);
-  let paidBookings: { total_price?: number | string; paid_at?: string | null; created_at?: string }[] = [];
-  const { data: withPaidAt, error: paidAtError } = await supabase
+  // All-time revenue — paid AND not cancelled. We query `total_price` only,
+  // so we tolerate schemas with or without `paid_at`.
+  const { data: paidRows, error: paidErr } = await supabase
     .from('bookings')
-    .select('total_price, paid_at, created_at')
-    .eq('payment_status', 'paid');
+    .select('total_price')
+    .eq('payment_status', 'paid')
+    .neq('status', 'cancelled');
 
-  if (paidAtError?.message?.includes('paid_at')) {
-    const { data: fallback } = await supabase
-      .from('bookings')
-      .select('total_price, created_at')
-      .eq('payment_status', 'paid');
-    paidBookings = (fallback || []).map((r) => ({ ...r, paid_at: null }));
-  } else {
-    paidBookings = (withPaidAt || []) as typeof paidBookings;
+  if (paidErr) {
+    console.error('[getDashboardStats] paid bookings', paidErr);
   }
 
-  const revenueThisMonth = paidBookings.reduce((sum, row) => {
-    const price = typeof row.total_price === 'number' ? row.total_price : parseFloat(String(row.total_price || 0)) || 0;
-    const paidAt = row.paid_at ? new Date(row.paid_at) : null;
-    const createdAt = row.created_at ? new Date(row.created_at) : null;
-    const countsThisMonth = paidAt
-      ? paidAt >= monthStart && paidAt < nextMonthStart
-      : createdAt
-        ? createdAt >= monthStart && createdAt < nextMonthStart
-        : false;
-    return countsThisMonth ? sum + price : sum;
-  }, 0);
-
-  // Week: start of current week (Sunday 00:00) to now
-  const weekStart = new Date(now);
-  weekStart.setDate(now.getDate() - now.getDay());
-  weekStart.setHours(0, 0, 0, 0);
-  const revenueThisWeek = paidBookings.reduce((sum, row) => {
-    const price = typeof row.total_price === 'number' ? row.total_price : parseFloat(String(row.total_price || 0)) || 0;
-    const d = row.paid_at ? new Date(row.paid_at) : row.created_at ? new Date(row.created_at) : null;
-    if (!d) return sum;
-    return d >= weekStart ? sum + price : sum;
-  }, 0);
-
-  // Today: start of today (00:00) to now
-  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
-  const revenueToday = paidBookings.reduce((sum, row) => {
-    const price = typeof row.total_price === 'number' ? row.total_price : parseFloat(String(row.total_price || 0)) || 0;
-    const d = row.paid_at ? new Date(row.paid_at) : row.created_at ? new Date(row.created_at) : null;
-    if (!d) return sum;
-    return d >= todayStart ? sum + price : sum;
+  const totalRevenue = (paidRows || []).reduce((sum, row) => {
+    const raw = (row as { total_price?: number | string }).total_price;
+    const price = typeof raw === 'number' ? raw : parseFloat(String(raw ?? 0)) || 0;
+    return sum + price;
   }, 0);
 
   return {
     totalBookings: totalBookings ?? 0,
     activeBookings: activeBookings ?? 0,
-    revenueThisMonth,
-    revenueThisWeek,
-    revenueToday,
+    totalRevenue,
     unpaidBookings: unpaidBookings ?? 0,
   };
 }
@@ -467,16 +430,36 @@ export async function markBookingPaid(bookingId: string): Promise<ActionResult> 
     .single();
 
   if (booking?.total_price) {
-    const { error: paymentError } = await adminDb
+    // If createBooking pre-inserted a `pending` full_payment row (Venmo claim),
+    // promote it to `succeeded` instead of creating a duplicate. Otherwise
+    // insert a fresh row so legacy bookings still reconcile.
+    const { data: pendingRows } = await adminDb
       .from('payments')
-      .insert({
-        booking_id: bookingId,
-        amount: booking.total_price,
-        payment_type: 'full_payment',
-        status: 'succeeded',
-      });
-    if (paymentError) {
-      console.error('[markBookingPaid] payments insert error:', paymentError);
+      .select('id')
+      .eq('booking_id', bookingId)
+      .eq('payment_type', 'full_payment')
+      .eq('status', 'pending');
+
+    if (pendingRows && pendingRows.length > 0) {
+      const { error: updateErr } = await adminDb
+        .from('payments')
+        .update({ amount: booking.total_price, status: 'succeeded' })
+        .eq('id', pendingRows[0].id);
+      if (updateErr) {
+        console.error('[markBookingPaid] pending payment update error:', updateErr);
+      }
+    } else {
+      const { error: paymentError } = await adminDb
+        .from('payments')
+        .insert({
+          booking_id: bookingId,
+          amount: booking.total_price,
+          payment_type: 'full_payment',
+          status: 'succeeded',
+        });
+      if (paymentError) {
+        console.error('[markBookingPaid] payments insert error:', paymentError);
+      }
     }
   }
 

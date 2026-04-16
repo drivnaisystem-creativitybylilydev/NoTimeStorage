@@ -14,7 +14,7 @@ export default async function DepositPage() {
 
   const { data: profile } = await supabase
     .from('users')
-    .select('deposit_paid, full_name')
+    .select('deposit_paid, full_name, email')
     .or(`id.eq.${user.id},auth_id.eq.${user.id}`)
     .limit(1)
     .maybeSingle();
@@ -26,6 +26,7 @@ export default async function DepositPage() {
   return (
     <DepositForm
       customerName={profile?.full_name ?? ''}
+      customerEmail={profile?.email ?? user.email ?? ''}
       venmoHandle={venmoHandle}
     />
   );

@@ -188,9 +188,7 @@ export async function createBooking(input: CreateBookingInput): Promise<CreateBo
   }
 
   // ── Payments ─────────────────────────────────────────────────────────────
-  // Record the deposit as already paid (collected before booking was created).
-  // stripe_transaction_id stores the Square payment ID — column will be
-  // renamed in a future migration.
+  // 1) Deposit: $50 was collected before booking was created — record as succeeded.
   const { error: paymentError } = await supabase
     .from('payments')
     .insert({
@@ -202,8 +200,26 @@ export async function createBooking(input: CreateBookingInput): Promise<CreateBo
     });
 
   if (paymentError) {
-    console.error('[createBooking] payments insert error', paymentError);
+    console.error('[createBooking] deposit payment insert error', paymentError);
     // Non-fatal — booking already created, don't roll back
+  }
+
+  // 2) Venmo balance: claimed-but-not-verified. Insert a `pending` row so admin
+  //    sees the customer has entered the pay flow; admin flips to `succeeded`
+  //    via markBookingPaid after confirming the Venmo transfer.
+  const balanceCents = Math.round(totalPrice * 100) - 5000;
+  if (balanceCents > 0) {
+    const { error: pendingPaymentError } = await supabase
+      .from('payments')
+      .insert({
+        booking_id: booking.id,
+        amount: balanceCents / 100,
+        payment_type: 'full_payment',
+        status: 'pending',
+      });
+    if (pendingPaymentError) {
+      console.error('[createBooking] pending payment insert error', pendingPaymentError);
+    }
   }
 
   const bookingForHooks: BookingWithItems = {

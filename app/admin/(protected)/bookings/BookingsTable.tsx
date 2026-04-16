@@ -341,8 +341,8 @@ function BookingsTableContent({ initialBookings, total, currentPage, filters, so
                         >
                           {b.status.replace('_', ' ')}
                         </span>
-                        <span className={b.payment_status === 'paid' ? 'admin-badge admin-badge-success' : 'admin-badge admin-badge-danger'}>
-                          {b.payment_status}
+                        <span className={b.payment_status === 'paid' ? 'admin-badge admin-badge-success' : 'admin-badge admin-badge-warning'}>
+                          {b.payment_status === 'paid' ? 'paid' : 'awaiting Venmo'}
                         </span>
                       </div>
                     </td>

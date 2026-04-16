@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import { createClient } from '@/lib/supabase/client';
 import Image from 'next/image';
 import Link from 'next/link';
 import { updateBookingItems } from '@/lib/booking/update-booking';
@@ -65,6 +66,16 @@ export function EditBookingForm({
   const [additionalItems, setAdditionalItems] = useState(initialAdditionalItems);
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [firstName, setFirstName] = useState('');
+
+  useEffect(() => {
+    const supabase = createClient();
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      const meta = user?.user_metadata as { full_name?: string; first_name?: string } | undefined;
+      const first = (meta?.first_name || meta?.full_name?.split(' ')[0] || '').trim();
+      setFirstName(first);
+    });
+  }, []);
 
   const venmoSlug = getVenmoHandleFromEnv();
 
@@ -329,7 +340,10 @@ export function EditBookingForm({
             <VenmoBackupSection
               venmoSlug={venmoSlug}
               amountLabel={`$${(deltaTotalCents / 100).toFixed(2)}`}
+              amountCents={deltaTotalCents}
               purpose="upgrade"
+              noteContext={{ kind: 'upgrade', bookingId, firstName }}
+              ctaLabel={`Open Venmo — pay $${(deltaTotalCents / 100).toFixed(2)}`}
             />
           </div>
         )}

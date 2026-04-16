@@ -8,6 +8,7 @@ import { motion } from 'framer-motion';
 import { formatDate } from '@/lib/utils/date';
 import { getMoveOutWindow } from '@/lib/schools/config';
 import { AuthPageWrapper } from '@/app/components/AuthPageWrapper';
+import { buildVenmoNote, buildVenmoPayUrl, getVenmoHandleFromEnv, shortBookingId } from '@/lib/payment/venmo';
 
 function BookingConfirmedContent() {
   const searchParams = useSearchParams();
@@ -19,9 +20,23 @@ function BookingConfirmedContent() {
   const months = searchParams.get('months') || '';
   const venmoPending = searchParams.get('venmoPending') === '1';
   const bookingId = searchParams.get('bookingId') || '';
+  const venmoAmountCents = parseInt(searchParams.get('venmoAmount') || '0', 10);
+  const firstName = searchParams.get('fn') || '';
 
   const totalPriceNum = parseFloat(totalPrice) || 0;
   const balanceDueLabel = totalPriceNum > 0 ? (totalPriceNum - 50).toFixed(2) : '';
+
+  const venmoSlug = getVenmoHandleFromEnv();
+  const venmoAmountDollars = venmoAmountCents > 0
+    ? venmoAmountCents / 100
+    : (totalPriceNum > 0 ? totalPriceNum - 50 : 0);
+  const venmoPayUrl = venmoPending && venmoSlug && venmoAmountDollars > 0 && bookingId
+    ? buildVenmoPayUrl({
+        slug: venmoSlug,
+        amount: venmoAmountDollars,
+        note: buildVenmoNote({ kind: 'booking', bookingId, firstName }),
+      })
+    : null;
 
   const formattedDate = moveOutDate ? formatDate(moveOutDate) : '';
 
@@ -67,12 +82,7 @@ function BookingConfirmedContent() {
             style={{ color: '#4A3A34', fontSize: '1rem', marginBottom: '24px', lineHeight: '1.6' }}>
             {venmoPending ? (
               <>
-                Your booking is in our system but it&apos;s <strong>not confirmed yet</strong>. Send the balance you saw on the payment page via Venmo, then we&apos;ll email you a confirmation once we&apos;ve verified the transfer (usually within one business day).
-                {bookingId ? (
-                  <span style={{ display: 'block', marginTop: '12px', fontSize: '0.85rem', color: '#6B5A52' }}>
-                    Reference ID: <strong style={{ fontFamily: 'monospace' }}>{bookingId}</strong> — please include this in your Venmo note so we can match it.
-                  </span>
-                ) : null}
+                Your booking is saved but it&apos;s <strong>not confirmed yet</strong>. A Venmo tab should have opened with the amount and note pre-filled — confirm the payment there. We&apos;ll email you as soon as the transfer clears (usually within one business day).
               </>
             ) : (
               'Your storage is booked. A confirmation is on its way to your inbox — check your email.'
@@ -83,6 +93,48 @@ function BookingConfirmedContent() {
               </span>
             )}
           </motion.p>
+
+          {venmoPending && venmoPayUrl && (
+            <motion.div custom={0.28} variants={childVar} initial="hidden" animate="visible"
+              style={{
+                background: 'linear-gradient(135deg, #EEF8FE 0%, #f6fafd 100%)',
+                border: '1px solid #bae6fd',
+                borderRadius: '14px',
+                padding: '18px 20px',
+                marginBottom: '22px',
+                textAlign: 'center',
+              }}>
+              <div style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#0369a1', marginBottom: '10px' }}>
+                Venmo didn&apos;t open?
+              </div>
+              <a
+                href={venmoPayUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="button-primary"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px',
+                  width: '100%',
+                  textDecoration: 'none',
+                  padding: '13px 20px',
+                  fontSize: '0.95rem',
+                  marginBottom: '10px',
+                  boxSizing: 'border-box',
+                }}
+              >
+                <span>Tap to open Venmo — pay ${venmoAmountDollars.toFixed(2)}</span>
+                <span aria-hidden style={{ fontSize: '1rem', lineHeight: 1 }}>→</span>
+              </a>
+              <p style={{ margin: 0, fontSize: '0.78rem', color: '#075985', lineHeight: 1.5 }}>
+                Amount and note are pre-filled.{bookingId ? (
+                  <> Reference: <strong style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace' }}>{shortBookingId(bookingId)}</strong></>
+                ) : null}
+              </p>
+            </motion.div>
+          )}
 
           {(formattedDate || school || boxes || monthlyTotal) && (
             <motion.div custom={0.3} variants={childVar} initial="hidden" animate="visible"
