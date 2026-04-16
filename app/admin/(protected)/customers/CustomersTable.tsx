@@ -7,6 +7,8 @@ import { Search, ExternalLink, Check, X } from 'lucide-react';
 import type { CustomerRow } from '@/lib/admin/actions';
 import { setCustomerDepositPaid } from '@/lib/admin/actions';
 import { useAppModal } from '@/app/components/AppModalProvider';
+import { VenmoNoteChip } from '@/app/components/admin/VenmoNoteChip';
+import { buildVenmoNote } from '@/lib/payment/venmo';
 
 function fmtMoney(n: number) {
   return `$${n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -139,7 +141,7 @@ export function CustomersTable({ customers }: { customers: CustomerRow[] }) {
                       )}
                     </td>
                     <td data-label="Deposit" style={{ textAlign: 'center' }}>
-                      <div style={{ display: 'inline-flex', flexDirection: 'column', gap: '6px', alignItems: 'center' }}>
+                      <div style={{ display: 'inline-flex', flexDirection: 'column', gap: '8px', alignItems: 'center' }}>
                         <span
                           className={
                             c.deposit_paid
@@ -160,6 +162,15 @@ export function CustomersTable({ customers }: { customers: CustomerRow[] }) {
                           {c.deposit_paid ? <X size={12} /> : <Check size={12} />}
                           {c.deposit_paid ? 'Undo' : 'Mark paid'}
                         </button>
+                        {!c.deposit_paid && (c.email || c.full_name) && (
+                          <VenmoNoteChip
+                            note={buildVenmoNote({
+                              kind: 'deposit',
+                              firstName: c.full_name?.trim().split(/\s+/)[0] ?? null,
+                              email: c.email,
+                            })}
+                          />
+                        )}
                       </div>
                     </td>
                     <td data-label="Collected" style={{ textAlign: 'right', fontWeight: 600, color: '#15803d' }}>
@@ -217,7 +228,7 @@ export function CustomersTable({ customers }: { customers: CustomerRow[] }) {
           }}>
             {filtered.length} student{filtered.length !== 1 ? 's' : ''}
             {search ? ` matching "${search}"` : ' total'}
-            . <strong>Deposit</strong> is the $50 commitment flag. <strong>School</strong> is from signup (profile) when present, otherwise the most recent active booking campus. <strong>Collected</strong> sums succeeded rows in <strong>payments</strong> (deposits, full pay, installments) per booking, plus legacy paid bookings with no payment rows. <strong>Balance due</strong> is unpaid bookings’ contract total minus payments already recorded toward that booking.
+            . <strong>Deposit</strong> is the $50 commitment flag — when “Not paid”, the <strong>Venmo note</strong> chip shows the exact text the student should have included with their Venmo payment (click to copy, then match against your Venmo history). <strong>School</strong> is from signup (profile) when present, otherwise the most recent active booking campus. <strong>Collected</strong> sums succeeded rows in <strong>payments</strong> (deposits, full pay, installments) per booking, plus legacy paid bookings with no payment rows. <strong>Balance due</strong> is unpaid bookings’ contract total minus payments already recorded toward that booking.
             
           </div>
         )}

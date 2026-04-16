@@ -8,6 +8,8 @@ import type { BookingWithCustomer, BookingsFilters } from '@/lib/admin/actions';
 import { markBookingPaid, adminCancelBooking } from '@/lib/admin/actions';
 import { useAppModal } from '@/app/components/AppModalProvider';
 import { BookingDetailModal } from './BookingDetailModal';
+import { VenmoNoteChip } from '@/app/components/admin/VenmoNoteChip';
+import { buildVenmoNote } from '@/lib/payment/venmo';
 
 type BookingsTableProps = {
   initialBookings: BookingWithCustomer[];
@@ -329,21 +331,32 @@ function BookingsTableContent({ initialBookings, total, currentPage, filters, so
                       </div>
                     </td>
                     <td data-label="Status">
-                      <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-                        <span
-                          className={
-                            b.status === 'confirmed'
-                              ? 'admin-badge admin-badge-success'
-                              : b.status === 'pending' || b.status === 'pending_payment'
-                              ? 'admin-badge admin-badge-warning'
-                              : 'admin-badge admin-badge-danger'
-                          }
-                        >
-                          {b.status.replace('_', ' ')}
-                        </span>
-                        <span className={b.payment_status === 'paid' ? 'admin-badge admin-badge-success' : 'admin-badge admin-badge-warning'}>
-                          {b.payment_status === 'paid' ? 'paid' : 'awaiting Venmo'}
-                        </span>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'flex-start' }}>
+                        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                          <span
+                            className={
+                              b.status === 'confirmed'
+                                ? 'admin-badge admin-badge-success'
+                                : b.status === 'pending' || b.status === 'pending_payment'
+                                ? 'admin-badge admin-badge-warning'
+                                : 'admin-badge admin-badge-danger'
+                            }
+                          >
+                            {b.status.replace('_', ' ')}
+                          </span>
+                          <span className={b.payment_status === 'paid' ? 'admin-badge admin-badge-success' : 'admin-badge admin-badge-warning'}>
+                            {b.payment_status === 'paid' ? 'paid' : 'awaiting Venmo'}
+                          </span>
+                        </div>
+                        {b.payment_status !== 'paid' && b.status !== 'cancelled' && (
+                          <VenmoNoteChip
+                            note={buildVenmoNote({
+                              kind: 'booking',
+                              bookingId: b.id,
+                              firstName: b.customer?.full_name?.trim().split(/\s+/)[0] ?? null,
+                            })}
+                          />
+                        )}
                       </div>
                     </td>
                     <td data-label="Total" style={{ textAlign: 'right', fontWeight: 600, color: 'var(--color-coffee-dark)' }}>

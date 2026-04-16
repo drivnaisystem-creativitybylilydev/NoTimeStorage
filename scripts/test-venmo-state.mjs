@@ -2,11 +2,16 @@
  * Jump to any state in the Venmo flow without clicking through the whole app.
  *
  * Usage:
- *   node scripts/test-venmo-state.mjs fresh           # new user, deposit unpaid
- *   node scripts/test-venmo-state.mjs deposit-paid    # deposit flipped, ready to book
- *   node scripts/test-venmo-state.mjs unpaid-booking  # booking saved, venmo pending
- *   node scripts/test-venmo-state.mjs paid-booking    # fully confirmed
- *   node scripts/test-venmo-state.mjs reset <email>   # nuke a test user + their bookings
+ *   node scripts/test-venmo-state.mjs fresh             # new user, deposit unpaid
+ *   node scripts/test-venmo-state.mjs deposit-paid      # deposit flipped, ready to book
+ *   node scripts/test-venmo-state.mjs unpaid-booking    # booking saved, venmo pending
+ *   node scripts/test-venmo-state.mjs paid-booking      # fully confirmed
+ *   node scripts/test-venmo-state.mjs reset <email>     # nuke one test user + their bookings
+ *   node scripts/test-venmo-state.mjs reset-all-tests   # nuke every @notimestorage.local seed
+ *   node scripts/test-venmo-state.mjs list-tests        # dry-run: list seeded test users
+ *
+ * Test users always use the email domain `@notimestorage.local` so bulk
+ * cleanup cannot match real customers.
  *
  * After it prints the auth link, open it in a private window — you'll be
  * signed in as the seeded user and dropped at the right spot.
@@ -169,9 +174,11 @@ async function seedBooking({ userId, paid }) {
 async function resetUserByEmail(email) {
   const { data: profile } = await supabase.from('users').select('id').eq('email', email).maybeSingle();
   const profileId = profile?.id;
+  let bookingCount = 0;
   if (profileId) {
     const { data: bookings } = await supabase.from('bookings').select('id').eq('user_id', profileId);
     const ids = (bookings ?? []).map((b) => b.id);
+    bookingCount = ids.length;
     if (ids.length) {
       await supabase.from('payments').delete().in('booking_id', ids);
       await supabase.from('schedules').delete().in('booking_id', ids);
@@ -183,7 +190,76 @@ async function resetUserByEmail(email) {
   const { data: users } = await supabase.auth.admin.listUsers();
   const match = users?.users?.find((u) => u.email === email);
   if (match) await supabase.auth.admin.deleteUser(match.id);
-  console.log(`Cleaned up ${email} (profile${match ? ' + auth' : ''}${profileId ? ' + bookings' : ''}).`);
+  console.log(
+    `  ✓ ${email} — removed ${profileId ? 'profile' : 'no profile'}${match ? ' + auth user' : ''}${bookingCount ? ` + ${bookingCount} booking${bookingCount !== 1 ? 's' : ''}` : ''}`
+  );
+  return { profileId, authId: match?.id ?? null, bookingCount };
+}
+
+/**
+ * Scan every auth user and every public.users row for the test domain and
+ * return the unique set of test emails that exist anywhere.
+ */
+async function collectTestEmails() {
+  const emails = new Set();
+
+  const { data: profiles, error: profErr } = await supabase
+    .from('users')
+    .select('email')
+    .ilike('email', '%@notimestorage.local');
+  if (profErr) throw profErr;
+  for (const r of profiles || []) {
+    if (r.email) emails.add(r.email);
+  }
+
+  // auth.admin.listUsers is paginated — walk until we've seen everything.
+  let page = 1;
+  const perPage = 200;
+  while (true) {
+    const { data, error } = await supabase.auth.admin.listUsers({ page, perPage });
+    if (error) throw error;
+    const users = data?.users ?? [];
+    for (const u of users) {
+      if (u.email && u.email.endsWith('@notimestorage.local')) emails.add(u.email);
+    }
+    if (users.length < perPage) break;
+    page += 1;
+  }
+
+  return [...emails].sort();
+}
+
+async function listTestUsers() {
+  const emails = await collectTestEmails();
+  if (!emails.length) {
+    console.log('No @notimestorage.local test users found. You are clean.');
+    return;
+  }
+  console.log(`Found ${emails.length} test user${emails.length !== 1 ? 's' : ''} (@notimestorage.local):`);
+  for (const e of emails) console.log(`  ${e}`);
+  console.log('\nRun  node scripts/test-venmo-state.mjs reset-all-tests  to remove them.');
+}
+
+async function resetAllTests() {
+  const emails = await collectTestEmails();
+  if (!emails.length) {
+    console.log('Nothing to clean — no @notimestorage.local users exist.');
+    return;
+  }
+  console.log(`About to remove ${emails.length} test user${emails.length !== 1 ? 's' : ''} (@notimestorage.local):`);
+  for (const e of emails) console.log(`  - ${e}`);
+  console.log('');
+
+  let totalBookings = 0;
+  for (const email of emails) {
+    try {
+      const res = await resetUserByEmail(email);
+      totalBookings += res.bookingCount;
+    } catch (err) {
+      console.error(`  ✗ ${email} — ${err.message}`);
+    }
+  }
+  console.log(`\nDone. Removed ${emails.length} user${emails.length !== 1 ? 's' : ''} and ${totalBookings} booking${totalBookings !== 1 ? 's' : ''}.`);
 }
 
 async function main() {
@@ -197,8 +273,18 @@ async function main() {
     return;
   }
 
+  if (state === 'list-tests') {
+    await listTestUsers();
+    return;
+  }
+
+  if (state === 'reset-all-tests') {
+    await resetAllTests();
+    return;
+  }
+
   if (!['fresh', 'deposit-paid', 'unpaid-booking', 'paid-booking'].includes(state)) {
-    console.error('Unknown state. Use: fresh | deposit-paid | unpaid-booking | paid-booking | reset <email>');
+    console.error('Unknown state. Use: fresh | deposit-paid | unpaid-booking | paid-booking | reset <email> | list-tests | reset-all-tests');
     process.exit(1);
   }
 
