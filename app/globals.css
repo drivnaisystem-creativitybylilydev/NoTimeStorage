@@ -6668,19 +6668,7 @@ button {
 @media (min-width: 768px) {
   .booking-payment-content {
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    align-items: start;
-  }
-
-  /* Client request: payment (card) on the left, storage + totals summary on the right */
-  .booking-payment-card {
-    order: 1;
-  }
-
-  .booking-order-summary {
-    order: 2;
-    position: sticky;
-    top: max(1rem, env(safe-area-inset-top));
-    align-self: start;
+    align-items: stretch;
   }
 }
 
@@ -6691,7 +6679,6 @@ button {
   border-radius: 12px;
   padding: 32px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-  height: fit-content;
   min-width: 0;
   max-width: 100%;
   box-sizing: border-box;
@@ -6889,7 +6876,6 @@ button {
   border-radius: 12px;
   padding: 32px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-  height: fit-content;
   min-width: 0;
   max-width: 100%;
   box-sizing: border-box;

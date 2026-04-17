@@ -217,7 +217,7 @@ function PaymentPageContent() {
         </div>
 
       <div className="booking-payment-content">
-        {/* Order summary: first in DOM for mobile; CSS order places it right on ≥768px */}
+        {/* Order summary: left on desktop, stacks first on mobile */}
         <div className="booking-order-summary">
             <h2>Booking Summary</h2>
 
@@ -300,11 +300,11 @@ function PaymentPageContent() {
             </div>
           </div>
 
-        {/* Payment: CSS order places it left on ≥768px */}
+        {/* Payment: right on desktop, stacks second on mobile */}
         <div className="booking-payment-card">
             <h2>Payment</h2>
             <div className="payment-trust-message">
-              Your $50 deposit is already applied. Pay the remaining <strong>{venmoAmountLabel}</strong> on Venmo — amount and note are pre-filled.
+              Your $50 deposit is already applied. Pay the remaining <strong>{venmoAmountLabel}</strong> on Venmo.
             </div>
 
             {!venmoSlug && (
@@ -327,46 +327,37 @@ function PaymentPageContent() {
               <div
                 style={{
                   margin: '0 0 20px',
-                  padding: '16px 18px',
-                  background: 'var(--color-paper)',
-                  border: '1px solid var(--color-latte)',
-                  borderRadius: '12px',
-                  fontSize: '0.88rem',
+                  padding: '12px 16px',
+                  background: 'rgba(201, 164, 126, 0.1)',
+                  borderLeft: '3px solid var(--color-latte)',
+                  borderRadius: '6px',
+                  fontSize: '14px',
                   color: 'var(--color-coffee)',
                   lineHeight: 1.5,
                   display: 'flex',
-                  flexDirection: 'column',
+                  alignItems: 'flex-start',
                   gap: '12px',
                 }}
               >
-                {[
-                  'Tap the button below — we save your spot and open Venmo.',
-                  'Confirm the pre-filled payment (Venmo app or web).',
-                  'We verify the transfer and email your booking confirmation within one business day.',
-                ].map((text, i) => (
-                  <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
-                    <span
-                      style={{
-                        flexShrink: 0,
-                        width: '22px',
-                        height: '22px',
-                        borderRadius: '50%',
-                        background: 'var(--color-coffee)',
-                        color: 'var(--color-latte-soft)',
-                        fontSize: '0.72rem',
-                        fontWeight: 700,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        lineHeight: 1,
-                        marginTop: '1px',
-                      }}
-                    >
-                      {i + 1}
-                    </span>
-                    <span style={{ flex: 1 }}>{text}</span>
-                  </div>
-                ))}
+                <svg
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden
+                  style={{ flexShrink: 0, marginTop: '2px' }}
+                >
+                  <rect x="3" y="5" width="18" height="14" rx="2" />
+                  <path d="m3 7 9 6 9-6" />
+                </svg>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontWeight: 700, marginBottom: '2px' }}>What happens next</div>
+                  <div>Look out for our email confirming your booking within 1 business day.</div>
+                </div>
               </div>
             )}
 
