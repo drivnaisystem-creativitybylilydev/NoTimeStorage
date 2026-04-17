@@ -245,7 +245,7 @@ export function DepositForm({ customerName, customerEmail, venmoHandle }: Deposi
                   amountCents={5000}
                   purpose="deposit"
                   noteContext={{ kind: 'deposit', firstName, email: customerEmail }}
-                  ctaLabel="Pay $50 on Venmo"
+                  ctaLabel="Pay Deposit"
                   onOpened={markSent}
                 />
                 <div style={{ textAlign: 'center', marginBottom: '16px' }}>

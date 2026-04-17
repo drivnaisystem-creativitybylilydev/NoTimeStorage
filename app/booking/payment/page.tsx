@@ -377,7 +377,7 @@ function PaymentPageContent() {
               disabled={!venmoSlug || processing}
             >
               {processing && <span className="payment-spinner" aria-hidden />}
-              {processing ? stepLabel : `Pay ${venmoAmountLabel} on Venmo`}
+              {processing ? stepLabel : 'Book my Storage'}
             </button>
 
             <div className="payment-trust-badges">
