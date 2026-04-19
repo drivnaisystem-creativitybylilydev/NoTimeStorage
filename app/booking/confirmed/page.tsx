@@ -1,17 +1,75 @@
 'use client';
 
-import { Suspense } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { Suspense, useEffect, useState } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { formatDate } from '@/lib/utils/date';
-import { getMoveOutWindow } from '@/lib/schools/config';
 import { AuthPageWrapper } from '@/app/components/AuthPageWrapper';
 import { buildVenmoNote, buildVenmoPayUrl, getVenmoHandleFromEnv, shortBookingId } from '@/lib/payment/venmo';
 
+type BookingStatus = {
+  id: string;
+  payment_status: string;
+  status: string;
+  total_price: number;
+  total_monthly_rate: number;
+  storage_months: number | null;
+  school: string;
+  move_out_date: string;
+  dorm: string;
+  box_quantity: number;
+};
+
+/** Fallback values derived from the DB when the URL doesn't carry them
+ *  (Stripe success_url only brings session_id + bookingId, not the full summary).
+ */
+function useBookingStatusPoll(bookingId: string, enabled: boolean) {
+  const [data, setData] = useState<BookingStatus | null>(null);
+  const [gaveUp, setGaveUp] = useState(false);
+
+  useEffect(() => {
+    if (!enabled || !bookingId) return;
+    let cancelled = false;
+    const start = Date.now();
+
+    const tick = async () => {
+      try {
+        const res = await fetch(`/api/booking/status?bookingId=${encodeURIComponent(bookingId)}`, {
+          cache: 'no-store',
+        });
+        if (!res.ok) return;
+        const json = (await res.json()) as BookingStatus;
+        if (cancelled) return;
+        setData(json);
+        if (json.payment_status === 'paid') {
+          clearInterval(interval);
+        }
+      } catch {
+        // keep polling — webhook is eventually consistent
+      }
+      if (Date.now() - start > 60_000) {
+        setGaveUp(true);
+        clearInterval(interval);
+      }
+    };
+
+    const interval = setInterval(tick, 2_000);
+    tick();
+
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, [bookingId, enabled]);
+
+  return { data, gaveUp };
+}
+
 function BookingConfirmedContent() {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const moveOutDate = searchParams.get('moveOutDate') || '';
   const school = searchParams.get('school') || '';
   const boxes = searchParams.get('boxes') || '0';
@@ -22,8 +80,24 @@ function BookingConfirmedContent() {
   const bookingId = searchParams.get('bookingId') || '';
   const venmoAmountCents = parseInt(searchParams.get('venmoAmount') || '0', 10);
   const firstName = searchParams.get('fn') || '';
+  const stripeSessionId = searchParams.get('session_id') || '';
 
-  const totalPriceNum = parseFloat(totalPrice) || 0;
+  // Stripe landing: only session_id + bookingId are in the URL. Poll the DB
+  // until the webhook flips the booking to paid, then render the success view.
+  const stripeMode = !!stripeSessionId && !venmoPending;
+  const { data: poll, gaveUp: pollGaveUp } = useBookingStatusPoll(bookingId, stripeMode);
+  const stripeConfirmed = stripeMode && poll?.payment_status === 'paid';
+  const stripeProcessing = stripeMode && !stripeConfirmed;
+
+  // Prefer URL values (Venmo flow); fall back to polled DB values (Stripe flow).
+  const schoolEff = school || poll?.school || '';
+  const moveOutDateEff = moveOutDate || poll?.move_out_date || '';
+  const boxesEff = boxes !== '0' ? boxes : (poll?.box_quantity != null ? String(poll.box_quantity) : '0');
+  const totalPriceEff = totalPrice || (poll?.total_price ? String(poll.total_price) : '');
+  const monthlyTotalEff = monthlyTotal || (poll?.total_monthly_rate ? String(poll.total_monthly_rate) : '');
+  const monthsEff = months || (poll?.storage_months != null ? String(poll.storage_months) : '');
+
+  const totalPriceNum = parseFloat(totalPriceEff) || 0;
   const balanceDueLabel = totalPriceNum > 0 ? (totalPriceNum - 50).toFixed(2) : '';
 
   const venmoSlug = getVenmoHandleFromEnv();
@@ -38,9 +112,17 @@ function BookingConfirmedContent() {
       })
     : null;
 
-  const formattedDate = moveOutDate ? formatDate(moveOutDate) : '';
+  const formattedDate = moveOutDateEff ? formatDate(moveOutDateEff) : '';
 
-  const moveOutWindow = school ? getMoveOutWindow(school) : null;
+  // Once Stripe finally confirms, drop session_id from the URL so a refresh
+  // doesn't re-trigger the polling branch. Replace in place, no new history.
+  useEffect(() => {
+    if (stripeConfirmed && typeof window !== 'undefined' && searchParams.get('session_id')) {
+      const params = new URLSearchParams(searchParams.toString());
+      params.delete('session_id');
+      router.replace(`/booking/confirmed?${params.toString()}`);
+    }
+  }, [stripeConfirmed, searchParams, router]);
 
   const childVar = {
     hidden: { opacity: 0, y: 14 },
@@ -62,21 +144,40 @@ function BookingConfirmedContent() {
 
         <div style={{ textAlign: 'center', padding: '8px 0 32px' }}>
           <motion.div custom={0.05} variants={childVar} initial="hidden" animate="visible" style={{ display: 'flex', justifyContent: 'center', marginBottom: '28px' }}>
-            <svg viewBox="0 0 52 52" width="88" height="88" style={{ display: 'block' }}>
-              <style>{`
-                @keyframes bc-circle { from { stroke-dashoffset: 166; } to { stroke-dashoffset: 0; } }
-                @keyframes bc-check  { from { stroke-dashoffset: 48; }  to { stroke-dashoffset: 0; } }
-                .bc-circle { stroke-dasharray: 166; stroke-dashoffset: 166; animation: bc-circle 0.6s cubic-bezier(0.65,0,0.45,1) forwards; }
-                .bc-check  { stroke-dasharray: 48;  stroke-dashoffset: 48;  animation: bc-check  0.4s cubic-bezier(0.65,0,0.45,1) 0.5s forwards; }
-              `}</style>
-              <circle className="bc-circle" cx="26" cy="26" r="25" fill="none" stroke="#22c55e" strokeWidth="2.5" strokeLinecap="round" />
-              <polyline className="bc-check" points="14,26 22,34 38,18" fill="none" stroke="#22c55e" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
+            {stripeProcessing ? (
+              <div
+                style={{
+                  width: '72px',
+                  height: '72px',
+                  borderRadius: '50%',
+                  border: '4px solid var(--color-latte)',
+                  borderTopColor: 'transparent',
+                  animation: 'bc-spin 0.9s linear infinite',
+                }}
+                aria-label="Confirming payment"
+              />
+            ) : (
+              <svg viewBox="0 0 52 52" width="88" height="88" style={{ display: 'block' }}>
+                <style>{`
+                  @keyframes bc-circle { from { stroke-dashoffset: 166; } to { stroke-dashoffset: 0; } }
+                  @keyframes bc-check  { from { stroke-dashoffset: 48; }  to { stroke-dashoffset: 0; } }
+                  @keyframes bc-spin   { from { transform: rotate(0); } to { transform: rotate(360deg); } }
+                  .bc-circle { stroke-dasharray: 166; stroke-dashoffset: 166; animation: bc-circle 0.6s cubic-bezier(0.65,0,0.45,1) forwards; }
+                  .bc-check  { stroke-dasharray: 48;  stroke-dashoffset: 48;  animation: bc-check  0.4s cubic-bezier(0.65,0,0.45,1) 0.5s forwards; }
+                `}</style>
+                <circle className="bc-circle" cx="26" cy="26" r="25" fill="none" stroke="#22c55e" strokeWidth="2.5" strokeLinecap="round" />
+                <polyline className="bc-check" points="14,26 22,34 38,18" fill="none" stroke="#22c55e" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            )}
           </motion.div>
 
           <motion.h1 custom={0.15} variants={childVar} initial="hidden" animate="visible"
             style={{ fontSize: '1.6rem', fontWeight: '800', color: 'var(--color-coffee)', marginBottom: '10px' }}>
-            {venmoPending ? 'Booking saved — finish on Venmo' : 'You\'re almost set!'}
+            {venmoPending
+              ? 'Booking saved — finish on Venmo'
+              : stripeProcessing
+                ? (pollGaveUp ? 'Still confirming…' : 'Confirming your payment…')
+                : 'You\'re almost set!'}
           </motion.h1>
           <motion.p custom={0.22} variants={childVar} initial="hidden" animate="visible"
             style={{ color: '#4A3A34', fontSize: '1rem', marginBottom: '24px', lineHeight: '1.6' }}>
@@ -84,10 +185,16 @@ function BookingConfirmedContent() {
               <>
                 Your booking is saved but it&apos;s <strong>not confirmed yet</strong>. A Venmo tab should have opened with the amount and note pre-filled — confirm the payment there. We&apos;ll email you as soon as the transfer clears (usually within one business day).
               </>
+            ) : stripeProcessing ? (
+              pollGaveUp ? (
+                <>Your payment went through but we&apos;re still syncing the confirmation. You can safely close this tab — we&apos;ll email you when it&apos;s locked in.</>
+              ) : (
+                <>Your card was charged — we&apos;re finalizing the booking now. This page updates automatically as soon as it&apos;s confirmed.</>
+              )
             ) : (
               'Your storage is booked. A confirmation is on its way to your inbox — check your email.'
             )}
-            {!venmoPending && (
+            {!venmoPending && !stripeProcessing && (
               <span style={{ display: 'block', marginTop: '8px', fontSize: '0.85rem', color: '#9B8880', padding: '8px 12px', background: 'var(--color-paper)', borderRadius: '8px', border: '1px solid var(--color-latte)' }}>
                 📬 Don&apos;t see it? Check your <strong>junk or spam folder</strong> — it may have landed there.
               </span>
@@ -136,7 +243,7 @@ function BookingConfirmedContent() {
             </motion.div>
           )}
 
-          {(formattedDate || school || boxes || monthlyTotal) && (
+          {(formattedDate || schoolEff || boxesEff || monthlyTotalEff) && (
             <motion.div custom={0.3} variants={childVar} initial="hidden" animate="visible"
               style={{
                 background: 'var(--color-paper)',
@@ -146,10 +253,10 @@ function BookingConfirmedContent() {
                 marginBottom: '28px',
                 textAlign: 'left',
               }}>
-              {school && (
+              {schoolEff && (
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
                   <span style={{ color: '#6B5A52', fontSize: '0.875rem' }}>School</span>
-                  <span style={{ color: 'var(--color-coffee)', fontWeight: '600', fontSize: '0.875rem' }}>{school}</span>
+                  <span style={{ color: 'var(--color-coffee)', fontWeight: '600', fontSize: '0.875rem' }}>{schoolEff}</span>
                 </div>
               )}
               {formattedDate && (
@@ -158,11 +265,11 @@ function BookingConfirmedContent() {
                   <span style={{ color: 'var(--color-coffee)', fontWeight: '600', fontSize: '0.875rem' }}>{formattedDate}</span>
                 </div>
               )}
-              {(boxes !== undefined && boxes !== null) && (
+              {(boxesEff !== undefined && boxesEff !== null) && (
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
                   <span style={{ color: '#6B5A52', fontSize: '0.875rem' }}>Boxes</span>
                   <span style={{ color: 'var(--color-coffee)', fontWeight: '600', fontSize: '0.875rem' }}>
-                    {parseInt(boxes) === 0 ? '0 (items only)' : `${boxes} box${parseInt(boxes) !== 1 ? 'es' : ''}`}
+                    {parseInt(boxesEff) === 0 ? '0 (items only)' : `${boxesEff} box${parseInt(boxesEff) !== 1 ? 'es' : ''}`}
                   </span>
                 </div>
               )}
@@ -170,15 +277,20 @@ function BookingConfirmedContent() {
               <div style={{ borderTop: '1px solid var(--color-latte)', paddingTop: '12px', marginTop: '4px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
                   <span style={{ color: '#6B5A52', fontSize: '0.875rem', fontWeight: '600' }}>
-                    {venmoPending ? 'Balance due on Venmo' : 'Total charged'}
+                    {venmoPending ? 'Balance due on Venmo' : 'Total'}
                   </span>
                   <div style={{ textAlign: 'right' }}>
                     <span style={{ color: 'var(--color-coffee)', fontWeight: '800', fontSize: '1.1rem' }}>
-                      ${venmoPending && balanceDueLabel ? balanceDueLabel : (totalPrice || monthlyTotal)}{months ? ` · ${months} months` : ''}
+                      ${venmoPending && balanceDueLabel ? balanceDueLabel : (totalPriceEff || monthlyTotalEff)}{monthsEff ? ` · ${monthsEff} months` : ''}
                     </span>
-                    {monthlyTotal && totalPrice && (
+                    {monthlyTotalEff && totalPriceEff && (
                       <div style={{ color: '#9E8E88', fontSize: '0.75rem', marginTop: '2px' }}>
-                        ${monthlyTotal}/month{venmoPending && balanceDueLabel ? ` · $50 deposit already paid` : ''}
+                        ${monthlyTotalEff}/month
+                        {venmoPending && balanceDueLabel
+                          ? ` · $50 deposit already paid`
+                          : balanceDueLabel
+                            ? ` · $50 deposit + $${balanceDueLabel} balance`
+                            : ''}
                       </div>
                     )}
                   </div>

@@ -1,13 +1,15 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect, useCallback, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import Image from 'next/image';
 import Link from 'next/link';
 import { updateBookingItems } from '@/lib/booking/update-booking';
-import { chargeBookingUpgrade } from '@/lib/square/charge-upgrade';
 import { applyPaidBookingItemUpgradeVenmo } from '@/lib/booking/apply-paid-upgrade-venmo';
+import { updatePaidBookingLineItems } from '@/lib/booking/update-paid-booking-line-items';
+import { createUpgradeCheckoutSession } from '@/lib/stripe/upgrade';
+import { isStripeEnabledClient } from '@/lib/stripe/config';
 import { VenmoBackupSection } from '@/app/components/VenmoBackupSection';
 import { getVenmoHandleFromEnv } from '@/lib/payment/venmo';
 import type { BookingItemInput, BookingItemType } from '@/lib/booking/types';
@@ -67,6 +69,8 @@ export function EditBookingForm({
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [firstName, setFirstName] = useState('');
+  const [showVenmoUpgrade, setShowVenmoUpgrade] = useState(false);
+  const stripeEnabled = isStripeEnabledClient();
 
   useEffect(() => {
     const supabase = createClient();
@@ -150,8 +154,18 @@ export function EditBookingForm({
     setProcessing(true);
 
     if (needsPayment) {
+      if (isPaid && stripeEnabled) {
+        const result = await createUpgradeCheckoutSession(bookingId, items);
+        setProcessing(false);
+        if (!result.success) {
+          setError(result.error);
+          return;
+        }
+        window.location.href = result.url;
+        return;
+      }
       if (!venmoSlug) {
-        setError('Venmo checkout is not configured. Please contact support.');
+        setError('Payment is not configured. Please contact support.');
         setProcessing(false);
         return;
       }
@@ -173,13 +187,11 @@ export function EditBookingForm({
       }
       setError(result.error);
     } else if (isPaid) {
-      // Paid booking, items equal or reduced: update via chargeBookingUpgrade with no charge
-      const result = await chargeBookingUpgrade(bookingId, items, null, 0);
+      const result = await updatePaidBookingLineItems(bookingId, items);
       setProcessing(false);
       if (result.success) { router.push('/booking/updated?type=items'); return; }
       setError(result.error);
     } else {
-      // Unpaid booking, items equal or reduced: just save
       const result = await updateBookingItems(bookingId, items);
       setProcessing(false);
       if (result.success) { router.push('/booking/updated?type=items'); return; }
@@ -188,6 +200,9 @@ export function EditBookingForm({
   };
 
   const isAtItemCap = totalAdditionalItems >= MAX_ADDITIONAL_ITEMS;
+
+  const saveBlocked =
+    processing || (needsPayment && isPaid && !stripeEnabled && !venmoSlug);
 
   return (
     <AuthPageWrapper>
@@ -204,6 +219,9 @@ export function EditBookingForm({
           minWidth: 0,
         }}
       >
+        <Suspense fallback={null}>
+          <UpgradeCheckoutReturnPoller bookingId={bookingId} />
+        </Suspense>
 
         <div style={{ textAlign: 'center', marginBottom: '48px' }}>
           <Link href="/">
@@ -323,28 +341,72 @@ export function EditBookingForm({
           </div>
         </div>
 
-        {/* Upgrade payment section — only appears for paid bookings with a positive delta */}
-        {needsPayment && !venmoSlug && (
+        {/* Upgrade payment — Stripe primary when flag on; Venmo optional / legacy */}
+        {needsPayment && !stripeEnabled && !venmoSlug && (
           <div style={{ padding: '14px 16px', marginBottom: '20px', background: '#FEF3C7', border: '1px solid #FCD34D', borderRadius: '10px', fontSize: '0.875rem', color: '#78350F' }}>
-            Extra storage requires a Venmo payment, but Venmo is not configured on this site. Please contact support before increasing your order.
+            Extra storage requires payment, but checkout is not configured. Please contact support before increasing your order.
           </div>
         )}
 
-        {needsPayment && venmoSlug && (
+        {needsPayment && (stripeEnabled || venmoSlug) && (
           <div style={{ padding: '8px 0 0', marginBottom: '24px' }}>
             <h2 style={{ fontSize: '1.1rem', fontWeight: '700', color: 'var(--color-coffee)', marginBottom: '6px' }}>Additional charge required</h2>
             <p style={{ fontSize: '0.875rem', color: '#6B5A52', marginBottom: '12px' }}>
               You&apos;re adding <strong>${deltaMonthly.toFixed(2)}/month</strong> more for {storageMonths} months.
               One-time difference: <strong>${(deltaTotalCents / 100).toFixed(2)}</strong>.
             </p>
-            <VenmoBackupSection
-              venmoSlug={venmoSlug}
-              amountLabel={`$${(deltaTotalCents / 100).toFixed(2)}`}
-              amountCents={deltaTotalCents}
-              purpose="upgrade"
-              noteContext={{ kind: 'upgrade', bookingId, firstName }}
-              ctaLabel={`Open Venmo — pay $${(deltaTotalCents / 100).toFixed(2)}`}
-            />
+            {stripeEnabled && (
+              <p style={{ fontSize: '0.8rem', color: '#6B5A52', marginBottom: '12px' }}>
+                Pay with card, Apple Pay, or Google Pay. Your new items apply automatically after payment clears (usually seconds).
+              </p>
+            )}
+            {!stripeEnabled && venmoSlug && (
+              <VenmoBackupSection
+                venmoSlug={venmoSlug}
+                amountLabel={`$${(deltaTotalCents / 100).toFixed(2)}`}
+                amountCents={deltaTotalCents}
+                purpose="upgrade"
+                noteContext={{ kind: 'upgrade', bookingId, firstName }}
+                ctaLabel={`Open Venmo — pay $${(deltaTotalCents / 100).toFixed(2)}`}
+              />
+            )}
+            {stripeEnabled && venmoSlug && (
+              <div style={{ marginTop: '12px' }}>
+                <button
+                  type="button"
+                  onClick={() => setShowVenmoUpgrade((v) => !v)}
+                  aria-expanded={showVenmoUpgrade}
+                  style={{
+                    width: '100%',
+                    background: 'transparent',
+                    border: '1px dashed var(--color-latte)',
+                    borderRadius: '10px',
+                    padding: '10px 14px',
+                    color: 'var(--color-coffee)',
+                    fontSize: '0.85rem',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                  }}
+                >
+                  {showVenmoUpgrade ? 'Hide Venmo' : 'Prefer to pay with Venmo?'}
+                </button>
+                {showVenmoUpgrade && (
+                  <div style={{ marginTop: '12px' }}>
+                    <p style={{ fontSize: '0.78rem', color: '#6B5A52', marginBottom: '10px' }}>
+                      Venmo upgrades are applied immediately; we confirm the transfer within about one business day.
+                    </p>
+                    <VenmoBackupSection
+                      venmoSlug={venmoSlug}
+                      amountLabel={`$${(deltaTotalCents / 100).toFixed(2)}`}
+                      amountCents={deltaTotalCents}
+                      purpose="upgrade"
+                      noteContext={{ kind: 'upgrade', bookingId, firstName }}
+                      ctaLabel={`Open Venmo — pay $${(deltaTotalCents / 100).toFixed(2)}`}
+                    />
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )}
 
@@ -367,9 +429,9 @@ export function EditBookingForm({
           </div>
           <button
             onClick={handleSave}
-            disabled={processing || (needsPayment && !venmoSlug)}
+            disabled={saveBlocked}
             className="button-primary"
-            style={{ padding: '14px clamp(16px, 5vw, 48px)', fontSize: '1.05rem', flexShrink: 0, opacity: (processing || (needsPayment && !venmoSlug)) ? 0.65 : 1 }}
+            style={{ padding: '14px clamp(16px, 5vw, 48px)', fontSize: '1.05rem', flexShrink: 0, opacity: saveBlocked ? 0.65 : 1 }}
           >
             {processing
               ? 'Processing…'
@@ -386,5 +448,91 @@ export function EditBookingForm({
         </div>
       </div>
     </AuthPageWrapper>
+  );
+}
+
+/**
+ * After Stripe upgrade Checkout, land here with ?upgrade_session_id=…
+ * and poll until the webhook applies line items.
+ */
+function UpgradeCheckoutReturnPoller({ bookingId }: { bookingId: string }) {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const sessionId = searchParams.get('upgrade_session_id');
+  const cancelled = searchParams.get('upgrade_cancelled') === '1';
+
+  useEffect(() => {
+    if (!cancelled) return;
+    router.replace(`/booking/edit/${bookingId}`);
+  }, [cancelled, bookingId, router]);
+
+  useEffect(() => {
+    if (!sessionId) return;
+    let alive = true;
+    const started = Date.now();
+
+    const tick = async () => {
+      try {
+        const res = await fetch(`/api/booking/upgrade-status?session_id=${encodeURIComponent(sessionId)}`, {
+          cache: 'no-store',
+        });
+        if (!res.ok) return;
+        const data = (await res.json()) as { applied?: boolean };
+        if (!alive) return;
+        if (data.applied) {
+          router.push('/booking/updated?type=items');
+        }
+      } catch {
+        /* keep polling */
+      }
+      if (Date.now() - started > 90_000) {
+        alive = false;
+      }
+    };
+
+    const interval = setInterval(tick, 2_000);
+    tick();
+    return () => {
+      alive = false;
+      clearInterval(interval);
+    };
+  }, [sessionId, router]);
+
+  if (!sessionId) return null;
+
+  return (
+    <div
+      style={{
+        marginBottom: '20px',
+        padding: '14px 18px',
+        background: 'rgba(201, 164, 126, 0.12)',
+        border: '1px solid var(--color-latte)',
+        borderRadius: '12px',
+        fontSize: '0.9rem',
+        color: 'var(--color-coffee)',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '12px',
+      }}
+    >
+      <span
+        style={{
+          width: '22px',
+          height: '22px',
+          borderRadius: '50%',
+          border: '2px solid var(--color-latte)',
+          borderTopColor: 'transparent',
+          animation: 'edit-upgrade-spin 0.85s linear infinite',
+          flexShrink: 0,
+        }}
+        aria-hidden
+      />
+      <span>Applying your upgrade… this usually takes a few seconds.</span>
+      <style>{`
+        @keyframes edit-upgrade-spin {
+          to { transform: rotate(360deg); }
+        }
+      `}</style>
+    </div>
   );
 }

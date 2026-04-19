@@ -11,6 +11,8 @@ import { formatDate, formatTime } from '@/lib/utils/date';
 import { AuthPageWrapper } from '@/app/components/AuthPageWrapper';
 import { buildVenmoNote, buildVenmoPayUrl, getVenmoHandleFromEnv } from '@/lib/payment/venmo';
 import { SITE_CONTACT_EMAIL } from '@/lib/site/contact';
+import { createBookingCheckoutSession } from '@/lib/stripe/booking';
+import { isStripeEnabledClient } from '@/lib/stripe/config';
 import {
   ADDON_PRICE_USD_MONTH,
   ADDON_UNIT_PRICE_CENTS,
@@ -34,7 +36,9 @@ function PaymentPageContent() {
   const [firstName, setFirstName] = useState<string>('');
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [step, setStep] = useState<'idle' | 'creating' | 'done'>('idle');
+  const [step, setStep] = useState<'idle' | 'creating' | 'stripe' | 'done'>('idle');
+  const [showVenmo, setShowVenmo] = useState(false);
+  const stripeEnabled = isStripeEnabledClient();
 
   // URL params (unchanged)
   const boxes = searchParams.get('boxes') || '0';
@@ -137,6 +141,51 @@ function PaymentPageContent() {
   const balanceDueCents = Math.round(balanceDue * 100);
   const venmoAmountLabel = `$${balanceDue.toFixed(2)}`;
 
+  // Primary Stripe flow — create the booking row, then hand off to Stripe
+  // Checkout. On success, Stripe redirects to /booking/confirmed (via the
+  // session success_url configured in createBookingCheckoutSession).
+  const handleSaveBookingAndPayStripe = async () => {
+    if (!userId) {
+      router.push(`/auth/login?redirect=${encodeURIComponent(`/booking/payment?${searchParams.toString()}`)}`);
+      return;
+    }
+    const payload = buildBookingPayload();
+    if (!payload) {
+      setError('Missing booking details.');
+      return;
+    }
+
+    setError(null);
+    setProcessing(true);
+    setStep('creating');
+    try {
+      const bookingResult = await createBooking(payload);
+      if (!bookingResult.success) {
+        setError(bookingResult.error);
+        setProcessing(false);
+        setStep('idle');
+        return;
+      }
+
+      setStep('stripe');
+      const checkoutResult = await createBookingCheckoutSession(bookingResult.bookingId);
+      if (!checkoutResult.success) {
+        // Booking was already saved — direct them to finish via Venmo or support.
+        setError(`${checkoutResult.error} Your booking is saved — you can refresh and try Venmo below, or email ${SITE_CONTACT_EMAIL}.`);
+        setProcessing(false);
+        setStep('idle');
+        return;
+      }
+
+      // Hard redirect — taking over the window for the hosted Checkout page.
+      window.location.href = checkoutResult.url;
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Something went wrong. Please try again.');
+      setProcessing(false);
+      setStep('idle');
+    }
+  };
+
   const handleSaveBookingAndPayVenmo = async () => {
     if (!userId) {
       router.push(`/auth/login?redirect=${encodeURIComponent(`/booking/payment?${searchParams.toString()}`)}`);
@@ -202,7 +251,9 @@ function PaymentPageContent() {
     }
   };
 
-  const stepLabel = step === 'creating' ? 'Saving your booking…' : 'Continue';
+  const stepLabel =
+    step === 'creating' ? 'Saving your booking…' :
+    step === 'stripe' ? 'Redirecting to secure checkout…' : 'Continue';
 
   return (
     <AuthPageWrapper>
@@ -304,10 +355,10 @@ function PaymentPageContent() {
         <div className="booking-payment-card">
             <h2>Payment</h2>
             <div className="payment-trust-message">
-              Your $50 deposit is already applied. Pay the remaining <strong>{venmoAmountLabel}</strong> on Venmo.
+              Your $50 deposit is already applied. Pay the remaining <strong>{venmoAmountLabel}</strong>{stripeEnabled ? ' with card, Apple Pay, or Google Pay.' : ' on Venmo.'}
             </div>
 
-            {!venmoSlug && (
+            {!stripeEnabled && !venmoSlug && (
               <div className="payment-error-message" role="status">
                 Venmo checkout is not configured. Please email{' '}
                 <a href={`mailto:${SITE_CONTACT_EMAIL}`} style={{ fontWeight: 700 }}>
@@ -323,57 +374,152 @@ function PaymentPageContent() {
               </div>
             )}
 
-            {venmoSlug && (
-              <div
-                style={{
-                  margin: '0 0 20px',
-                  padding: '12px 16px',
-                  background: 'rgba(201, 164, 126, 0.1)',
-                  borderLeft: '3px solid var(--color-latte)',
-                  borderRadius: '6px',
-                  fontSize: '14px',
-                  color: 'var(--color-coffee)',
-                  lineHeight: 1.5,
-                  display: 'flex',
-                  alignItems: 'flex-start',
-                  gap: '12px',
-                }}
+            {/* "What happens next" callout — stays for both flows, cue for trust */}
+            <div
+              style={{
+                margin: '0 0 20px',
+                padding: '12px 16px',
+                background: 'rgba(201, 164, 126, 0.1)',
+                borderLeft: '3px solid var(--color-latte)',
+                borderRadius: '6px',
+                fontSize: '14px',
+                color: 'var(--color-coffee)',
+                lineHeight: 1.5,
+                display: 'flex',
+                alignItems: 'flex-start',
+                gap: '12px',
+              }}
+            >
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden
+                style={{ flexShrink: 0, marginTop: '2px' }}
               >
-                <svg
-                  width="20"
-                  height="20"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  aria-hidden
-                  style={{ flexShrink: 0, marginTop: '2px' }}
-                >
-                  <rect x="3" y="5" width="18" height="14" rx="2" />
-                  <path d="m3 7 9 6 9-6" />
-                </svg>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontWeight: 700, marginBottom: '2px' }}>What happens next</div>
-                  <div>Look out for our email confirming your booking within 1 business day.</div>
+                <rect x="3" y="5" width="18" height="14" rx="2" />
+                <path d="m3 7 9 6 9-6" />
+              </svg>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontWeight: 700, marginBottom: '2px' }}>What happens next</div>
+                <div>
+                  {stripeEnabled
+                    ? 'Your booking confirms instantly once payment clears — look for the email receipt.'
+                    : 'Look out for our email confirming your booking within 1 business day.'}
                 </div>
               </div>
-            )}
-
-            <button
-              type="button"
-              className="booking-payment-button"
-              onClick={handleSaveBookingAndPayVenmo}
-              disabled={!venmoSlug || processing}
-            >
-              {processing && <span className="payment-spinner" aria-hidden />}
-              {processing ? stepLabel : 'Book my Storage'}
-            </button>
-
-            <div className="payment-trust-badges">
-              <span>Pay securely through Venmo · no card info stored</span>
             </div>
+
+            {stripeEnabled ? (
+              <>
+                {/* Primary rail: Stripe hosted Checkout. Creates the booking
+                    row first, then redirects. Venmo is a collapsible fallback. */}
+                <button
+                  type="button"
+                  className="booking-payment-button"
+                  onClick={handleSaveBookingAndPayStripe}
+                  disabled={processing}
+                >
+                  {processing && <span className="payment-spinner" aria-hidden />}
+                  {processing ? stepLabel : 'Book my Storage'}
+                </button>
+
+                <div className="payment-trust-badges">
+                  <span>Secure checkout · card, Apple Pay, Google Pay · no card info stored</span>
+                </div>
+
+                {venmoSlug && (
+                  <div style={{ marginTop: '22px' }}>
+                    <button
+                      type="button"
+                      onClick={() => setShowVenmo((v) => !v)}
+                      aria-expanded={showVenmo}
+                      disabled={processing}
+                      style={{
+                        width: '100%',
+                        background: 'transparent',
+                        border: '1px dashed var(--color-latte)',
+                        borderRadius: '10px',
+                        padding: '10px 14px',
+                        color: 'var(--color-coffee)',
+                        fontSize: '0.85rem',
+                        fontWeight: 600,
+                        cursor: processing ? 'not-allowed' : 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '8px',
+                        opacity: processing ? 0.6 : 1,
+                      }}
+                    >
+                      <span>{showVenmo ? 'Hide' : 'Prefer to pay with Venmo?'}</span>
+                      <svg
+                        width="14"
+                        height="14"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        style={{ transform: showVenmo ? 'rotate(180deg)' : 'rotate(0)', transition: 'transform 0.2s' }}
+                        aria-hidden
+                      >
+                        <polyline points="6 9 12 15 18 9" />
+                      </svg>
+                    </button>
+
+                    {showVenmo && (
+                      <div style={{ marginTop: '14px' }}>
+                        <p style={{ fontSize: '0.82rem', color: '#6B5A52', marginBottom: '12px', lineHeight: 1.5 }}>
+                          Venmo is a manual confirmation — your booking confirms within 1 business day after we verify the transfer.
+                        </p>
+                        <button
+                          type="button"
+                          onClick={handleSaveBookingAndPayVenmo}
+                          disabled={!venmoSlug || processing}
+                          style={{
+                            width: '100%',
+                            padding: '12px 18px',
+                            background: 'white',
+                            color: 'var(--color-coffee)',
+                            border: '2px solid var(--color-coffee)',
+                            borderRadius: '12px',
+                            fontSize: '0.95rem',
+                            fontWeight: 700,
+                            cursor: !venmoSlug || processing ? 'not-allowed' : 'pointer',
+                            opacity: !venmoSlug || processing ? 0.6 : 1,
+                          }}
+                        >
+                          {processing ? stepLabel : `Pay ${venmoAmountLabel} on Venmo`}
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  className="booking-payment-button"
+                  onClick={handleSaveBookingAndPayVenmo}
+                  disabled={!venmoSlug || processing}
+                >
+                  {processing && <span className="payment-spinner" aria-hidden />}
+                  {processing ? stepLabel : 'Book my Storage'}
+                </button>
+
+                <div className="payment-trust-badges">
+                  <span>Pay securely through Venmo · no card info stored</span>
+                </div>
+              </>
+            )}
           </div>
         </div>
 

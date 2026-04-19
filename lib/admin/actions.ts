@@ -297,9 +297,21 @@ export async function setCustomerDepositPaid(
     return { success: false, error: fetchErr?.message ?? 'Customer not found' };
   }
 
+  // When an admin flips this flag it means a Venmo (or other manual) deposit
+  // was reconciled by hand — tag provenance so createBooking stamps the right
+  // provider on the deposit payments row. When un-checking, clear everything.
+  const updatePayload: Record<string, unknown> = { deposit_paid: paid };
+  if (paid) {
+    updatePayload.deposit_provider = 'venmo';
+  } else {
+    updatePayload.deposit_provider = null;
+    updatePayload.deposit_stripe_session_id = null;
+    updatePayload.deposit_stripe_payment_intent_id = null;
+  }
+
   const { error } = await admin
     .from('users')
-    .update({ deposit_paid: paid })
+    .update(updatePayload)
     .eq('id', userId);
 
   if (error) {

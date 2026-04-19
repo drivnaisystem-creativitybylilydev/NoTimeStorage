@@ -7,6 +7,8 @@ import { motion } from 'framer-motion';
 import { AuthPageWrapper } from '@/app/components/AuthPageWrapper';
 import { VenmoBackupSection } from '@/app/components/VenmoBackupSection';
 import { SITE_CONTACT_EMAIL } from '@/lib/site/contact';
+import { createDepositCheckoutSession } from '@/lib/stripe/deposit';
+import { isStripeEnabledClient } from '@/lib/stripe/config';
 
 interface DepositFormProps {
   customerName: string;
@@ -16,11 +18,14 @@ interface DepositFormProps {
 
 export function DepositForm({ customerName, customerEmail, venmoHandle }: DepositFormProps) {
   const [sent, setSent] = useState(false);
+  const [showVenmo, setShowVenmo] = useState(false);
+  const [stripeLoading, setStripeLoading] = useState(false);
+  const [stripeError, setStripeError] = useState<string | null>(null);
   const firstName = customerName.trim().split(/\s+/)[0] || '';
+  const stripeEnabled = isStripeEnabledClient();
 
-  // Persist the "sent" flag in the URL so the confirmation card survives a
-  // page refresh, a back-button, or the browser navigating the original tab
-  // instead of honoring target="_blank".
+  // Persist the Venmo "sent" flag in the URL so the confirmation card survives
+  // a page refresh, a back-button, or the browser navigating the original tab.
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const params = new URLSearchParams(window.location.search);
@@ -42,6 +47,23 @@ export function DepositForm({ customerName, customerEmail, venmoHandle }: Deposi
       const url = new URL(window.location.href);
       url.searchParams.delete('sent');
       window.history.replaceState({}, '', url.toString());
+    }
+  };
+
+  const handleStripeClick = async () => {
+    setStripeError(null);
+    setStripeLoading(true);
+    try {
+      const result = await createDepositCheckoutSession();
+      if (!result.success) {
+        setStripeError(result.error);
+        setStripeLoading(false);
+        return;
+      }
+      window.location.href = result.url;
+    } catch (err) {
+      setStripeError(err instanceof Error ? err.message : 'Could not start checkout.');
+      setStripeLoading(false);
     }
   };
   return (
@@ -154,7 +176,7 @@ export function DepositForm({ customerName, customerEmail, venmoHandle }: Deposi
               </svg>
             </motion.div>
             <span style={{ color: 'white', fontWeight: '700', fontSize: '0.9rem', letterSpacing: '0.01em' }}>
-              Unlock booking — send $50 on Venmo
+              Unlock booking — pay your $50 deposit
             </span>
             <span style={{ color: 'rgba(255,255,255,0.55)', fontSize: '0.75rem' }}>
               Deducted from your total at checkout
@@ -185,90 +207,249 @@ export function DepositForm({ customerName, customerEmail, venmoHandle }: Deposi
             </div>
           </div>
 
-          {venmoHandle ? (
-            sent ? (
+          {/*
+            Payment choice — Stripe primary + collapsible Venmo fallback.
+            If the Stripe flag is off, fall through to the legacy Venmo flow
+            unchanged so nothing breaks during rollout.
+          */}
+
+          {sent ? (
+            <div
+              style={{
+                background: 'linear-gradient(135deg, #dcfce7 0%, #f0fdf4 100%)',
+                border: '1px solid #86efac',
+                borderRadius: '14px',
+                padding: '22px 20px',
+                marginBottom: '20px',
+                textAlign: 'center',
+              }}
+            >
               <div
                 style={{
-                  background: 'linear-gradient(135deg, #dcfce7 0%, #f0fdf4 100%)',
-                  border: '1px solid #86efac',
-                  borderRadius: '14px',
-                  padding: '22px 20px',
-                  marginBottom: '20px',
-                  textAlign: 'center',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  width: '44px',
+                  height: '44px',
+                  margin: '0 auto 12px',
+                  borderRadius: '50%',
+                  background: 'rgba(22, 163, 74, 0.15)',
+                  color: '#166534',
+                  fontSize: '1.4rem',
+                  fontWeight: 800,
                 }}
               >
+                ✓
+              </div>
+              <div style={{ fontWeight: 700, color: '#166534', marginBottom: '8px', fontSize: '1rem' }}>
+                We&apos;re verifying your $50
+              </div>
+              <p style={{ fontSize: '0.875rem', color: '#14532d', margin: '0 0 14px', lineHeight: 1.55 }}>
+                We&apos;ll email <strong>{customerEmail || 'you'}</strong> as soon as the transfer clears — usually within one business day. Booking unlocks automatically.
+              </p>
+              <button
+                type="button"
+                onClick={undoSent}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: '#166534',
+                  fontSize: '0.78rem',
+                  textDecoration: 'underline',
+                  cursor: 'pointer',
+                  padding: 0,
+                  opacity: 0.75,
+                }}
+              >
+                Didn&apos;t send it yet? Go back
+              </button>
+            </div>
+          ) : stripeEnabled ? (
+            <>
+              {/* Primary: Stripe — card / Apple Pay / Google Pay via hosted Checkout */}
+              <button
+                type="button"
+                onClick={handleStripeClick}
+                disabled={stripeLoading}
+                style={{
+                  width: '100%',
+                  padding: '16px 20px',
+                  background: 'var(--color-coffee)',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '14px',
+                  fontSize: '1rem',
+                  fontWeight: 700,
+                  cursor: stripeLoading ? 'wait' : 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '10px',
+                  boxShadow: '0 4px 18px rgba(75,46,37,0.18)',
+                  transition: 'transform 0.15s ease, box-shadow 0.15s ease',
+                  opacity: stripeLoading ? 0.75 : 1,
+                }}
+                onMouseEnter={(e) => { if (!stripeLoading) e.currentTarget.style.transform = 'translateY(-1px)'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; }}
+              >
+                {stripeLoading ? (
+                  <>
+                    <span
+                      style={{
+                        width: '16px',
+                        height: '16px',
+                        border: '2px solid rgba(255,255,255,0.4)',
+                        borderTopColor: 'white',
+                        borderRadius: '50%',
+                        animation: 'deposit-spin 0.9s linear infinite',
+                      }}
+                      aria-hidden
+                    />
+                    Starting secure checkout…
+                  </>
+                ) : (
+                  <>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                      <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                      <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                    </svg>
+                    Pay Deposit — $50
+                  </>
+                )}
+              </button>
+
+              <div style={{ textAlign: 'center', marginTop: '10px', fontSize: '0.78rem', color: '#9E8E88' }}>
+                Secure checkout · card, Apple Pay, Google Pay · no card info stored
+              </div>
+
+              {stripeError && (
                 <div
+                  role="alert"
                   style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    width: '44px',
-                    height: '44px',
-                    margin: '0 auto 12px',
-                    borderRadius: '50%',
-                    background: 'rgba(22, 163, 74, 0.15)',
-                    color: '#166534',
-                    fontSize: '1.4rem',
-                    fontWeight: 800,
+                    marginTop: '12px',
+                    padding: '10px 14px',
+                    background: '#fef2f2',
+                    border: '1px solid #fecaca',
+                    borderRadius: '10px',
+                    color: '#991b1b',
+                    fontSize: '0.85rem',
                   }}
                 >
-                  ✓
+                  {stripeError}
                 </div>
-                <div style={{ fontWeight: 700, color: '#166534', marginBottom: '8px', fontSize: '1rem' }}>
-                  We&apos;re verifying your $50
+              )}
+
+              {venmoHandle && (
+                <div style={{ marginTop: '22px' }}>
+                  <button
+                    type="button"
+                    onClick={() => setShowVenmo((v) => !v)}
+                    aria-expanded={showVenmo}
+                    style={{
+                      width: '100%',
+                      background: 'transparent',
+                      border: '1px dashed var(--color-latte)',
+                      borderRadius: '10px',
+                      padding: '10px 14px',
+                      color: 'var(--color-coffee)',
+                      fontSize: '0.85rem',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '8px',
+                    }}
+                  >
+                    <span>{showVenmo ? 'Hide' : 'Prefer to pay with Venmo?'}</span>
+                    <svg
+                      width="14"
+                      height="14"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      style={{ transform: showVenmo ? 'rotate(180deg)' : 'rotate(0)', transition: 'transform 0.2s' }}
+                      aria-hidden
+                    >
+                      <polyline points="6 9 12 15 18 9" />
+                    </svg>
+                  </button>
+
+                  {showVenmo && (
+                    <div style={{ marginTop: '14px' }}>
+                      <VenmoBackupSection
+                        venmoSlug={venmoHandle}
+                        amountLabel="$50.00"
+                        amountCents={5000}
+                        purpose="deposit"
+                        noteContext={{ kind: 'deposit', firstName, email: customerEmail }}
+                        ctaLabel="Open Venmo"
+                        onOpened={markSent}
+                      />
+                      <div style={{ textAlign: 'center', marginTop: '6px' }}>
+                        <button
+                          type="button"
+                          onClick={markSent}
+                          style={{
+                            background: 'transparent',
+                            border: 'none',
+                            color: 'var(--color-coffee)',
+                            fontSize: '0.78rem',
+                            fontWeight: 600,
+                            textDecoration: 'underline',
+                            cursor: 'pointer',
+                            padding: '4px 8px',
+                            opacity: 0.8,
+                          }}
+                        >
+                          Already sent it? Mark as sent
+                        </button>
+                      </div>
+                      <p style={{ textAlign: 'center', marginTop: '6px', fontSize: '0.75rem', color: '#9E8E88' }}>
+                        Venmo confirmations are manual — expect unlock within 1 business day.
+                      </p>
+                    </div>
+                  )}
                 </div>
-                <p style={{ fontSize: '0.875rem', color: '#14532d', margin: '0 0 14px', lineHeight: 1.55 }}>
-                  We&apos;ll email <strong>{customerEmail || 'you'}</strong> as soon as the transfer clears — usually within one business day. Booking unlocks automatically.
-                </p>
+              )}
+            </>
+          ) : venmoHandle ? (
+            <>
+              <VenmoBackupSection
+                venmoSlug={venmoHandle}
+                amountLabel="$50.00"
+                amountCents={5000}
+                purpose="deposit"
+                noteContext={{ kind: 'deposit', firstName, email: customerEmail }}
+                ctaLabel="Pay Deposit"
+                onOpened={markSent}
+              />
+              <div style={{ textAlign: 'center', marginBottom: '16px' }}>
                 <button
                   type="button"
-                  onClick={undoSent}
+                  onClick={markSent}
                   style={{
                     background: 'transparent',
                     border: 'none',
-                    color: '#166534',
-                    fontSize: '0.78rem',
+                    color: 'var(--color-coffee)',
+                    fontSize: '0.82rem',
+                    fontWeight: 600,
                     textDecoration: 'underline',
                     cursor: 'pointer',
-                    padding: 0,
-                    opacity: 0.75,
+                    padding: '4px 8px',
+                    opacity: 0.8,
                   }}
                 >
-                  Didn&apos;t send it yet? Go back
+                  Already sent it? Mark as sent
                 </button>
               </div>
-            ) : (
-              <>
-                <VenmoBackupSection
-                  venmoSlug={venmoHandle}
-                  amountLabel="$50.00"
-                  amountCents={5000}
-                  purpose="deposit"
-                  noteContext={{ kind: 'deposit', firstName, email: customerEmail }}
-                  ctaLabel="Pay Deposit"
-                  onOpened={markSent}
-                />
-                <div style={{ textAlign: 'center', marginBottom: '16px' }}>
-                  <button
-                    type="button"
-                    onClick={markSent}
-                    style={{
-                      background: 'transparent',
-                      border: 'none',
-                      color: 'var(--color-coffee)',
-                      fontSize: '0.82rem',
-                      fontWeight: 600,
-                      textDecoration: 'underline',
-                      cursor: 'pointer',
-                      padding: '4px 8px',
-                      opacity: 0.8,
-                    }}
-                  >
-                    Already sent it? Mark as sent
-                  </button>
-                </div>
-              </>
-            )
+              <p style={{ textAlign: 'center', marginTop: '8px', fontSize: '0.8rem', color: '#9E8E88' }}>
+                After you send it, we confirm within one business day and email you when booking unlocks. The $50 is credited against your storage total at checkout.
+              </p>
+            </>
           ) : (
             <div
               style={{
@@ -288,12 +469,6 @@ export function DepositForm({ customerName, customerEmail, venmoHandle }: Deposi
               for payment instructions.
             </div>
           )}
-
-          {!sent && (
-            <p style={{ textAlign: 'center', marginTop: '8px', fontSize: '0.8rem', color: '#9E8E88' }}>
-              After you send it, we confirm within one business day and email you when booking unlocks. The $50 is credited against your storage total at checkout.
-            </p>
-          )}
         </motion.div>
 
         <div style={{ textAlign: 'center', marginTop: '16px' }}>
@@ -301,6 +476,13 @@ export function DepositForm({ customerName, customerEmail, venmoHandle }: Deposi
             Back to dashboard
           </Link>
         </div>
+
+        <style>{`
+          @keyframes deposit-spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+          }
+        `}</style>
       </motion.div>
     </AuthPageWrapper>
   );

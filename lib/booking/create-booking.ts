@@ -69,7 +69,7 @@ export async function createBooking(input: CreateBookingInput): Promise<CreateBo
   // Bookings RLS expects user_id = public.users.id. Match by id or auth_id (schema varies).
   const { data: profile } = await supabase
     .from('users')
-    .select('id')
+    .select('id, deposit_provider, deposit_stripe_session_id, deposit_stripe_payment_intent_id')
     .or(`id.eq.${user.id},auth_id.eq.${user.id}`)
     .limit(1)
     .single();
@@ -189,6 +189,14 @@ export async function createBooking(input: CreateBookingInput): Promise<CreateBo
 
   // ── Payments ─────────────────────────────────────────────────────────────
   // 1) Deposit: $50 was collected before booking was created — record as succeeded.
+  //    Provenance (provider + Stripe IDs) is stashed on the users row at deposit
+  //    time by the Stripe webhook or the admin manual-flip path; read it back
+  //    here so the payments row reflects how the deposit was actually paid.
+  const depositProvider =
+    profile.deposit_provider === 'stripe' || profile.deposit_provider === 'venmo'
+      ? profile.deposit_provider
+      : 'manual';
+
   const { error: paymentError } = await supabase
     .from('payments')
     .insert({
@@ -197,6 +205,9 @@ export async function createBooking(input: CreateBookingInput): Promise<CreateBo
       payment_type: 'deposit',
       square_payment_id: null,
       status: 'succeeded',
+      provider: depositProvider,
+      stripe_checkout_session_id: profile.deposit_stripe_session_id ?? null,
+      stripe_payment_intent_id: profile.deposit_stripe_payment_intent_id ?? null,
     });
 
   if (paymentError) {

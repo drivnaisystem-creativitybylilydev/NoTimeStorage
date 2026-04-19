@@ -6,26 +6,25 @@ import type { BookingItemInput } from '@/lib/booking/types';
 import { validateBookingLineItems } from '@/lib/booking/addon-pricing';
 import { replaceBookingLineItems, storageMonthsForBooking } from '@/lib/booking/replace-booking-line-items';
 
-export type ApplyUpgradeVenmoResult =
-  | { success: true }
-  | { success: false; error: string };
+export type UpdatePaidBookingItemsResult = { success: true } | { success: false; error: string };
 
 /**
- * After the customer pays the upgrade difference via Venmo (off-site),
- * applies new line items and totals for a paid booking. Verifies the
- * price increase server-side from the submitted line items.
+ * For a **paid** booking: replace line items when there is no extra charge
+ * (same or lower total). Use Stripe/Venmo flows when the total increases.
  */
-export async function applyPaidBookingItemUpgradeVenmo(
+export async function updatePaidBookingLineItems(
   bookingId: string,
   newItems: BookingItemInput[],
-): Promise<ApplyUpgradeVenmoResult> {
+): Promise<UpdatePaidBookingItemsResult> {
   const authClient = await createClient();
-  const { data: { user } } = await authClient.auth.getUser();
+  const {
+    data: { user },
+  } = await authClient.auth.getUser();
   if (!user) return { success: false, error: 'Not logged in.' };
 
-  const supabase = createAdminClient();
+  const admin = createAdminClient();
 
-  const { data: profile } = await supabase
+  const { data: profile } = await admin
     .from('users')
     .select('id')
     .or(`id.eq.${user.id},auth_id.eq.${user.id}`)
@@ -33,7 +32,7 @@ export async function applyPaidBookingItemUpgradeVenmo(
     .single();
   if (!profile?.id) return { success: false, error: 'Account not found.' };
 
-  const { data: booking } = await supabase
+  const { data: booking } = await admin
     .from('bookings')
     .select('id, user_id, payment_status, move_out_date, move_in_date, total_price')
     .eq('id', bookingId)
@@ -42,7 +41,7 @@ export async function applyPaidBookingItemUpgradeVenmo(
   if (!booking) return { success: false, error: 'Booking not found.' };
   if (booking.user_id !== profile.id) return { success: false, error: 'Unauthorized.' };
   if (booking.payment_status !== 'paid') {
-    return { success: false, error: 'This flow only applies to paid bookings.' };
+    return { success: false, error: 'This action only applies to paid bookings.' };
   }
 
   const lineErr = validateBookingLineItems(newItems);
@@ -53,34 +52,18 @@ export async function applyPaidBookingItemUpgradeVenmo(
   const newTotalPrice = newMonthlyRate * months;
   const oldTotal = Number(booking.total_price);
   const deltaCents = Math.round((newTotalPrice - oldTotal) * 100);
-  if (deltaCents <= 0) {
-    return { success: false, error: 'No price increase to apply. Use save without upgrade payment.' };
+  if (deltaCents > 0) {
+    return { success: false, error: 'A payment is required for this upgrade. Use the checkout button.' };
   }
 
   const applied = await replaceBookingLineItems(
-    supabase,
+    admin,
     bookingId,
     booking.move_out_date,
     booking.move_in_date,
     newItems,
   );
   if (!applied.ok) return { success: false, error: applied.error };
-
-  // Audit trail: log the upgrade delta as a `pending` payment so admin can
-  // reconcile when the Venmo transfer shows up. We do NOT mark succeeded
-  // here — admin verifies manually in Venmo and then marks it in the DB.
-  const { error: payErr } = await supabase
-    .from('payments')
-    .insert({
-      booking_id: bookingId,
-      amount: deltaCents / 100,
-      payment_type: 'full_payment',
-      status: 'pending',
-      provider: 'venmo',
-    });
-  if (payErr) {
-    console.warn('[applyPaidBookingItemUpgradeVenmo] pending payment insert skipped:', payErr.message);
-  }
 
   return { success: true };
 }
