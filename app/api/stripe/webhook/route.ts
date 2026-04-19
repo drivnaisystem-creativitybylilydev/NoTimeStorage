@@ -40,9 +40,27 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Could not read request body' }, { status: 400 });
   }
 
+  let stripe: Stripe;
+  try {
+    stripe = getStripe();
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'unknown';
+    console.error('[stripe-webhook] Stripe SDK init failed:', msg);
+    return NextResponse.json({ error: msg }, { status: 500 });
+  }
+
+  let webhookSecret: string;
+  try {
+    webhookSecret = getWebhookSecret();
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'unknown';
+    console.error('[stripe-webhook] webhook secret missing:', msg);
+    return NextResponse.json({ error: msg }, { status: 500 });
+  }
+
   let event: Stripe.Event;
   try {
-    event = getStripe().webhooks.constructEvent(rawBody, signature, getWebhookSecret());
+    event = stripe.webhooks.constructEvent(rawBody, signature, webhookSecret);
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'unknown';
     console.error('[stripe-webhook] signature verification failed:', msg);
