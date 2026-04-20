@@ -177,7 +177,7 @@ function BookingConfirmedContent() {
               ? 'Booking saved — finish on Venmo'
               : stripeProcessing
                 ? (pollGaveUp ? 'Still confirming…' : 'Confirming your payment…')
-                : 'You\'re almost set!'}
+                : 'You\'re all set!'}
           </motion.h1>
           <motion.p custom={0.22} variants={childVar} initial="hidden" animate="visible"
             style={{ color: '#4A3A34', fontSize: '1rem', marginBottom: '24px', lineHeight: '1.6' }}>
