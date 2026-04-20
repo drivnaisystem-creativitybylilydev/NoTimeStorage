@@ -13,7 +13,6 @@ import { buildVenmoNote, buildVenmoPayUrl, getVenmoHandleFromEnv } from '@/lib/p
 import { SITE_CONTACT_EMAIL } from '@/lib/site/contact';
 import { createBookingCheckoutSession } from '@/lib/stripe/booking';
 import { isStripeEnabledClient } from '@/lib/stripe/config';
-import { StripeIosCheckoutHint } from '@/app/components/StripeIosCheckoutHint';
 import {
   ADDON_PRICE_USD_MONTH,
   ADDON_UNIT_PRICE_CENTS,
@@ -355,8 +354,17 @@ function PaymentPageContent() {
         {/* Payment: right on desktop, stacks second on mobile */}
         <div className="booking-payment-card">
             <h2>Payment</h2>
-            <div className="payment-trust-message">
-              Your $50 deposit is already applied. Pay the remaining <strong>{venmoAmountLabel}</strong>{stripeEnabled ? ' with card, Apple Pay, or Google Pay.' : ' on Venmo.'}
+            <div className="payment-trust-message payment-trust-message--lead">
+              {stripeEnabled ? (
+                <>
+                  Your $50 deposit is already applied. Pay the remaining <strong>{venmoAmountLabel}</strong> with{' '}
+                  Card, <strong>Apple Pay</strong>, or <strong>Google Pay</strong>.
+                </>
+              ) : (
+                <>
+                  Your $50 deposit is already applied. Pay the remaining <strong>{venmoAmountLabel}</strong> on Venmo.
+                </>
+              )}
             </div>
 
             {!stripeEnabled && !venmoSlug && (
@@ -375,52 +383,8 @@ function PaymentPageContent() {
               </div>
             )}
 
-            {/* "What happens next" callout — stays for both flows, cue for trust */}
-            <div
-              style={{
-                margin: '0 0 20px',
-                padding: '12px 16px',
-                background: 'rgba(201, 164, 126, 0.1)',
-                borderLeft: '3px solid var(--color-latte)',
-                borderRadius: '6px',
-                fontSize: '14px',
-                color: 'var(--color-coffee)',
-                lineHeight: 1.5,
-                display: 'flex',
-                alignItems: 'flex-start',
-                gap: '12px',
-              }}
-            >
-              <svg
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                aria-hidden
-                style={{ flexShrink: 0, marginTop: '2px' }}
-              >
-                <rect x="3" y="5" width="18" height="14" rx="2" />
-                <path d="m3 7 9 6 9-6" />
-              </svg>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontWeight: 700, marginBottom: '2px' }}>What happens next</div>
-                <div>
-                  {stripeEnabled
-                    ? 'Your booking confirms instantly once payment clears — look for the email receipt.'
-                    : 'Look out for our email confirming your booking within 1 business day.'}
-                </div>
-              </div>
-            </div>
-
             {stripeEnabled ? (
               <>
-                {/* Primary rail: Stripe hosted Checkout. Creates the booking
-                    row first, then redirects. Venmo is a collapsible fallback. */}
-                <StripeIosCheckoutHint />
                 <button
                   type="button"
                   className="booking-payment-button"
@@ -430,10 +394,6 @@ function PaymentPageContent() {
                   {processing && <span className="payment-spinner" aria-hidden />}
                   {processing ? stepLabel : 'Book my Storage'}
                 </button>
-
-                <div className="payment-trust-badges">
-                  <span>Secure checkout · card, Apple Pay, Google Pay · no card info stored</span>
-                </div>
 
                 {venmoSlug && (
                   <div style={{ marginTop: '22px' }}>
@@ -516,10 +476,6 @@ function PaymentPageContent() {
                   {processing && <span className="payment-spinner" aria-hidden />}
                   {processing ? stepLabel : 'Book my Storage'}
                 </button>
-
-                <div className="payment-trust-badges">
-                  <span>Pay securely through Venmo · no card info stored</span>
-                </div>
               </>
             )}
           </div>
