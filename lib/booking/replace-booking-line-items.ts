@@ -1,12 +1,10 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { BookingItemInput } from '@/lib/booking/types';
 import { validateBookingLineItems } from '@/lib/booking/addon-pricing';
+import { computeStorageBillMonths } from '@/lib/booking/storage-bill-months';
 
 export function storageMonthsForBooking(moveOut: string, moveIn: string): number {
-  const start = new Date(moveOut);
-  const end = new Date(moveIn);
-  const months = (end.getFullYear() - start.getFullYear()) * 12 + (end.getMonth() - start.getMonth());
-  return Math.max(1, months);
+  return computeStorageBillMonths(moveOut, moveIn);
 }
 
 function getItemCategory(itemType: string): string {

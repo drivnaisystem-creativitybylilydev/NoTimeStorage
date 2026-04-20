@@ -20,6 +20,7 @@ import {
   MAX_ADDITIONAL_ITEMS,
   getBoxUnitPriceCents,
 } from '@/lib/booking/addon-pricing';
+import { computeStorageBillMonths } from '@/lib/booking/storage-bill-months';
 
 const ITEM_TYPE_MAP: Record<string, BookingItemType> = {
   smallWithBox: 'small_with_box',
@@ -54,11 +55,8 @@ function PaymentPageContent() {
   const instructions = searchParams.get('instructions') || '';
   const school = searchParams.get('school') || 'Stonehill College';
 
-  const storageMonths = (() => {
-    if (!moveOutDate || !moveInDate) return 3;
-    const diff = (new Date(moveInDate).getTime() - new Date(moveOutDate).getTime()) / (1000 * 60 * 60 * 24 * 30.44);
-    return Math.max(3, Math.round(diff));
-  })();
+  const storageMonths =
+    moveOutDate && moveInDate ? computeStorageBillMonths(moveOutDate, moveInDate) : 3;
 
   const getBoxPrice = (qty: number) => getBoxUnitPriceCents(qty) / 100;
   const getBoxPriceCents = (qty: number) => getBoxUnitPriceCents(qty);

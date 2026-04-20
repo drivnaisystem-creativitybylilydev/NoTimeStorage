@@ -5,18 +5,12 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { revalidatePath } from 'next/cache';
 import type { BookingItemType, BookingItemInput } from './types';
 import { validateBookingLineItems } from './addon-pricing';
+import { computeStorageBillMonths } from '@/lib/booking/storage-bill-months';
 
 export type ActionResult = { success: true } | { success: false; error: string };
 
 function getItemCategory(itemType: BookingItemType): string {
   return itemType === 'box' ? 'box' : 'item';
-}
-
-function storageMonths(moveOut: string, moveIn: string): number {
-  const start = new Date(moveOut);
-  const end = new Date(moveIn);
-  const months = (end.getFullYear() - start.getFullYear()) * 12 + (end.getMonth() - start.getMonth());
-  return Math.max(1, months);
 }
 
 /** Verify ownership only — no payment status restriction. Used for date/cancellation changes. */
@@ -99,7 +93,7 @@ export async function updateBookingDates(
     return { success: false, error: slotCheck.error ?? 'This time slot is not available.' };
   }
 
-  const months = storageMonths(move_out_date, move_in_date);
+  const months = computeStorageBillMonths(move_out_date, move_in_date);
   const totalMonthlyRate = (booking?.total_monthly_rate as number) ?? 0;
   const totalPrice = totalMonthlyRate * months;
 
@@ -157,7 +151,7 @@ export async function updateBookingItems(bookingId: string, items: BookingItemIn
     .single();
   const moveOut = existing?.move_out_date ?? '';
   const moveIn = existing?.move_in_date ?? '';
-  const months = storageMonths(moveOut, moveIn);
+  const months = computeStorageBillMonths(moveOut, moveIn);
   const totalMonthlyRate = items.reduce((sum, i) => sum + (i.unit_price_cents / 100) * i.quantity, 0);
   const totalPrice = totalMonthlyRate * months;
 

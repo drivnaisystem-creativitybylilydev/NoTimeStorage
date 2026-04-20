@@ -10,6 +10,7 @@ import { SCHOOL_NAMES, getDormsForSchool, getMoveOutWindow } from '@/lib/schools
 import { createClient } from '@/lib/supabase/client';
 import { AuthPageWrapper } from '@/app/components/AuthPageWrapper';
 import { ADDON_PRICE_USD_MONTH, getBoxPriceDollars } from '@/lib/booking/addon-pricing';
+import { computeStorageBillMonths } from '@/lib/booking/storage-bill-months';
 
 // Configuration: Minimum storage duration in months
 const MINIMUM_STORAGE_MONTHS = 3;
@@ -218,8 +219,9 @@ function SchedulePageContent() {
 
   const storageMonths = useMemo(() => {
     if (!moveOutDate || !moveInDate) return 3;
-    const diff = (moveInDate.getTime() - moveOutDate.getTime()) / (1000 * 60 * 60 * 24 * 30.44);
-    return Math.max(3, Math.round(diff));
+    const out = moveOutDate.toISOString().split('T')[0];
+    const inn = moveInDate.toISOString().split('T')[0];
+    return computeStorageBillMonths(out, inn);
   }, [moveOutDate, moveInDate]);
 
   const totalPrice = monthlyTotal * storageMonths;

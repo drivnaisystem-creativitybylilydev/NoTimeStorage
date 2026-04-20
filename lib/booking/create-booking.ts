@@ -8,6 +8,7 @@ import { validateItemsAndMonthlyTotal } from './addon-pricing';
 import { onBookingCreated } from './integrations';
 import { isTimeSlotAvailable } from './availability';
 import { SITE_CONTACT_EMAIL } from '@/lib/site/contact';
+import { computeStorageBillMonths } from '@/lib/booking/storage-bill-months';
 
 export type CreateBookingResult =
   | { success: true; bookingId: string; debug?: Record<string, unknown> }
@@ -15,13 +16,6 @@ export type CreateBookingResult =
 
 function getItemCategory(itemType: BookingItemType): string {
   return itemType === 'box' ? 'box' : 'item';
-}
-
-function storageMonths(moveOut: string, moveIn: string): number {
-  const start = new Date(moveOut);
-  const end = new Date(moveIn);
-  const months = (end.getFullYear() - start.getFullYear()) * 12 + (end.getMonth() - start.getMonth());
-  return Math.max(1, months);
 }
 
 export async function createBooking(input: CreateBookingInput): Promise<CreateBookingResult> {
@@ -78,7 +72,7 @@ export async function createBooking(input: CreateBookingInput): Promise<CreateBo
     return { success: false, error: 'Account not found. Please sign out and sign in again.' };
   }
 
-  const months = storageMonths(input.move_out_date, input.move_in_date);
+  const months = computeStorageBillMonths(input.move_out_date, input.move_in_date);
   const totalMonthlyRate = input.monthly_total_cents / 100;
   const totalPrice = totalMonthlyRate * months;
 
