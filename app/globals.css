@@ -6902,6 +6902,19 @@ button {
   overflow-wrap: anywhere;
 }
 
+/* Booking pay step: lead line above CTA (mobile-first, larger type) */
+.payment-trust-message--lead {
+  font-size: clamp(16px, 4.6vw, 18px);
+  font-weight: 500;
+  padding: 16px 18px;
+  line-height: 1.45;
+  margin-bottom: 20px;
+}
+
+.payment-trust-message--lead strong {
+  font-weight: 700;
+}
+
 /* Sandbox warning */
 .sandbox-warning {
   background: #FFF7ED;
