@@ -8,6 +8,7 @@ import {
   getSiteUrl,
   type StripeSessionMetadata,
 } from './config';
+import { checkoutSessionUiHints } from './checkout-session-ui';
 
 export type CreateDepositCheckoutResult =
   | { success: true; url: string }
@@ -46,6 +47,7 @@ export async function createDepositCheckoutSession(): Promise<CreateDepositCheck
 
   try {
     const session = await stripe.checkout.sessions.create({
+      ...checkoutSessionUiHints,
       mode: 'payment',
       customer_email: email,
       line_items: [

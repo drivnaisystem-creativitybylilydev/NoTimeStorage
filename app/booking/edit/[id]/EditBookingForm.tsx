@@ -10,6 +10,7 @@ import { applyPaidBookingItemUpgradeVenmo } from '@/lib/booking/apply-paid-upgra
 import { updatePaidBookingLineItems } from '@/lib/booking/update-paid-booking-line-items';
 import { createUpgradeCheckoutSession } from '@/lib/stripe/upgrade';
 import { isStripeEnabledClient } from '@/lib/stripe/config';
+import { StripeIosCheckoutHint } from '@/app/components/StripeIosCheckoutHint';
 import { VenmoBackupSection } from '@/app/components/VenmoBackupSection';
 import { getVenmoHandleFromEnv } from '@/lib/payment/venmo';
 import type { BookingItemInput, BookingItemType } from '@/lib/booking/types';
@@ -356,9 +357,12 @@ export function EditBookingForm({
               One-time difference: <strong>${(deltaTotalCents / 100).toFixed(2)}</strong>.
             </p>
             {stripeEnabled && (
-              <p style={{ fontSize: '0.8rem', color: '#6B5A52', marginBottom: '12px' }}>
-                Pay with card, Apple Pay, or Google Pay. Your new items apply automatically after payment clears (usually seconds).
-              </p>
+              <>
+                <StripeIosCheckoutHint />
+                <p style={{ fontSize: '0.8rem', color: '#6B5A52', marginBottom: '12px' }}>
+                  Pay with card, Apple Pay, or Google Pay. Your new items apply automatically after payment clears (usually seconds).
+                </p>
+              </>
             )}
             {!stripeEnabled && venmoSlug && (
               <VenmoBackupSection

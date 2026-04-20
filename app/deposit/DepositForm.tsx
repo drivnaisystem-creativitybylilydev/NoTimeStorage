@@ -9,6 +9,7 @@ import { VenmoBackupSection } from '@/app/components/VenmoBackupSection';
 import { SITE_CONTACT_EMAIL } from '@/lib/site/contact';
 import { createDepositCheckoutSession } from '@/lib/stripe/deposit';
 import { isStripeEnabledClient } from '@/lib/stripe/config';
+import { StripeIosCheckoutHint } from '@/app/components/StripeIosCheckoutHint';
 
 interface DepositFormProps {
   customerName: string;
@@ -267,6 +268,7 @@ export function DepositForm({ customerName, customerEmail, venmoHandle }: Deposi
           ) : stripeEnabled ? (
             <>
               {/* Primary: Stripe — card / Apple Pay / Google Pay via hosted Checkout */}
+              <StripeIosCheckoutHint />
               <button
                 type="button"
                 onClick={handleStripeClick}

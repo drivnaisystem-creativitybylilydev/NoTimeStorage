@@ -8,6 +8,7 @@ import {
   getSiteUrl,
   type StripeSessionMetadata,
 } from './config';
+import { checkoutSessionUiHints } from './checkout-session-ui';
 
 export type CreateBookingCheckoutResult =
   | { success: true; url: string }
@@ -85,6 +86,7 @@ export async function createBookingCheckoutSession(
 
   try {
     const session = await stripe.checkout.sessions.create({
+      ...checkoutSessionUiHints,
       mode: 'payment',
       customer_email: profile.email ?? user.email ?? undefined,
       client_reference_id: booking.id,

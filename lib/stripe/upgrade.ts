@@ -6,6 +6,7 @@ import type { BookingItemInput } from '@/lib/booking/types';
 import { validateBookingLineItems } from '@/lib/booking/addon-pricing';
 import { getStripe } from './server';
 import { STRIPE_PRODUCT_NAMES, getSiteUrl, type StripeSessionMetadata } from './config';
+import { checkoutSessionUiHints } from './checkout-session-ui';
 import { storageMonthsForBooking } from '@/lib/booking/replace-booking-line-items';
 
 export type CreateUpgradeCheckoutResult =
@@ -112,6 +113,7 @@ export async function createUpgradeCheckoutSession(
 
   try {
     const session = await stripe.checkout.sessions.create({
+      ...checkoutSessionUiHints,
       mode: 'payment',
       customer_email: profile.email ?? user.email ?? undefined,
       client_reference_id: `${booking.id}:${pending.id}`,

@@ -13,6 +13,7 @@ import { buildVenmoNote, buildVenmoPayUrl, getVenmoHandleFromEnv } from '@/lib/p
 import { SITE_CONTACT_EMAIL } from '@/lib/site/contact';
 import { createBookingCheckoutSession } from '@/lib/stripe/booking';
 import { isStripeEnabledClient } from '@/lib/stripe/config';
+import { StripeIosCheckoutHint } from '@/app/components/StripeIosCheckoutHint';
 import {
   ADDON_PRICE_USD_MONTH,
   ADDON_UNIT_PRICE_CENTS,
@@ -419,6 +420,7 @@ function PaymentPageContent() {
               <>
                 {/* Primary rail: Stripe hosted Checkout. Creates the booking
                     row first, then redirects. Venmo is a collapsible fallback. */}
+                <StripeIosCheckoutHint />
                 <button
                   type="button"
                   className="booking-payment-button"
