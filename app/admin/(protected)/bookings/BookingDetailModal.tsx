@@ -23,6 +23,15 @@ function formatTimeSlot(s: string) {
   return s;
 }
 
+function bookingPaymentDetailLabel(booking: BookingWithCustomer): string {
+  if (booking.payment_status !== 'paid') return 'Unpaid';
+  const p = booking.balance_payment_provider;
+  if (p === 'stripe') return 'paid · Stripe';
+  if (p === 'venmo') return 'paid · Venmo';
+  if (p === 'square') return 'paid · Square';
+  return 'paid';
+}
+
 export function BookingDetailModal({ booking, onClose }: BookingDetailModalProps) {
   const items = booking.items ?? [];
 
@@ -320,12 +329,12 @@ export function BookingDetailModal({ booking, onClose }: BookingDetailModalProps
                 borderRadius: '8px',
                 fontSize: '0.875rem',
                 fontWeight: 600,
-                textTransform: 'capitalize',
+                textTransform: 'none',
                 background: booking.payment_status === 'paid' ? '#dcfce7' : '#fee2e2',
                 color: booking.payment_status === 'paid' ? '#166534' : '#991b1b',
               }}
             >
-              {booking.payment_status}
+              {bookingPaymentDetailLabel(booking)}
             </span>
           </div>
         </div>

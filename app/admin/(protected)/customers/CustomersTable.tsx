@@ -24,11 +24,14 @@ export function CustomersTable({ customers }: { customers: CustomerRow[] }) {
   const toggleDeposit = async (c: CustomerRow) => {
     const nextValue = !c.deposit_paid;
     const label = c.full_name?.trim() || c.email || 'this customer';
+    const isStripeDeposit = c.deposit_paid && c.deposit_provider === 'stripe';
     const confirmed = await appModal.confirm({
       title: nextValue ? `Mark deposit as paid?` : `Undo deposit for ${label}?`,
       message: nextValue
-        ? `Only do this after you've confirmed the $50 Venmo payment from ${label}. They'll immediately be able to book.`
-        : `This will lock ${label} out of the booking flow until they pay the $50 again.`,
+        ? `Only use this after you have confirmed a $50 Venmo (or other manual) payment from ${label}. If they paid the deposit with Stripe on the website, it is already recorded — you do not need to click this. When you confirm, they can book immediately.`
+        : isStripeDeposit
+          ? `This student paid the deposit through Stripe on the site. Only undo if you intentionally need to lock them out again (for example a refund or fraud case). Otherwise they will lose booking access until they pay again.`
+          : `This will lock ${label} out of the booking flow until they pay the $50 again.`,
       confirmLabel: nextValue ? 'Yes, mark paid' : 'Yes, undo',
       cancelLabel: 'Cancel',
       destructive: !nextValue,
@@ -149,7 +152,13 @@ export function CustomersTable({ customers }: { customers: CustomerRow[] }) {
                               : 'admin-badge admin-badge-neutral'
                           }
                         >
-                          {c.deposit_paid ? 'Paid' : 'Not paid'}
+                          {c.deposit_paid
+                            ? c.deposit_provider === 'stripe'
+                              ? 'Paid · Stripe'
+                              : c.deposit_provider === 'venmo'
+                                ? 'Paid · Venmo'
+                                : 'Paid'
+                            : 'Not paid'}
                         </span>
                         <button
                           type="button"
@@ -157,7 +166,11 @@ export function CustomersTable({ customers }: { customers: CustomerRow[] }) {
                           disabled={(pendingId === c.id) || isPending}
                           className="admin-btn admin-btn-ghost"
                           style={{ fontSize: '12px', padding: '4px 8px', display: 'inline-flex', alignItems: 'center', gap: '4px', opacity: (pendingId === c.id) ? 0.6 : 1 }}
-                          title={c.deposit_paid ? 'Undo deposit (re-lock booking)' : 'Mark $50 Venmo deposit received'}
+                          title={
+                            c.deposit_paid
+                              ? 'Undo deposit (re-lock booking)'
+                              : 'Mark $50 deposit received after Venmo or other manual payment (Stripe deposits are automatic)'
+                          }
                         >
                           {c.deposit_paid ? <X size={12} /> : <Check size={12} />}
                           {c.deposit_paid ? 'Undo' : 'Mark paid'}
@@ -228,7 +241,7 @@ export function CustomersTable({ customers }: { customers: CustomerRow[] }) {
           }}>
             {filtered.length} student{filtered.length !== 1 ? 's' : ''}
             {search ? ` matching "${search}"` : ' total'}
-            . <strong>Deposit</strong> is the $50 commitment flag — when “Not paid”, the <strong>Venmo note</strong> chip shows the exact text the student should have included with their Venmo payment (click to copy, then match against your Venmo history). <strong>School</strong> is from signup (profile) when present, otherwise the most recent active booking campus. <strong>Collected</strong> sums succeeded rows in <strong>payments</strong> (deposits, full pay, installments) per booking, plus legacy paid bookings with no payment rows. <strong>Balance due</strong> is unpaid bookings’ contract total minus payments already recorded toward that booking.
+            . <strong>Deposit</strong> is the $50 commitment flag. Stripe deposits on the site flip to <strong>Paid · Stripe</strong> automatically; use <strong>Mark paid</strong> only after you confirm a <strong>Venmo</strong> (or other manual) transfer. When status is “Not paid”, the <strong>Venmo note</strong> chip shows the exact text for a Venmo payment (click to copy, then match in Venmo). <strong>School</strong> is from signup when present, otherwise the latest non-cancelled booking campus. <strong>Collected</strong> sums succeeded <strong>payments</strong> (deposits, full pay, installments) plus legacy paid bookings with no payment rows. <strong>Balance due</strong> is unpaid bookings’ contract total minus payments recorded toward that booking.
             
           </div>
         )}

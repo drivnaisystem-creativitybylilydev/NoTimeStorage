@@ -38,6 +38,22 @@ function formatTimeSlot(s: string) {
   return s;
 }
 
+function balanceProviderLabel(p: BookingWithCustomer['balance_payment_provider']): string {
+  if (p === 'stripe') return 'Stripe';
+  if (p === 'venmo') return 'Venmo';
+  if (p === 'square') return 'Square';
+  return '';
+}
+
+/** Booking balance line — not Venmo-specific; Stripe updates via webhook without admin action. */
+function bookingPaymentBadgeLabel(b: BookingWithCustomer): string {
+  if (b.payment_status === 'paid') {
+    const sub = balanceProviderLabel(b.balance_payment_provider);
+    return sub ? `paid · ${sub}` : 'paid';
+  }
+  return 'Unpaid';
+}
+
 function BookingsTableContent({ initialBookings, total, currentPage, filters, sortBy, sortOrder }: BookingsTableProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -67,7 +83,10 @@ function BookingsTableContent({ initialBookings, total, currentPage, filters, so
   const handleMarkPaid = async (bookingId: string) => {
     const confirmed = await appModal.confirm({
       title: 'Mark booking as paid?',
-      message: 'This will mark the booking as paid and confirmed. The amount will count toward revenue. Continue?',
+      message:
+        'Use this when the student paid by Venmo (or another manual method) and you have confirmed the funds. ' +
+        'If they paid with Stripe on the website, the booking usually flips to paid automatically — no need to click this. ' +
+        'This will mark the booking as paid and confirmed and count toward revenue.',
       confirmLabel: 'Mark as paid',
       cancelLabel: 'Cancel',
     });
@@ -345,7 +364,7 @@ function BookingsTableContent({ initialBookings, total, currentPage, filters, so
                             {b.status.replace('_', ' ')}
                           </span>
                           <span className={b.payment_status === 'paid' ? 'admin-badge admin-badge-success' : 'admin-badge admin-badge-warning'}>
-                            {b.payment_status === 'paid' ? 'paid' : 'awaiting Venmo'}
+                            {bookingPaymentBadgeLabel(b)}
                           </span>
                         </div>
                         {b.payment_status !== 'paid' && b.status !== 'cancelled' && (
@@ -378,6 +397,7 @@ function BookingsTableContent({ initialBookings, total, currentPage, filters, so
                             onClick={() => handleMarkPaid(b.id)}
                             disabled={actionPending}
                             className="admin-btn admin-btn-primary"
+                            title="Confirm Venmo or other manual payment (not needed for Stripe Checkout on the site)"
                           >
                             <Banknote size={14} />
                             Mark Paid

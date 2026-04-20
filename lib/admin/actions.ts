@@ -67,6 +67,8 @@ export type CustomerRow = {
   phone: string | null;
   /** From public.users.school (signup); see also school_display */
   school: string | null;
+  /** How the $50 deposit was satisfied when known (`stripe` from Checkout webhook, `venmo` from admin). */
+  deposit_provider: 'stripe' | 'venmo' | null;
   /** Profile school, or latest non-cancelled booking school if profile empty */
   school_display: string | null;
   booking_count: number;
@@ -133,7 +135,7 @@ export async function getCustomers(): Promise<CustomerRow[]> {
 
   const { data: usersData, error: usersError } = await supabase
     .from('users')
-    .select('id, full_name, email, phone, school, deposit_paid')
+    .select('id, full_name, email, phone, school, deposit_paid, deposit_provider')
     .order('full_name', { ascending: true, nullsFirst: false });
 
   if (usersError || !usersData?.length) {
@@ -243,10 +245,14 @@ export async function getCustomers(): Promise<CustomerRow[]> {
       phone: string | null;
       school: string | null;
       deposit_paid?: boolean | null;
+      deposit_provider?: string | null;
     }) => {
     const a = aggByUserId[u.id];
     const profileSchool = u.school?.trim() || null;
     const school_display = profileSchool || schoolFromBookings[u.id] || null;
+    const dp = u.deposit_provider;
+    const deposit_provider: CustomerRow['deposit_provider'] =
+      dp === 'stripe' || dp === 'venmo' ? dp : null;
     return {
       id: u.id,
       full_name: u.full_name ?? null,
@@ -254,6 +260,7 @@ export async function getCustomers(): Promise<CustomerRow[]> {
       phone: u.phone ?? null,
       school: profileSchool,
       school_display,
+      deposit_provider,
       deposit_paid: u.deposit_paid === true,
       booking_count: a?.booking_count ?? 0,
       total_paid: a?.total_paid ?? 0,
@@ -607,6 +614,8 @@ export type BookingWithCustomer = {
     email: string | null;
     phone: string | null;
   } | null;
+  /** From succeeded `payments` rows (Stripe Checkout, Venmo manual, legacy Square). */
+  balance_payment_provider?: 'stripe' | 'venmo' | 'square' | null;
 };
 
 export type BookingsFilters = {
@@ -639,6 +648,24 @@ function normalizeAdminBookingItems(raw: unknown): AdminBookingItemRow[] {
       subtotal: sub,
     };
   });
+}
+
+/**
+ * How the booking balance was paid when recorded in `payments` (succeeded rows).
+ * Prefer `full_payment` row; otherwise fall back to the latest succeeded row.
+ */
+function pickBalancePaymentProvider(payments: unknown): 'stripe' | 'venmo' | 'square' | null {
+  if (!Array.isArray(payments)) return null;
+  const rows = payments.filter((p): p is Record<string, unknown> => p != null && typeof p === 'object');
+  const succeeded = rows.filter((p) => String(p.status) === 'succeeded');
+  if (succeeded.length === 0) return null;
+  const fullPay = succeeded.find((p) => String(p.payment_type) === 'full_payment');
+  const primary = fullPay ?? succeeded[succeeded.length - 1];
+  const raw = String(primary.provider || '').toLowerCase();
+  if (raw === 'stripe') return 'stripe';
+  if (raw === 'venmo') return 'venmo';
+  if (raw.includes('square')) return 'square';
+  return null;
 }
 
 /** Raw row from bookings + booking_items + users join (admin list + calendar). */
@@ -674,6 +701,7 @@ type AdminBookingJoinRow = {
   move_in_dorm?: string | null;
   move_in_room?: string | null;
   move_in_confirmed_at?: string | null;
+  payments?: unknown;
 };
 
 export async function getBookings(
@@ -736,6 +764,11 @@ export async function getBookings(
         quantity,
         monthly_rate,
         subtotal
+      ),
+      payments (
+        provider,
+        status,
+        payment_type
       ),
       users!bookings_user_id_fkey (
         full_name,
@@ -835,6 +868,7 @@ export async function getBookings(
       move_in_room: row.move_in_room ?? null,
       move_in_confirmed_at: row.move_in_confirmed_at ?? null,
       customer,
+      balance_payment_provider: pickBalancePaymentProvider(row.payments),
     };
   });
 
@@ -1106,6 +1140,11 @@ export async function getCalendarBookings(): Promise<BookingWithCustomer[]> {
         monthly_rate,
         subtotal
       ),
+      payments (
+        provider,
+        status,
+        payment_type
+      ),
       users!bookings_user_id_fkey (
         full_name,
         email,
@@ -1164,6 +1203,7 @@ export async function getCalendarBookings(): Promise<BookingWithCustomer[]> {
       move_in_room: row.move_in_room ?? null,
       move_in_confirmed_at: row.move_in_confirmed_at ?? null,
       customer: pickUser(userRow),
+      balance_payment_provider: pickBalancePaymentProvider(row.payments),
     };
   });
 }

@@ -18,7 +18,7 @@ export default async function AdminCustomersPage() {
       <div style={{ marginBottom: '16px' }}>
         <h1 className="admin-title">Customers</h1>
         <p className="admin-subtitle">
-          Everyone with a row in <strong>users</strong> (signup creates this after login). <strong>Deposit</strong> shows whether the $50 commitment is paid. <strong>Collected</strong> uses the <strong>payments</strong> table; balance due uses booking totals minus those payments. Click &quot;View Bookings&quot; for detail.
+          Everyone with a row in <strong>users</strong> (signup creates this after login). <strong>Deposit</strong> shows whether the $50 commitment is paid — <strong>Stripe</strong> updates automatically when they pay on the site; <strong>Venmo</strong> still uses <strong>Mark paid</strong> after you verify the transfer. <strong>Collected</strong> uses the <strong>payments</strong> table; balance due uses booking totals minus those payments. Click &quot;View Bookings&quot; for detail.
         </p>
       </div>
 
