@@ -1212,7 +1212,9 @@ button {
 }
 
 .pricing-box-image .box-img {
-  width: 120%; /* Wider box */
+  /* Stay inside viewport: body uses overflow-x:hidden — 120% was clipping on desktop */
+  width: min(120%, calc(100vw - 32px));
+  max-width: 100%;
   height: auto;
   object-fit: contain;
   filter: drop-shadow(0 10px 30px rgba(0, 0, 0, 0.3));
@@ -1822,7 +1824,8 @@ button {
   }
 
   .pricing-box-image .box-img {
-    width: 115%;
+    width: min(115%, calc(100vw - 24px));
+    max-width: 100%;
   }
 
   .pricing-eyebrow {
@@ -1934,7 +1937,8 @@ button {
   }
 
   .pricing-box-image .box-img {
-    width: 110%;
+    width: min(110%, calc(100vw - 16px));
+    max-width: 100%;
   }
 
   .pricing-eyebrow {
@@ -4614,6 +4618,57 @@ button {
 
 .admin-page {
   font-family: var(--font-inter), 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* Route loading.tsx placeholders (admin customers / bookings) */
+@keyframes admin-skeleton-shimmer {
+  0% {
+    background-position: 100% 0;
+  }
+  100% {
+    background-position: -100% 0;
+  }
+}
+
+.admin-skeleton {
+  border-radius: 8px;
+  background: linear-gradient(
+    110deg,
+    var(--color-gray-100) 8%,
+    #f0ebe4 18%,
+    var(--color-gray-100) 33%
+  );
+  background-size: 200% 100%;
+  animation: admin-skeleton-shimmer 1.4s ease-in-out infinite;
+}
+
+.admin-skeleton-title {
+  height: 36px;
+  width: min(280px, 55vw);
+  border-radius: 10px;
+}
+
+.admin-skeleton-line {
+  height: 14px;
+  width: min(420px, 90vw);
+}
+
+.admin-skeleton-line.wide {
+  width: min(640px, 95vw);
+}
+
+.admin-skeleton-line.short {
+  width: min(120px, 40vw);
+}
+
+.admin-skeleton-block {
+  height: 120px;
+  width: 100%;
+}
+
+.admin-skeleton-block.tall {
+  height: 40px;
+  width: min(160px, 45vw);
 }
 
 .admin-page .admin-title {

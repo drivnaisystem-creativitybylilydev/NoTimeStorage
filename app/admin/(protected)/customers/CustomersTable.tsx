@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useTransition } from 'react';
+import { useState, useMemo, useTransition, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Search, ExternalLink, Check, X } from 'lucide-react';
@@ -14,8 +14,11 @@ function fmtMoney(n: number) {
   return `$${n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
+const CUSTOMERS_PAGE_SIZE = 50;
+
 export function CustomersTable({ customers }: { customers: CustomerRow[] }) {
   const [search, setSearch] = useState('');
+  const [page, setPage] = useState(1);
   const [pendingId, setPendingId] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
@@ -66,6 +69,24 @@ export function CustomersTable({ customers }: { customers: CustomerRow[] }) {
     );
   }, [customers, search]);
 
+  useEffect(() => {
+    setPage(1);
+  }, [search]);
+
+  const totalFiltered = filtered.length;
+  const totalPages = Math.max(1, Math.ceil(totalFiltered / CUSTOMERS_PAGE_SIZE));
+
+  useEffect(() => {
+    setPage((p) => Math.min(p, totalPages));
+  }, [totalPages]);
+
+  const activePage = Math.min(page, totalPages);
+  const startIdx = (activePage - 1) * CUSTOMERS_PAGE_SIZE;
+  const pageRows = useMemo(
+    () => filtered.slice(startIdx, startIdx + CUSTOMERS_PAGE_SIZE),
+    [filtered, startIdx]
+  );
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
       {/* Search */}
@@ -92,9 +113,11 @@ export function CustomersTable({ customers }: { customers: CustomerRow[] }) {
             style={{ width: '100%', paddingLeft: '44px' }}
           />
         </div>
-        {search && (
+        {(search || totalPages > 1) && (
           <p style={{ marginTop: '12px', fontSize: '13px', color: 'var(--color-gray-500)' }}>
-            Showing {filtered.length} of {customers.length} students
+            {search
+              ? `Showing ${totalFiltered} of ${customers.length} students`
+              : `${customers.length} students · 50 per page`}
           </p>
         )}
       </div>
@@ -117,14 +140,14 @@ export function CustomersTable({ customers }: { customers: CustomerRow[] }) {
               </tr>
             </thead>
             <tbody>
-              {filtered.length === 0 ? (
+              {totalFiltered === 0 ? (
                 <tr>
                   <td colSpan={9} style={{ padding: '48px 24px', textAlign: 'center', fontSize: '15px', color: 'var(--color-gray-600)' }}>
                     {search ? 'No students match your search.' : 'No customers found.'}
                   </td>
                 </tr>
               ) : (
-                filtered.map((c) => (
+                pageRows.map((c) => (
                   <tr key={c.id}>
                     <td data-label="Name">
                       <div style={{ fontWeight: 600, color: 'var(--color-coffee-dark)' }}>
@@ -230,7 +253,49 @@ export function CustomersTable({ customers }: { customers: CustomerRow[] }) {
           </table>
         </div>
 
-        {filtered.length > 0 && (
+        {totalFiltered > 0 && totalPages > 1 && (
+          <div
+            style={{
+              display: 'flex',
+              flexWrap: 'wrap',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: '12px',
+              padding: '14px 20px',
+              borderTop: '1px solid var(--color-gray-100)',
+              background: 'var(--color-white)',
+            }}
+          >
+            <span style={{ fontSize: '13px', color: 'var(--color-gray-600)' }}>
+              Showing {startIdx + 1}–{Math.min(startIdx + CUSTOMERS_PAGE_SIZE, totalFiltered)} of {totalFiltered}
+            </span>
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+              <button
+                type="button"
+                className="admin-btn admin-btn-ghost"
+                disabled={activePage <= 1}
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                style={{ fontSize: '13px' }}
+              >
+                Previous
+              </button>
+              <span style={{ fontSize: '13px', color: 'var(--color-gray-500)' }}>
+                Page {activePage} of {totalPages}
+              </span>
+              <button
+                type="button"
+                className="admin-btn admin-btn-ghost"
+                disabled={activePage >= totalPages}
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                style={{ fontSize: '13px' }}
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        )}
+
+        {totalFiltered > 0 && (
           <div style={{
             padding: '20px 32px',
             borderTop: '1px solid var(--color-gray-100)',
@@ -239,7 +304,7 @@ export function CustomersTable({ customers }: { customers: CustomerRow[] }) {
             background: 'var(--color-white)',
             lineHeight: 1.5,
           }}>
-            {filtered.length} student{filtered.length !== 1 ? 's' : ''}
+            {totalFiltered} student{totalFiltered !== 1 ? 's' : ''}
             {search ? ` matching "${search}"` : ' total'}
             . <strong>Deposit</strong> is the $50 commitment flag. Stripe deposits on the site flip to <strong>Paid · Stripe</strong> automatically; use <strong>Mark paid</strong> only after you confirm a <strong>Venmo</strong> (or other manual) transfer. When status is “Not paid”, the <strong>Venmo note</strong> chip shows the exact text for a Venmo payment (click to copy, then match in Venmo). <strong>School</strong> is from signup when present, otherwise the latest non-cancelled booking campus. <strong>Collected</strong> sums succeeded <strong>payments</strong> (deposits, full pay, installments) plus legacy paid bookings with no payment rows. <strong>Balance due</strong> is unpaid bookings’ contract total minus payments recorded toward that booking.
             

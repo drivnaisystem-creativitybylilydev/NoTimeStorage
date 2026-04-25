@@ -2,13 +2,30 @@
 
 import { useState, useEffect, useSyncExternalStore } from 'react';
 import { createPortal } from 'react-dom';
+import dynamic from 'next/dynamic';
 import { motion, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import { submitReminderSignup } from '@/lib/reminder/signup';
 import { SCHOOLS } from '@/lib/schools/config';
-import { CircularCarousel } from '@/app/components/CircularCarousel';
+
+const CircularCarousel = dynamic(
+  () => import('@/app/components/CircularCarousel').then((m) => m.CircularCarousel),
+  {
+    loading: () => (
+      <div
+        aria-hidden
+        style={{
+          minHeight: 280,
+          borderRadius: 16,
+          background: 'rgba(75, 46, 37, 0.06)',
+        }}
+      />
+    ),
+    ssr: false,
+  }
+);
 import { ADDON_PRICE_USD_MONTH, ADDON_TIER_HOMEPAGE_TEASER, ADDON_TIER_SUMMARY } from '@/lib/booking/addon-pricing';
 
 const ADDON_TIER_FAQ_ANSWER =
@@ -88,14 +105,15 @@ function FixedCarousel({
           alt={images[current].alt}
           className={`carousel-image${fullHeight ? ' carousel-image--full' : ''}`}
           style={images[current].objectPosition ? { objectPosition: images[current].objectPosition } : undefined}
-          loading="lazy"
+          loading={current === 0 ? 'eager' : 'lazy'}
+          fetchPriority={current === 0 ? 'high' : undefined}
           decoding="async"
           onLoad={() => setLoaded(true)}
           draggable={false}
-          initial={{ opacity: 0 }}
+          initial={{ opacity: 1 }}
           animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.35, ease: [0.32, 0.72, 0, 1] }}
+          exit={{ opacity: 0.85 }}
+          transition={{ duration: 0.28, ease: [0.32, 0.72, 0, 1] }}
         />
       </AnimatePresence>
       {fullHeight && <div className="carousel-vignette" aria-hidden="true" />}
@@ -694,12 +712,19 @@ export default function Home() {
           <div className="steps-container">
             <motion.div 
               className="step"
-              initial={{ opacity: 0, y: 30 }}
+              initial={{ opacity: 1, y: 16 }}
               whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: "-100px" }}
-              transition={{ duration: 0.7, delay: 0.2, ease: [0.25, 0.1, 0.25, 1] }}
+              viewport={{ once: true, amount: 0.15 }}
+              transition={{ duration: 0.5, delay: 0.05, ease: [0.25, 0.1, 0.25, 1] }}
             >
-              <Image src="/brand/schedule-pickup.png" alt="Schedule Pickup" width={240} height={240} className="step-image-placeholder" />
+              <Image
+                src="/brand/schedule-pickup.png"
+                alt="Schedule Pickup"
+                width={240}
+                height={240}
+                className="step-image-placeholder"
+                sizes="(max-width: 768px) 85vw, 240px"
+              />
               <div className="step-number">1</div>
               <h3 className="step-title">Schedule Pickup</h3>
               <p className="step-description">Book a convenient time for us to collect your items. We come to you with all necessary packing materials.</p>
@@ -707,12 +732,19 @@ export default function Home() {
             
             <motion.div 
               className="step"
-              initial={{ opacity: 0, y: 30 }}
+              initial={{ opacity: 1, y: 16 }}
               whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: "-100px" }}
-              transition={{ duration: 0.7, delay: 0.4, ease: [0.25, 0.1, 0.25, 1] }}
+              viewport={{ once: true, amount: 0.15 }}
+              transition={{ duration: 0.5, delay: 0.1, ease: [0.25, 0.1, 0.25, 1] }}
             >
-              <Image src="/brand/secure-storage.png" alt="Secure Storage" width={240} height={240} className="step-image-placeholder" />
+              <Image
+                src="/brand/secure-storage.png"
+                alt="Secure Storage"
+                width={240}
+                height={240}
+                className="step-image-placeholder"
+                sizes="(max-width: 768px) 85vw, 240px"
+              />
               <div className="step-number">2</div>
               <h3 className="step-title">Secure Storage</h3>
               <p className="step-description">Your belongings are safely stored in our climate-controlled facility with 24/7 security and monitoring.</p>
@@ -720,12 +752,19 @@ export default function Home() {
             
             <motion.div 
               className="step"
-              initial={{ opacity: 0, y: 30 }}
+              initial={{ opacity: 1, y: 16 }}
               whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: "-100px" }}
-              transition={{ duration: 0.7, delay: 0.6, ease: [0.25, 0.1, 0.25, 1] }}
+              viewport={{ once: true, amount: 0.15 }}
+              transition={{ duration: 0.5, delay: 0.15, ease: [0.25, 0.1, 0.25, 1] }}
             >
-              <Image src="/brand/easy-redelivery.png" alt="Schedule move-in" width={240} height={240} className="step-image-placeholder" />
+              <Image
+                src="/brand/easy-redelivery.png"
+                alt="Schedule move-in"
+                width={240}
+                height={240}
+                className="step-image-placeholder"
+                sizes="(max-width: 768px) 85vw, 240px"
+              />
               <div className="step-number">3</div>
               <h3 className="step-title">Schedule Move-In</h3>
               <p className="step-description">During your booking you&apos;ll pick a move-in date and time. We deliver your items straight to your door when you&apos;re back on campus.</p>
@@ -803,10 +842,10 @@ export default function Home() {
             {/* Open Box Image - Behind Cards */}
             <motion.div 
               className="pricing-box-image"
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 1, y: 12 }}
               whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: "-100px" }}
-              transition={{ duration: 0.8, delay: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
+              viewport={{ once: true, amount: 0.12 }}
+              transition={{ duration: 0.55, delay: 0.05, ease: [0.25, 0.1, 0.25, 1] }}
             >
               <Image
                 src="/brand/box.png"
@@ -815,6 +854,7 @@ export default function Home() {
                 height={400}
                 className="box-img"
                 priority
+                sizes="(max-width: 768px) 120vw, min(1320px, 95vw)"
               />
             </motion.div>
 
