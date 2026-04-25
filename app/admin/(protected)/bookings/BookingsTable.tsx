@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState, Suspense } from 'react';
+import { useMemo, useState, useEffect, useRef, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Search, ChevronDown, ChevronUp, Eye, Banknote, XCircle } from 'lucide-react';
@@ -54,12 +54,20 @@ function bookingPaymentBadgeLabel(b: BookingWithCustomer): string {
   return 'Unpaid';
 }
 
+const SEARCH_DEBOUNCE_MS = 450;
+
 function BookingsTableContent({ initialBookings, total, currentPage, filters, sortBy, sortOrder }: BookingsTableProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const searchParamsRef = useRef(searchParams);
+  searchParamsRef.current = searchParams;
   const appModal = useAppModal();
   const [selectedBooking, setSelectedBooking] = useState<BookingWithCustomer | null>(null);
   const [actionPending, setActionPending] = useState(false);
+  /** Local search text — do not router.navigate on every keystroke (that broke typing). */
+  const [searchDraft, setSearchDraft] = useState(filters.search || '');
+  const searchLatestRef = useRef(filters.search || '');
+  const searchDebounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const schools = SCHOOL_NAMES;
   const dormOptions = useMemo(() => {
@@ -67,8 +75,21 @@ function BookingsTableContent({ initialBookings, total, currentPage, filters, so
     return SCHOOL_DORMS[filters.school] || [];
   }, [filters.school]);
 
+  useEffect(() => {
+    const next = filters.search || '';
+    searchLatestRef.current = next;
+    setSearchDraft(next);
+  }, [filters.search]);
+
+  useEffect(
+    () => () => {
+      if (searchDebounceTimer.current) clearTimeout(searchDebounceTimer.current);
+    },
+    []
+  );
+
   const updateFilters = (updates: Partial<BookingsFilters & { sortBy?: string; sortOrder?: string; page?: number }>) => {
-    const params = new URLSearchParams(searchParams.toString());
+    const params = new URLSearchParams(searchParamsRef.current.toString());
     Object.entries(updates).forEach(([key, value]) => {
       if (value === undefined || value === '') {
         params.delete(key);
@@ -76,8 +97,34 @@ function BookingsTableContent({ initialBookings, total, currentPage, filters, so
         params.set(key, String(value));
       }
     });
-    if (!updates.page) params.set('page', '1');
-    router.push(`/admin/bookings?${params.toString()}`);
+    if (updates.page === undefined) params.set('page', '1');
+    router.replace(`/admin/bookings?${params.toString()}`);
+  };
+
+  const commitSearchToUrl = (raw: string) => {
+    const params = new URLSearchParams(searchParamsRef.current.toString());
+    const trimmed = raw.trim();
+    if (!trimmed) params.delete('search');
+    else params.set('search', trimmed);
+    params.set('page', '1');
+    router.replace(`/admin/bookings?${params.toString()}`);
+  };
+
+  const scheduleSearchCommit = (value: string) => {
+    searchLatestRef.current = value;
+    if (searchDebounceTimer.current) clearTimeout(searchDebounceTimer.current);
+    searchDebounceTimer.current = setTimeout(() => {
+      searchDebounceTimer.current = null;
+      commitSearchToUrl(searchLatestRef.current);
+    }, SEARCH_DEBOUNCE_MS);
+  };
+
+  const flushSearchNow = () => {
+    if (searchDebounceTimer.current) {
+      clearTimeout(searchDebounceTimer.current);
+      searchDebounceTimer.current = null;
+    }
+    commitSearchToUrl(searchLatestRef.current);
   };
 
   const handleMarkPaid = async (bookingId: string) => {
@@ -182,8 +229,14 @@ function BookingsTableContent({ initialBookings, total, currentPage, filters, so
               <input
                 type="text"
                 placeholder="Name, email, phone..."
-                value={filters.search || ''}
-                onChange={(e) => updateFilters({ search: e.target.value, page: 1 })}
+                value={searchDraft}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  searchLatestRef.current = v;
+                  setSearchDraft(v);
+                  scheduleSearchCommit(v);
+                }}
+                onBlur={flushSearchNow}
                 className="admin-input"
                 style={{
                   width: '100%',
