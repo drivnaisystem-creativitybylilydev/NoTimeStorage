@@ -14,18 +14,23 @@ export function SiteHeader() {
     const supabase = createClient();
     let cancelled = false;
 
-    (async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!cancelled) setUser(session?.user ?? null);
-      setLoading(false);
+    void (async () => {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      if (!cancelled) {
+        setUser(session?.user ?? null);
+        setLoading(false);
+      }
     })();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data } = supabase.auth.onAuthStateChange((_event, session) => {
       if (!cancelled) setUser(session?.user ?? null);
     });
+
     return () => {
       cancelled = true;
-      subscription.unsubscribe();
+      data.subscription.unsubscribe();
     };
   }, []);
 
@@ -35,13 +40,12 @@ export function SiteHeader() {
         <div className="header-container">
           <Link href="/" className="header-logo">
             <Image
-              src="/brand/notime-storage-logo.png?v=2"
+              src="/brand/notime-storage-logo.png"
               alt="NoTime Storage Logo"
               width={50}
               height={50}
               className="header-logo-image"
               priority
-              unoptimized
             />
             <span className="header-logo-text">NoTime Storage</span>
           </Link>
