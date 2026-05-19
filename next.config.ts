@@ -3,6 +3,9 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   serverExternalPackages: ["square"],
+  experimental: {
+    optimizePackageImports: ["framer-motion", "lucide-react"],
+  },
 };
 
 export default withSentryConfig(nextConfig, {

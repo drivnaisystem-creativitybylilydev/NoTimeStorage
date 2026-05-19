@@ -69,12 +69,7 @@ export function DepositForm({ customerName, customerEmail, venmoHandle }: Deposi
   };
   return (
     <AuthPageWrapper>
-      <motion.div
-        className="auth-card"
-        initial={{ opacity: 0, y: 24 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, ease: [0.25, 0.1, 0.25, 1] }}
-      >
+      <div className="auth-card">
         <div className="auth-logo">
           <Image src="/brand/notime-storage-logo.png" alt="NoTime Storage" width={60} height={60} />
         </div>
@@ -485,7 +480,7 @@ export function DepositForm({ customerName, customerEmail, venmoHandle }: Deposi
             to { transform: rotate(360deg); }
           }
         `}</style>
-      </motion.div>
+      </div>
     </AuthPageWrapper>
   );
 }

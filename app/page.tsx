@@ -1,7 +1,6 @@
 'use client';
 
-import { useState, useEffect, useSyncExternalStore } from 'react';
-import { createPortal } from 'react-dom';
+import { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import { motion, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
@@ -26,6 +25,17 @@ const CircularCarousel = dynamic(
     ssr: false,
   }
 );
+const BoxShowcaseSection = dynamic(() => import('@/app/home/BoxShowcaseSection'), {
+  loading: () => (
+    <section
+      id="box-specifications"
+      className="box-showcase-section"
+      aria-hidden
+      style={{ minHeight: 280 }}
+    />
+  ),
+  ssr: false,
+});
 import { ADDON_PRICE_USD_MONTH, ADDON_TIER_HOMEPAGE_TEASER, ADDON_TIER_SUMMARY } from '@/lib/booking/addon-pricing';
 
 const ADDON_TIER_FAQ_ANSWER =
@@ -50,400 +60,59 @@ import { SiteHeader } from '@/app/components/SiteHeader';
 import { SITE_CONTACT_EMAIL } from '@/lib/site/contact';
 import type { User } from '@supabase/supabase-js';
 
-const noopSubscribe = () => () => {};
-function getDocumentBody(): Element | null {
-  return typeof document !== 'undefined' ? document.body : null;
-}
-
-function FixedCarousel({
-  images,
-  title,
-  fullHeight = false,
-  expandable = false,
-}: {
-  images: { src: string; alt: string; objectPosition?: string }[];
-  title: string;
-  fullHeight?: boolean;
-  /** Tap / click opens full-screen view (better on small screens). */
-  expandable?: boolean;
-}) {
-  const [current, setCurrent] = useState(0);
-  const [loaded, setLoaded] = useState(false);
-  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
-  const portalEl = useSyncExternalStore(noopSubscribe, getDocumentBody, () => null);
-
-  useEffect(() => { setLoaded(false); }, [current]);
-
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (lightboxIndex !== null) {
-        if (e.key === 'Escape') setLightboxIndex(null);
-        return;
-      }
-      if (e.key === 'ArrowLeft') setCurrent(p => (p === 0 ? images.length - 1 : p - 1));
-      if (e.key === 'ArrowRight') setCurrent(p => (p === images.length - 1 ? 0 : p + 1));
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [images.length, lightboxIndex]);
-
-  useEffect(() => {
-    if (lightboxIndex === null) return;
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.body.style.overflow = prev;
-    };
-  }, [lightboxIndex]);
-
-  const carouselInner = (
-    <>
-      <AnimatePresence mode="wait">
-        <motion.img
-          key={current}
-          src={images[current].src}
-          alt={images[current].alt}
-          className={`carousel-image${fullHeight ? ' carousel-image--full' : ''}`}
-          style={images[current].objectPosition ? { objectPosition: images[current].objectPosition } : undefined}
-          loading={current === 0 ? 'eager' : 'lazy'}
-          fetchPriority={current === 0 ? 'high' : undefined}
-          decoding="async"
-          onLoad={() => setLoaded(true)}
-          draggable={false}
-          initial={{ opacity: 1 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0.85 }}
-          transition={{ duration: 0.28, ease: [0.32, 0.72, 0, 1] }}
-        />
-      </AnimatePresence>
-      {fullHeight && <div className="carousel-vignette" aria-hidden="true" />}
-    </>
-  );
-
-  const containerClass = `carousel-container${fullHeight ? ' carousel-container--full' : ''}${loaded ? '' : ' loading'}${expandable ? ' carousel-container--expandable' : ''}`;
-
-  return (
-    <div className={`carousel-section${fullHeight ? ' carousel-section--full' : ''}`} role="region" aria-label={title}>
-      {title && (
-        <p className="carousel-title">
-          {title}
-          {expandable && <span className="carousel-title-hint"> · Tap image to enlarge</span>}
-        </p>
-      )}
-      {expandable ? (
-        <button
-          type="button"
-          className={containerClass}
-          onClick={() => setLightboxIndex(current)}
-          aria-label={`${images[current].alt} — open full screen`}
-        >
-          {carouselInner}
-        </button>
-      ) : (
-        <div className={containerClass} role="img" aria-label={images[current].alt}>
-          {carouselInner}
-        </div>
-      )}
-      {images.length > 1 && (
-        <div className="carousel-dots" role="tablist" aria-label={`${title} image selector`}>
-          {images.map((_, i) => (
-            <button
-              key={i}
-              role="tab"
-              aria-selected={i === current}
-              className={`carousel-dot${i === current ? ' active' : ''}`}
-              onClick={() => setCurrent(i)}
-              aria-label={`View image ${i + 1} of ${images.length}`}
-            />
-          ))}
-        </div>
-      )}
-      {expandable && lightboxIndex !== null && portalEl &&
-        createPortal(
-          <motion.div
-            className="carousel-lightbox-root"
-            role="dialog"
-            aria-modal="true"
-            aria-label={images[lightboxIndex].alt}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.2 }}
-          >
-            <button
-              type="button"
-              className="carousel-lightbox-backdrop"
-              aria-label="Close full screen image"
-              onClick={() => setLightboxIndex(null)}
-            />
-            <img
-              src={images[lightboxIndex].src}
-              alt={images[lightboxIndex].alt}
-              className="carousel-lightbox-img"
-              style={
-                images[lightboxIndex].objectPosition
-                  ? { objectPosition: images[lightboxIndex].objectPosition }
-                  : undefined
-              }
-              decoding="async"
-            />
-            <button
-              type="button"
-              className="carousel-lightbox-close"
-              aria-label="Close"
-              onClick={() => setLightboxIndex(null)}
-            >
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                <path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
-              </svg>
-            </button>
-          </motion.div>,
-          portalEl
-        )}
-    </div>
-  );
-}
-
-function BoxShowcase() {
-  const [isOpen, setIsOpen] = useState(false);
-
-  return (
-    <section id="box-specifications" className="box-showcase-section">
-      {/* ── Trigger ── */}
-      <button
-        className={`box-showcase-trigger${isOpen ? ' open' : ''}`}
-        onClick={() => setIsOpen(o => !o)}
-        aria-expanded={isOpen}
-      >
-        {/* Decorative top rule */}
-        <motion.div
-          className="trigger-rule"
-          animate={{ scaleX: isOpen ? 0.3 : 1, opacity: isOpen ? 0 : 1 }}
-          transition={{ duration: 0.35, ease: [0.32, 0.72, 0, 1] }}
-        />
-
-        {/* Box icon — fades out when open */}
-        <AnimatePresence>
-          {!isOpen && (
-            <motion.div
-              className="trigger-icon"
-              initial={{ opacity: 0, scale: 0.7 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.6 }}
-              transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
-            >
-              <svg width="38" height="38" viewBox="0 0 40 40" fill="none" aria-hidden="true">
-                <rect x="4" y="14" width="32" height="22" rx="3" stroke="#C9A47E" strokeWidth="2" fill="none"/>
-                <path d="M4 14l5-8h22l5 8" stroke="#C9A47E" strokeWidth="2" strokeLinejoin="round" fill="none"/>
-                <path d="M14 14v5a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-5" stroke="#C9A47E" strokeWidth="2" strokeLinecap="round"/>
-              </svg>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        <motion.span
-          className="box-showcase-trigger-text"
-          animate={isOpen ? {
-            fontSize: '11px',
-            letterSpacing: '2.9px',
-            fontWeight: 600,
-            color: '#C9A47E',
-          } : {
-            fontSize: 'clamp(2.2rem, 4.5vw, 3.2rem)',
-            letterSpacing: '-0.5px',
-            fontWeight: 800,
-            color: '#4B2E25',
-          }}
-          transition={{ duration: 0.52, ease: [0.25, 0.1, 0.25, 1] }}
-          style={{ textTransform: isOpen ? 'uppercase' : 'none', display: 'block', textAlign: 'center' }}
-        >
-          Box Specifications
-        </motion.span>
-
-        {/* Teaser specs — visible only when closed */}
-        <AnimatePresence>
-          {!isOpen && (
-            <motion.p
-              className="trigger-teaser"
-              initial={{ opacity: 0, y: -6 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -4 }}
-              transition={{ duration: 0.3, delay: 0.05 }}
-            >
-              40″ × 30″ × 30″ &nbsp;·&nbsp; 225 lbs max &nbsp;·&nbsp; 20.8 ft³
-            </motion.p>
-          )}
-        </AnimatePresence>
-
-        <motion.div
-          className="box-showcase-trigger-arrow"
-          animate={{ rotate: isOpen ? 180 : 0 }}
-          transition={{ duration: 0.35, ease: [0.32, 0.72, 0, 1] }}
-        >
-          <svg width="22" height="22" viewBox="0 0 20 20" fill="none">
-            <path d="M4 7l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
-        </motion.div>
-      </button>
-
-      {/* ── Expanded content ── */}
-      <AnimatePresence initial={false}>
-        {isOpen && (
-          <motion.div
-            key="box-content"
-            className="box-showcase-expanded"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.22, ease: [0.25, 0.1, 0.25, 1] }}
-          >
-            <div className="box-showcase-inner">
-              <div className="box-showcase-header">
-                <h2 className="box-showcase-title">Premium Storage Boxes, Built for Students</h2>
-              </div>
-
-              <div className="box-showcase-content">
-                {/* LEFT BOX: Real-life photos, tall/full-height */}
-                <motion.div
-                  className="box-carousels-left"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ duration: 0.4, delay: 0.08, ease: [0.32, 0.72, 0, 1] }}
-                >
-                  <FixedCarousel
-                    title="Our Boxes in Action"
-                    fullHeight
-                    expandable
-                    images={[
-                      { src: '/brand/box-scale-side.png', alt: 'Person standing next to NoTime Storage box showing scale', objectPosition: 'center center' },
-                      { src: '/brand/box-scale-inside.png', alt: 'Person standing inside NoTime Storage box showing depth', objectPosition: 'center 75%' },
-                    ]}
-                  />
-                </motion.div>
-
-                <motion.div
-                  className="box-specs-panel"
-                  initial={{ opacity: 0, y: 16 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.4, delay: 0.06, ease: [0.32, 0.72, 0, 1] }}
-                >
-                  <p className="box-specs-intro" style={{
-                    fontSize: 'clamp(1.2rem, 2vw, 1.5rem)',
-                    fontWeight: 700,
-                    textAlign: 'center',
-                    lineHeight: 1.5,
-                    color: 'var(--color-coffee)',
-                    textShadow: '0 0 18px rgba(201,164,126,0.22), 0 0 40px rgba(201,164,126,0.10)',
-                    margin: 0,
-                  }}>
-                    Each box handles a full dorm room&apos;s worth of belongings — from bedding and clothes to books and small appliances.
-                  </p>
-
-                  <div className="box-specs-carousel-wrap">
-                    <FixedCarousel
-                      title="Technical Specs"
-                      expandable
-                      images={[
-                        { src: '/brand/box-3d-view.png', alt: '3D isometric view showing 40×30×30 inch dimensions' },
-                        { src: '/brand/box-birdseye-view.png', alt: "Bird's-eye view showing 40×30 inch floor area" },
-                      ]}
-                    />
-                  </div>
-
-                  <div className="box-specs-quick">
-                    <p className="box-section-label">Box Metrics</p>
-                    <div className="specs-badges-row">
-                      <span className="spec-badge"><span className="spec-badge-icon">📏</span>40″ × 30″ × 30″</span>
-                      <span className="spec-badge"><span className="spec-badge-icon">⚖️</span>225 lbs max</span>
-                      <span className="spec-badge"><span className="spec-badge-icon">📦</span>20.8 ft<sup className="spec-sup">3</sup></span>
-                    </div>
-                  </div>
-
-                  <div className="box-fits-section">
-                    <p className="box-section-label">What Fits Inside</p>
-                    <div className="items-grid">
-                      {[
-                        { icon: '🛏️', label: 'Bedding',    tip: 'Sheets, blankets & pillows' },
-                        { icon: '👔', label: 'Clothes',    tip: 'Jackets, shirts, pants, shoes' },
-                        { icon: '📚', label: 'Books',      tip: 'Textbooks, notebooks, binders' },
-                        { icon: '🎒', label: 'Supplies',   tip: 'Pens, folders, school gear' },
-                        { icon: '💡', label: 'Appliances', tip: 'Fans, lamps, mini fridges' },
-                        { icon: '🖼️', label: 'Decor',      tip: 'Posters, photos, wall art' },
-                      ].map(({ icon, label, tip }) => (
-                        <div key={label} className="item-card" data-tooltip={tip}>
-                          <div className="item-icon">{icon}</div>
-                          <span className="item-label">{label}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="box-rules-card">
-                    <div className="rules-row">
-                      <div className="rule-item"><span>❌</span>No liquids</div>
-                      <div className="rule-item"><span>✅</span>Tape all flaps shut</div>
-                      <div className="rule-item"><span>⚠️</span>Don&apos;t overpack</div>
-                    </div>
-                  </div>
-
-                  <Link href="/booking/configure" style={{ display: 'block', textDecoration: 'none' }}>
-                    <motion.button
-                      type="button"
-                      className="box-section-cta"
-                      whileHover={{ scale: 1.015 }}
-                      whileTap={{ scale: 0.985 }}
-                      transition={{ type: 'spring', stiffness: 400, damping: 22 }}
-                    >
-                      Reserve Your Boxes
-                      <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
-                        <path d="M4 10h12m0 0l-4-4m4 4l-4 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-                      </svg>
-                    </motion.button>
-                  </Link>
-
-                </motion.div>
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </section>
-  );
-}
 
 export default function Home() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(false);
 
-  // Check authentication status (never block the page: timeout + show content)
+  // Session check deferred to idle time so paint / Speed Insights aren't competing with Supabase immediately.
   useEffect(() => {
-    const supabase = createClient();
     let cancelled = false;
+    let ricHandle: number | undefined;
+    let safetyTimer: ReturnType<typeof setTimeout> | undefined;
+    let subscription: { unsubscribe: () => void } | undefined;
 
-    const timeout = setTimeout(() => {
+    const bootstrap = () => {
       if (cancelled) return;
-      setLoading(false);
-    }, 2500);
-
-    supabase.auth.getUser()
-      .then(({ data: { user } }) => {
-        if (!cancelled) {
-          setUser(user);
-          setLoading(false);
-        }
-      })
-      .catch(() => {
+      const supabase = createClient();
+      safetyTimer = setTimeout(() => {
         if (!cancelled) setLoading(false);
-      })
-      .finally(() => clearTimeout(timeout));
+      }, 2500);
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (!cancelled) setUser(session?.user ?? null);
-    });
+      void supabase.auth
+        .getUser()
+        .then(({ data: { user } }) => {
+          if (!cancelled) {
+            setUser(user ?? null);
+            setLoading(false);
+          }
+        })
+        .catch(() => {
+          if (!cancelled) setLoading(false);
+        })
+        .finally(() => {
+          if (safetyTimer) clearTimeout(safetyTimer);
+        });
+
+      const { data } = supabase.auth.onAuthStateChange((_event, session) => {
+        if (!cancelled) setUser(session?.user ?? null);
+      });
+      subscription = data.subscription;
+    };
+
+    if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
+      ricHandle = window.requestIdleCallback(bootstrap, { timeout: 1200 });
+    } else {
+      bootstrap();
+    }
 
     return () => {
       cancelled = true;
-      clearTimeout(timeout);
-      subscription.unsubscribe();
+      if (ricHandle !== undefined && typeof cancelIdleCallback !== 'undefined') {
+        cancelIdleCallback(ricHandle);
+      }
+      if (safetyTimer) clearTimeout(safetyTimer);
+      subscription?.unsubscribe();
     };
   }, []);
   // FAQ accordion state
@@ -475,33 +144,6 @@ export default function Home() {
     setOpenFaq(openFaq === index ? null : index);
   };
 
-  // Animation variants for hero elements
-  const fadeInUp = {
-    hidden: { 
-      opacity: 0, 
-      y: 20 
-    },
-    visible: { 
-      opacity: 1, 
-      y: 0,
-      transition: {
-        duration: 0.8,
-        ease: [0.25, 0.1, 0.25, 1] as [number, number, number, number]
-      }
-    }
-  };
-
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.15,
-        delayChildren: 0.2
-      }
-    }
-  };
-
   const faqJsonLd = {
     '@context': 'https://schema.org',
     '@type': 'FAQPage',
@@ -520,24 +162,58 @@ export default function Home() {
       />
       <SiteHeader />
 
-      {/* Hero Section */}
+      {/* Hero: static markup (no mount animation) improves LCP / INP */}
       <section className="hero">
-        <motion.div 
-          className="hero-content"
-          variants={containerVariants}
-          initial="hidden"
-          animate="visible"
-        >
-          <motion.p 
-            className="hero-subtitle"
-            variants={fadeInUp}
-          >
+        <div className="hero-content">
+          <p className="hero-subtitle">
             Secure, climate-controlled storage with easy pickup & delivery
-          </motion.p>
-          <motion.h1
-            className="hero-title"
-            variants={fadeInUp}
-          >
+          </p>
+          <div className="hero-service-toggle" role="group" aria-label="NoTime services">
+            <span className="hero-service-toggle-tab hero-service-toggle-tab--active">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path
+                  d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinejoin="round"
+                />
+                <polyline
+                  points="3.27 6.96 12 12.01 20.73 6.96"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinejoin="round"
+                />
+                <line x1="12" y1="22.08" x2="12" y2="12" stroke="currentColor" strokeWidth="2" />
+              </svg>
+              Storage
+            </span>
+            <a href="https://notimemover.com" className="hero-service-toggle-tab hero-service-toggle-tab--inactive">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path
+                  d="M10 17h4"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                />
+                <path
+                  d="M3 9h11v8H3V9z"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinejoin="round"
+                />
+                <path
+                  d="M14 12h4l3 3v2h-7v-5z"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinejoin="round"
+                />
+                <circle cx="7" cy="17" r="2" stroke="currentColor" strokeWidth="2" />
+                <circle cx="17" cy="17" r="2" stroke="currentColor" strokeWidth="2" />
+              </svg>
+              Moving
+            </a>
+          </div>
+          <h1 className="hero-title">
             <span className="hero-title-line">Stress-Free</span>
             <span className="hero-title-line">
               Door-to-Door <span className="hero-title-highlight">Storage</span>
@@ -545,11 +221,8 @@ export default function Home() {
             <span className="hero-title-line">
               for <span className="hero-title-highlight">College Students</span>
             </span>
-          </motion.h1>
-          <motion.div
-            className="hero-buttons"
-            variants={fadeInUp}
-          >
+          </h1>
+          <div className="hero-buttons">
             {(loading || !user) ? (
               <a href="/auth/signup" className="hero-cta-wrap">
                 <button className="hero-cta-primary" type="button">
@@ -568,8 +241,8 @@ export default function Home() {
                 Learn More
               </button>
             </a>
-          </motion.div>
-        </motion.div>
+          </div>
+        </div>
       </section>
 
       {/* Trust & Social Proof Strip - Campus logos from lib/schools/config */}
@@ -629,12 +302,13 @@ export default function Home() {
                     className={`campus-school-tile campus-school-tile--${logoSlug.toLowerCase().replace(/\s+/g, '-')}`}
                   >
                     <Image
-                      src={`/brand/school-logos/${logoSlug}.png?v=2`}
-                      alt={school.name}
+                      src={`/brand/school-logos/${logoSlug}.png`}
+                      alt={idx < SCHOOLS.length ? `${school.name} logo` : ''}
                       width={190}
                       height={190}
                       className="campus-school-logo"
-                      unoptimized
+                      loading="lazy"
+                      sizes="(max-width: 640px) 35vw, 140px"
                     />
                     <div className="campus-school-text">
                       <div className="campus-school-name">{school.name}</div>
@@ -787,7 +461,7 @@ export default function Home() {
       </section>
 
       {/* Storage Box Showcase */}
-      <BoxShowcase />
+      <BoxShowcaseSection />
 
       {/* Pricing Section */}
       <section className="pricing" id="pricing" data-section="pricing">
@@ -1103,7 +777,7 @@ export default function Home() {
             <div className="cv2-row cv2-header-row">
               <div className="cv2-feature-cell" />
               <div className="cv2-notime-cell cv2-notime-header">
-                <Image src="/brand/notime-storage-logo.png?v=2" alt="NoTime Storage" width={36} height={36} className="cv2-logo" unoptimized />
+                <Image src="/brand/notime-storage-logo.png" alt="NoTime Storage" width={36} height={36} className="cv2-logo" sizes="36px" />
                 <div className="cv2-notime-header-name">NoTime Storage</div>
                 <div className="cv2-notime-header-sub">Stress-free, door-to-door</div>
               </div>
@@ -1384,12 +1058,13 @@ export default function Home() {
             <div className="footer-column footer-brand">
               <Link href="/admin" aria-label="NoTime Storage admin sign-in">
                 <Image
-                  src="/brand/notime-storage-logo.png?v=2"
+                  src="/brand/notime-storage-logo.png"
                   alt="NoTime Storage Logo"
                   width={150}
                   height={150}
                   className="footer-logo-image"
-                  unoptimized
+                  loading="lazy"
+                  sizes="(max-width: 768px) 120px, 150px"
                 />
               </Link>
               <p className="footer-description">
