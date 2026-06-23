@@ -1,13 +1,13 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import dynamic from 'next/dynamic';
 import { motion, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
 import Link from 'next/link';
-import { createClient } from '@/lib/supabase/client';
 import { submitReminderSignup } from '@/lib/reminder/signup';
 import { SCHOOLS } from '@/lib/schools/config';
+import AuthAwareCta from '@/app/components/AuthAwareCta';
 
 const CircularCarousel = dynamic(
   () => import('@/app/components/CircularCarousel').then((m) => m.CircularCarousel),
@@ -58,66 +58,14 @@ const FAQ_ITEMS = [
 ];
 import { SiteHeader } from '@/app/components/SiteHeader';
 import { SITE_CONTACT_EMAIL } from '@/lib/site/contact';
-import type { User } from '@supabase/supabase-js';
 
 
 export default function Home() {
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(false);
-
-  // Session check deferred to idle time so paint / Speed Insights aren't competing with Supabase immediately.
-  useEffect(() => {
-    let cancelled = false;
-    let ricHandle: number | undefined;
-    let safetyTimer: ReturnType<typeof setTimeout> | undefined;
-    let subscription: { unsubscribe: () => void } | undefined;
-
-    const bootstrap = () => {
-      if (cancelled) return;
-      const supabase = createClient();
-      safetyTimer = setTimeout(() => {
-        if (!cancelled) setLoading(false);
-      }, 2500);
-
-      void supabase.auth
-        .getUser()
-        .then(({ data: { user } }) => {
-          if (!cancelled) {
-            setUser(user ?? null);
-            setLoading(false);
-          }
-        })
-        .catch(() => {
-          if (!cancelled) setLoading(false);
-        })
-        .finally(() => {
-          if (safetyTimer) clearTimeout(safetyTimer);
-        });
-
-      const { data } = supabase.auth.onAuthStateChange((_event, session) => {
-        if (!cancelled) setUser(session?.user ?? null);
-      });
-      subscription = data.subscription;
-    };
-
-    if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
-      ricHandle = window.requestIdleCallback(bootstrap, { timeout: 1200 });
-    } else {
-      bootstrap();
-    }
-
-    return () => {
-      cancelled = true;
-      if (ricHandle !== undefined && typeof cancelIdleCallback !== 'undefined') {
-        cancelIdleCallback(ricHandle);
-      }
-      if (safetyTimer) clearTimeout(safetyTimer);
-      subscription?.unsubscribe();
-    };
-  }, []);
+  // Auth-aware CTA buttons live in their own <AuthAwareCta /> island so Supabase
+  // is code-split out of the homepage chunk (was ~200 KB raw on every visit).
   // FAQ accordion state
   const [openFaq, setOpenFaq] = useState<number | null>(null);
-  
+
   // Additional items dropdown state
   const [additionalItemsOpen, setAdditionalItemsOpen] = useState(false);
 
@@ -223,19 +171,15 @@ export default function Home() {
             </span>
           </h1>
           <div className="hero-buttons">
-            {(loading || !user) ? (
-              <a href="/auth/signup" className="hero-cta-wrap">
-                <button className="hero-cta-primary" type="button">
-                  Get Started
-                </button>
-              </a>
-            ) : (
-              <a href="/booking/configure" className="hero-cta-wrap">
-                <button className="hero-cta-primary" type="button">
-                  Book Your Storage
-                </button>
-              </a>
-            )}
+            <AuthAwareCta
+              useAnchor
+              wrapperClassName="hero-cta-wrap"
+              buttonClassName="hero-cta-primary"
+              unauthHref="/auth/signup"
+              unauthLabel="Get Started"
+              authHref="/booking/configure"
+              authLabel="Book Your Storage"
+            />
             <a href="#how-it-works" className="hero-cta-wrap">
               <button className="hero-cta-secondary" type="button">
                 Learn More
@@ -352,11 +296,12 @@ export default function Home() {
             viewport={{ once: true, margin: "-50px" }}
             transition={{ duration: 0.5, ease: [0.25, 0.1, 0.25, 1] }}
           >
-            {(loading || !user) ? (
-              <Link href="/auth/signup"><button className="button-primary">Reserve Your Spot</button></Link>
-            ) : (
-              <Link href="/booking/configure"><button className="button-primary">Start Your Booking</button></Link>
-            )}
+            <AuthAwareCta
+              unauthHref="/auth/signup"
+              unauthLabel="Reserve Your Spot"
+              authHref="/booking/configure"
+              authLabel="Start Your Booking"
+            />
           </motion.div>
         </div>
       </section>
@@ -451,11 +396,12 @@ export default function Home() {
             viewport={{ once: true, margin: "-50px" }}
             transition={{ duration: 0.5, ease: [0.25, 0.1, 0.25, 1] }}
           >
-            {(loading || !user) ? (
-              <Link href="/auth/signup"><button className="button-primary">Get Started Today</button></Link>
-            ) : (
-              <Link href="/booking/configure"><button className="button-primary">Book Your Pickup</button></Link>
-            )}
+            <AuthAwareCta
+              unauthHref="/auth/signup"
+              unauthLabel="Get Started Today"
+              authHref="/booking/configure"
+              authLabel="Book Your Pickup"
+            />
           </motion.div>
         </div>
       </section>
@@ -556,15 +502,12 @@ export default function Home() {
                 <li>Climate-controlled storage</li>
                 <li>Insurance included</li>
               </ul>
-              {(loading || !user) ? (
-                <Link href="/auth/signup?redirect=/deposit">
-                  <button className="button-primary">Select</button>
-                </Link>
-              ) : (
-                <Link href="/deposit">
-                  <button className="button-primary">Select</button>
-                </Link>
-              )}
+              <AuthAwareCta
+                unauthHref="/auth/signup?redirect=/deposit"
+                unauthLabel="Select"
+                authHref="/deposit"
+                authLabel="Select"
+              />
             </motion.div>
 
             {/* 2 Boxes - Best Value */}
@@ -592,15 +535,12 @@ export default function Home() {
                 <li>Insurance included</li>
                 <li>Priority scheduling</li>
               </ul>
-              {(loading || !user) ? (
-                <Link href="/auth/signup?redirect=/deposit">
-                  <button className="button-primary">Select</button>
-                </Link>
-              ) : (
-                <Link href="/deposit">
-                  <button className="button-primary">Select</button>
-                </Link>
-              )}
+              <AuthAwareCta
+                unauthHref="/auth/signup?redirect=/deposit"
+                unauthLabel="Select"
+                authHref="/deposit"
+                authLabel="Select"
+              />
             </motion.div>
 
             {/* 4 Boxes */}
@@ -626,15 +566,12 @@ export default function Home() {
                 <li>Insurance included</li>
                 <li>Priority scheduling</li>
               </ul>
-              {(loading || !user) ? (
-                <Link href="/auth/signup?redirect=/deposit">
-                  <button className="button-primary">Select</button>
-                </Link>
-              ) : (
-                <Link href="/deposit">
-                  <button className="button-primary">Select</button>
-                </Link>
-              )}
+              <AuthAwareCta
+                unauthHref="/auth/signup?redirect=/deposit"
+                unauthLabel="Select"
+                authHref="/deposit"
+                authLabel="Select"
+              />
             </motion.div>
           </div>
 
@@ -845,15 +782,12 @@ export default function Home() {
             viewport={{ once: true, margin: "-50px" }}
             transition={{ duration: 0.5, delay: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
           >
-            {(loading || !user) ? (
-              <Link href="/auth/signup">
-                <button className="button-primary">Choose NoTime Storage</button>
-              </Link>
-            ) : (
-              <Link href="/booking/configure">
-                <button className="button-primary">Book Your Storage</button>
-              </Link>
-            )}
+            <AuthAwareCta
+              unauthHref="/auth/signup"
+              unauthLabel="Choose NoTime Storage"
+              authHref="/booking/configure"
+              authLabel="Book Your Storage"
+            />
           </motion.div>
         </div>
       </section>
@@ -895,11 +829,12 @@ export default function Home() {
             );
           })()}
           <div className="section-cta">
-            {(loading || !user) ? (
-              <Link href="/auth/signup"><button className="button-primary">Join Happy Students</button></Link>
-            ) : (
-              <Link href="/booking/configure"><button className="button-primary">Book Storage Now</button></Link>
-            )}
+            <AuthAwareCta
+              unauthHref="/auth/signup"
+              unauthLabel="Join Happy Students"
+              authHref="/booking/configure"
+              authLabel="Book Storage Now"
+            />
           </div>
         </div>
       </section>
@@ -1042,15 +977,12 @@ export default function Home() {
           {/* Footer CTA */}
           <div className="footer-cta-section">
             <p className="footer-cta-text">Ready to store your things? Get started in minutes.</p>
-            {(loading || !user) ? (
-              <Link href="/auth/signup">
-                <button className="button-primary">Get Started</button>
-              </Link>
-            ) : (
-              <Link href="/booking/configure">
-                <button className="button-primary">Book Storage Now</button>
-              </Link>
-            )}
+            <AuthAwareCta
+              unauthHref="/auth/signup"
+              unauthLabel="Get Started"
+              authHref="/booking/configure"
+              authLabel="Book Storage Now"
+            />
           </div>
 
           <div className="footer-content">
