@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { Montserrat, Inter } from "next/font/google";
 import "./globals.css";
-import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { AppModalProvider } from "./components/AppModalProvider";
 
@@ -95,7 +94,6 @@ export default function RootLayout({
         <AppModalProvider>
           {children}
         </AppModalProvider>
-        <Analytics />
         <SpeedInsights />
       </body>
     </html>

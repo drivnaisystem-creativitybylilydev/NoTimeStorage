@@ -1,36 +1,41 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import dynamic from 'next/dynamic';
 import Image from 'next/image';
 import Link from 'next/link';
-import { createClient } from '@/lib/supabase/client';
+
+// Loaded only on idle — keeps Supabase out of the marketing pages' initial JS bundle.
+const SupabaseUserProbe = dynamic(
+  () => import('@/app/components/SupabaseUserProbe'),
+  { ssr: false }
+);
 
 export function SiteHeader() {
-  const [user, setUser] = useState<{ id: string } | null>(null);
-  const [loading, setLoading] = useState(true);
+  // SSR + first paint render the logged-out header (correct for the vast majority
+  // of marketing visitors). After idle we lazy-load Supabase and upgrade the CTAs
+  // if a session is present.
+  const [isAuthed, setIsAuthed] = useState(false);
+  const [shouldProbe, setShouldProbe] = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
   useEffect(() => {
-    const supabase = createClient();
     let cancelled = false;
+    const arm = () => {
+      if (!cancelled) setShouldProbe(true);
+    };
 
-    void (async () => {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      if (!cancelled) {
-        setUser(session?.user ?? null);
-        setLoading(false);
-      }
-    })();
-
-    const { data } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (!cancelled) setUser(session?.user ?? null);
-    });
-
+    if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
+      const handle = window.requestIdleCallback(arm, { timeout: 1500 });
+      return () => {
+        cancelled = true;
+        if (typeof cancelIdleCallback !== 'undefined') cancelIdleCallback(handle);
+      };
+    }
+    const t = setTimeout(arm, 600);
     return () => {
       cancelled = true;
-      data.subscription.unsubscribe();
+      clearTimeout(t);
     };
   }, []);
 
@@ -55,15 +60,15 @@ export function SiteHeader() {
             <Link href="/#pricing">Pricing</Link>
             <Link href="/#faq">FAQ</Link>
             <Link href="/contact">Contact</Link>
-            {(loading || !user) ? (
-              <>
-                <Link href="/auth/signup" className="header-cta">Get Started</Link>
-                <Link href="/auth/login" className="header-login">Login</Link>
-              </>
-            ) : (
+            {isAuthed ? (
               <>
                 <Link href="/booking/configure" className="header-cta">Book Storage</Link>
                 <Link href="/dashboard" className="header-login">Dashboard</Link>
+              </>
+            ) : (
+              <>
+                <Link href="/auth/signup" className="header-cta">Get Started</Link>
+                <Link href="/auth/login" className="header-login">Login</Link>
               </>
             )}
           </nav>
@@ -91,18 +96,21 @@ export function SiteHeader() {
         <Link href="/#pricing" onClick={() => setMobileNavOpen(false)}>Pricing</Link>
         <Link href="/#faq" onClick={() => setMobileNavOpen(false)}>FAQ</Link>
         <Link href="/contact" onClick={() => setMobileNavOpen(false)}>Contact</Link>
-        {(loading || !user) ? (
-          <>
-            <Link href="/auth/login" onClick={() => setMobileNavOpen(false)}>Login</Link>
-            <Link href="/auth/signup" className="mobile-nav-cta" onClick={() => setMobileNavOpen(false)}>Get Started</Link>
-          </>
-        ) : (
+        {isAuthed ? (
           <>
             <Link href="/dashboard" onClick={() => setMobileNavOpen(false)}>Dashboard</Link>
             <Link href="/booking/configure" className="mobile-nav-cta" onClick={() => setMobileNavOpen(false)}>Book Storage</Link>
           </>
+        ) : (
+          <>
+            <Link href="/auth/login" onClick={() => setMobileNavOpen(false)}>Login</Link>
+            <Link href="/auth/signup" className="mobile-nav-cta" onClick={() => setMobileNavOpen(false)}>Get Started</Link>
+          </>
         )}
       </div>
+      {shouldProbe ? (
+        <SupabaseUserProbe onResolved={(id) => setIsAuthed(!!id)} />
+      ) : null}
     </>
   );
 }
